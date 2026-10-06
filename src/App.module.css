@@ -1,0 +1,23 @@
+.app {
+  display: grid;
+  grid-template-rows: auto minmax(0, 1fr);
+  height: 100dvh;
+}
+
+.main {
+  display: grid;
+  grid-template-columns: minmax(0, 1fr) clamp(420px, 40vw, 640px);
+  min-height: 0;
+}
+
+/* До 1024px колонки складываются: редактор высотой 70vh, игра под ним. */
+@media (max-width: 1024px) {
+  .app {
+    height: auto;
+    min-height: 100dvh;
+  }
+
+  .main {
+    grid-template-columns: minmax(0, 1fr);
+  }
+}

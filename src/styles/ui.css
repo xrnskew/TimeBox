@@ -1,0 +1,131 @@
+/* Общие примитивы: кнопки, клавиши, метки. */
+
+.btn {
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  gap: 7px;
+  min-height: 32px;
+  padding: 0 12px;
+  border: 1px solid transparent;
+  border-radius: 8px;
+  background: transparent;
+  color: var(--ink);
+  font-size: 14px;
+  font-weight: 500;
+  line-height: 1;
+  white-space: nowrap;
+  transition:
+    background-color 0.12s,
+    border-color 0.12s,
+    color 0.12s;
+}
+
+.btn:disabled {
+  opacity: 0.45;
+}
+
+.btn--primary {
+  background: var(--accent);
+  color: var(--accent-ink);
+  font-weight: 600;
+}
+.btn--primary:hover:not(:disabled) {
+  background: color-mix(in srgb, var(--accent) 88%, white);
+}
+
+.btn--outline {
+  border-color: var(--line-strong);
+  background: var(--panel);
+}
+.btn--outline:hover:not(:disabled) {
+  border-color: var(--faint-text);
+  background: var(--raised);
+}
+
+.btn--ghost {
+  color: var(--dim);
+}
+.btn--ghost:hover:not(:disabled) {
+  background: var(--raised);
+  color: var(--ink);
+}
+
+.btn--warn {
+  border-color: color-mix(in srgb, var(--warn) 45%, transparent);
+  color: var(--warn);
+}
+.btn--warn:hover:not(:disabled) {
+  background: var(--warn-soft);
+}
+
+.btn--danger {
+  background: var(--danger);
+  color: var(--ground);
+  font-weight: 600;
+}
+
+.btn--small {
+  min-height: 28px;
+  padding: 0 10px;
+  font-size: 13px;
+}
+
+.btn--icon {
+  width: 32px;
+  padding: 0;
+}
+
+.btn[aria-pressed='true'] {
+  border-color: color-mix(in srgb, var(--accent) 55%, transparent);
+  background: var(--accent-soft);
+  color: var(--accent);
+}
+
+kbd {
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  min-width: 1.7em;
+  padding: 0.1em 0.45em;
+  border: 1px solid var(--line-strong);
+  border-bottom-width: 2px;
+  border-radius: 5px;
+  background: var(--panel);
+  color: var(--ink);
+  font-family: var(--font-mono);
+  font-size: 0.82em;
+  line-height: 1.35;
+  white-space: nowrap;
+}
+
+.chip {
+  display: inline-flex;
+  align-items: center;
+  gap: 5px;
+  padding: 2px 9px;
+  border-radius: 999px;
+  font-size: var(--text-s);
+  font-weight: 500;
+  line-height: 1.5;
+  white-space: nowrap;
+}
+.chip--ok {
+  background: var(--ok-soft);
+  color: var(--ok);
+}
+.chip--todo {
+  border: 1px solid var(--line-strong);
+  color: var(--faint-text);
+}
+
+.inline-code {
+  padding: 0.08em 0.38em;
+  border-radius: 4px;
+  background: var(--raised);
+  font-family: var(--font-mono);
+  font-size: 0.86em;
+  overflow-wrap: anywhere;
+  -webkit-box-decoration-break: clone;
+  box-decoration-break: clone;
+}

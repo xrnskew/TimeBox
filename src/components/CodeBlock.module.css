@@ -1,0 +1,33 @@
+.block {
+  margin: 0;
+  padding: 12px 0;
+  overflow-x: auto;
+  border: 1px solid var(--line);
+  border-radius: 10px;
+  background: var(--ground);
+  color: var(--ink);
+  font-family: var(--font-mono);
+  font-size: min(var(--code-size), 14px);
+  line-height: 1.6;
+  tab-size: 2;
+}
+
+.block code {
+  display: block;
+  min-width: max-content;
+  font: inherit;
+}
+
+.line {
+  display: grid;
+  grid-template-columns: 3.2em 1fr;
+  padding-right: 16px;
+}
+
+/* номера строк не копируются вместе с кодом */
+.num {
+  padding-right: 1em;
+  color: var(--faint);
+  text-align: right;
+  user-select: none;
+}

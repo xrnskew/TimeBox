@@ -1,20 +1,45 @@
 # TimeBox
 
-Конструктор видеоигр (веб-приложение). Подробное ТЗ ещё не добавлено — уточнять у пользователя.
+Конструктор видеоигр (веб-приложение). Сейчас в нём один урок — песочница «Лови яблоки»:
+ученик по шагам пишет игру на JavaScript, вкладки склеиваются в один скрипт и запускаются
+в iframe.
+
+- ТЗ и механизмы, которые нельзя ломать: `docs/SPEC.md`
+- План и предложения: `docs/PLAN.md`
 
 ## Стек
 
 - React 19, TypeScript (strict-ish: `noUnusedLocals`, `noUnusedParameters`, `erasableSyntaxOnly`)
-- Vite 8, `@vitejs/plugin-react`
-- Линтер: oxlint (`.oxlintrc.json`)
+- Vite 8, `@vitejs/plugin-react`, `vite-plugin-singlefile` (сборка — один `dist/index.html`)
+- CodeMirror 6, acorn
+- Стили — обычный CSS: токены в `src/styles/tokens.css`, компоненты на CSS-модулях. Tailwind нет.
+- Линтер: oxlint (`.oxlintrc.json`); формат — prettier `--print-width 120 --single-quote --no-semi`
 - Алиас `@/` → `src/` (настроен в `vite.config.ts` и `tsconfig.app.json`)
+
+## Устройство
+
+- `src/core/` — чистые модули без DOM и React (склейка, синтаксис, переводы ошибок, прогресс).
+  Импорты внутри — относительные с `.ts`, чтобы их можно было запускать прямо в Node:
+  `node -e "import('./src/core/syntax.ts').then(m => console.log(m.findSyntaxError('if (')))"`.
+- `src/lessons/catch/` — пакет урока: код вкладок, тексты гайда, подсказки. Ядро про яблоки не знает.
+- `src/sandbox/runtime.js` — первый скрипт в iframe (обвязка). В нём нельзя писать закрывающий тег скрипта.
+- `src/app/controller.ts` — вся логика приложения; React-компоненты тонкие и читают внешний стор.
+- `src/editor/` — CodeMirror: один EditorView, по EditorState на вкладку.
 
 ## Проверки перед коммитом
 
 ```bash
 npm run lint
-npm run build   # tsc -b + vite build
+npm run build      # tsc -b + vite build
+npm test           # vitest: ядро и логика игры без браузера
+npm run test:e2e   # playwright на dist/index.html (Chromium уже установлен в облачном окружении)
 ```
+
+## Деплой
+
+Vercel-проект `timebox` подключается к репозиторию GitHub и собирает основную ветку при
+каждом пуше; настройки сборки — в `vercel.json`. Вручную ничего не выкладывать без явной
+просьбы пользователя.
 
 ## Дизайн
 

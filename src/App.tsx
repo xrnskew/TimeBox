@@ -1,10 +1,22 @@
-function App() {
+import { ControllerContext } from '@/app/context.ts'
+import type { Controller } from '@/app/controller.ts'
+import { Dialogs } from '@/components/Dialogs.tsx'
+import { GamePanel } from '@/components/GamePanel.tsx'
+import { Header } from '@/components/Header.tsx'
+import { Workspace } from '@/components/Workspace.tsx'
+import styles from './App.module.css'
+
+export default function App({ controller }: { controller: Controller }) {
   return (
-    <main style={{ margin: 'auto', textAlign: 'center' }}>
-      <h1 style={{ color: 'var(--text-h)' }}>TimeBox</h1>
-      <p>Конструктор видеоигр</p>
-    </main>
+    <ControllerContext.Provider value={controller}>
+      <div className={styles.app}>
+        <Header />
+        <main className={styles.main}>
+          <Workspace />
+          <GamePanel />
+        </main>
+        <Dialogs />
+      </div>
+    </ControllerContext.Provider>
   )
 }
-
-export default App
