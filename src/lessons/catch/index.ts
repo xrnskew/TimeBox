@@ -4,7 +4,7 @@ import { CATCH_HINTS } from './hints.ts'
 import { FINISHED, TUTORIAL } from './tabs.ts'
 
 export const CATCH_LESSON: Lesson = {
-  title: 'Лови яблоки',
+  title: 'Catch',
   tutorial: TUTORIAL,
   finished: FINISHED,
   intro: GUIDE_INTRO,

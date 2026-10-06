@@ -127,6 +127,8 @@ export function createController(lesson: Lesson, variant: LessonVariant) {
   let logId = 0
 
   const codesNow = () => (editors ? editors.getCodes() : latestCodes)
+  /** Код всех вкладок, но у одной — новый (редактор ещё не применил правку). */
+  const codesWith = (tab: number, code: string) => codesNow().map((c, i) => (i === tab ? code : c))
   const title = (tab: number) => tabs[tab].title
 
   // ===== Сохранение =====
@@ -334,12 +336,12 @@ export function createController(lesson: Lesson, variant: LessonVariant) {
     if (!editors) return
     selectView(tab)
     if (editors.getCode(tab) === code) {
-      toast(`Этот код уже во вкладке «${title(tab)}». Нажми «Запустить».`)
+      toast(`Этот код уже во вкладке «${title(tab)}». Нажми «Собрать».`)
       return
     }
     editors.replace(tab, code)
     const ed = editors
-    toast(`${done} Теперь нажми «Запустить».`, () => ed.undo(tab))
+    toast(`${done} Теперь нажми «Собрать».`, () => ed.undo(tab))
   }
 
   function insertStep(index: number) {
@@ -347,13 +349,12 @@ export function createController(lesson: Lesson, variant: LessonVariant) {
     replaceTab(step.tab, step.code, `Код шага ${step.step} — во вкладке «${title(step.tab)}».`)
   }
 
-  /** Задание «поправь сам»: открыть вкладку и выделить то, что надо поменять. */
-  function openTask(stepIndex: number) {
-    const task = lesson.steps[stepIndex].task
-    if (!editors) return
+  /** Открыть вкладку задания: «поправь сам» — выделить, что менять; «собери» — к всплывшему куску. */
+  function openTask(stepIndex: number, taskIndex: number) {
+    const task = lesson.steps[stepIndex].tasks[taskIndex]
+    if (!task || !editors) return
     selectView(task.tab)
     if (task.kind === 'build') {
-      // куски всплывают прямо в коде — прокручиваем к следующему
       const next = nextPiece(stepIndex, editors.getCode(task.tab))
       if (next) editors.gotoLine(next.plan.after)
       else editors.focus()
@@ -364,10 +365,18 @@ export function createController(lesson: Lesson, variant: LessonVariant) {
     else editors.focus()
   }
 
+  /** Задание шага «собери по частям» (в шаге оно одно). */
+  function buildTaskOf(stepIndex: number) {
+    const tasks = lesson.steps[stepIndex].tasks
+    const index = tasks.findIndex((t) => t.kind === 'build')
+    const task = tasks[index]
+    return task?.kind === 'build' ? { task, index } : null
+  }
+
   /** Какую часть задания «собери по частям» добавлять сейчас: первая несделанная, если для неё есть место. */
   function nextPiece(stepIndex: number, code: string) {
-    const task = lesson.steps[stepIndex].task
-    if (task.kind !== 'build') return null
+    const task = buildTaskOf(stepIndex)?.task
+    if (!task) return null
     const index = task.pieces.findIndex((p) => !p.isDone(code))
     if (index < 0) return null
     const plan = task.pieces[index].plan(code)
@@ -378,13 +387,15 @@ export function createController(lesson: Lesson, variant: LessonVariant) {
   function slotSources(): (SlotSource | null)[] {
     return variant.tabs.map((_, tab) => {
       if (!variant.hasGuide) return null
-      const stepIndex = lesson.steps.findIndex((s) => s.task.kind === 'build' && s.task.tab === tab)
+      const stepIndex = lesson.steps.findIndex((_, i) => buildTaskOf(i)?.task.tab === tab)
       if (stepIndex < 0) return null
       const step = lesson.steps[stepIndex]
-      const task = step.task
-      if (task.kind !== 'build') return null
+      const { task, index: taskIndex } = buildTaskOf(stepIndex)!
       return (code: string) => {
         if (!stepDone(code, step.fns)) return null
+        // задания шага идут по одному: куски всплывают, когда дошла очередь сборки
+        const before = levelStates(lesson.steps, codesWith(task.tab, code))[stepIndex].tasksDone.slice(0, taskIndex)
+        if (!before.every(Boolean)) return null
         const next = nextPiece(stepIndex, code)
         if (!next) return null
         const piece = task.pieces[next.index]
@@ -402,8 +413,8 @@ export function createController(lesson: Lesson, variant: LessonVariant) {
 
   /** Задание «собери по частям»: добавить кусок функции. */
   function insertPiece(stepIndex: number, pieceIndex: number) {
-    const task = lesson.steps[stepIndex].task
-    if (task.kind !== 'build' || !editors) return
+    const task = buildTaskOf(stepIndex)?.task
+    if (!task || !editors) return
     const piece = task.pieces[pieceIndex]
     const code = editors.getCode(task.tab)
     selectView(task.tab)
@@ -423,9 +434,10 @@ export function createController(lesson: Lesson, variant: LessonVariant) {
     if (next) editors.reveal(next.plan.after)
     const ed = editors
     const done = task.pieces.every((p) => p.isDone(ed.getCode(task.tab)))
+    const more = buildTaskOf(stepIndex)!.index < lesson.steps[stepIndex].tasks.length - 1
     toast(
       done
-        ? `Функция собрана! Нажми «Запустить» — через 15 секунд яблоки полетят быстрее.`
+        ? `Функция собрана! Через 15 секунд после запуска яблоки полетят быстрее.${more ? ' Следующий квест — в «Гайде».' : ''}`
         : `Часть ${pieceIndex + 1} из ${task.pieces.length} на месте. Жми «Добавить» у следующей.`,
       () => ed.undo(task.tab),
     )
@@ -473,11 +485,11 @@ export function createController(lesson: Lesson, variant: LessonVariant) {
     selectView(extra.codes[0].tab)
     const where = extra.codes.map((c) => `«${title(c.tab)}»`).join(' и ')
     if (!changed.length) {
-      toast(`Этот код уже во вкладках ${where}. Нажми «Запустить».`)
+      toast(`Этот код уже во вкладках ${where}. Нажми «Собрать».`)
       return
     }
     for (const c of changed) ed.replace(c.tab, c.code)
-    toast(`${extra.emoji} ${extra.title} — во вкладках ${where}. Теперь нажми «Запустить».`, () => {
+    toast(`${extra.emoji} ${extra.title} — во вкладках ${where}. Теперь нажми «Собрать».`, () => {
       for (const c of changed) ed.undo(c.tab)
     })
   }

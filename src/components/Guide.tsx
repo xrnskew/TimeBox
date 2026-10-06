@@ -2,7 +2,7 @@ import { memo, useMemo, useState } from 'react'
 import { useApp, useController } from '@/app/context.ts'
 import { type ExtraState, extraStates, type LevelState, levelStates } from '@/core/levels.ts'
 import { type FnState, stepStates } from '@/core/progress.ts'
-import type { BuildTask, EditTask, GuideExtra, GuideStep } from '@/lessons/types.ts'
+import type { BuildTask, EditTask, GuideExtra, GuideStep, StepTask } from '@/lessons/types.ts'
 import { CodeBlock } from './CodeBlock.tsx'
 import { BulbIcon, CheckIcon, CodeIcon, HelpIcon, InsertIcon, LockIcon, TargetIcon, WarnIcon } from './icons.tsx'
 import { Rich } from './Rich.tsx'
@@ -36,15 +36,7 @@ export function Guide() {
 
       <ol className={styles.track} aria-label="Шаги">
         {lesson.steps.map((step, i) => (
-          <StepItem
-            key={step.step}
-            index={i}
-            step={step}
-            total={lesson.steps.length}
-            level={levels[i]}
-            code={codes[step.tab]}
-            taskCode={codes[step.task.tab]}
-          />
+          <StepItem key={step.step} index={i} step={step} total={lesson.steps.length} level={levels[i]} codes={codes} />
         ))}
       </ol>
 
@@ -90,21 +82,19 @@ const StepItem = memo(function StepItem({
   step,
   total,
   level,
-  code,
-  taskCode,
+  codes,
 }: {
   index: number
   step: GuideStep
   total: number
   level: LevelState
-  code: string
-  taskCode: string
+  codes: string[]
 }) {
   const c = useController()
   const [showCode, setShowCode] = useState(false)
   const [showHow, setShowHow] = useState(false)
   const tabTitle = c.variant.tabs[step.tab].title
-  const states = stepStates(code, step.fns)
+  const states = stepStates(codes[step.tab], step.fns)
   const id = `guide-step-${step.step}`
   const state = !level.unlocked ? 'locked' : level.done ? 'done' : 'active'
 
@@ -204,7 +194,22 @@ const StepItem = memo(function StepItem({
               ))}
             </ul>
 
-            {level.stepDone && <TaskBox stepIndex={index} step={step} done={level.taskDone} code={taskCode} />}
+            {/* задания открываются по одному: следующее — когда выполнено предыдущее */}
+            {level.stepDone &&
+              step.tasks.map((task, j) =>
+                level.tasksDone.slice(0, j).every(Boolean) ? (
+                  <TaskBox
+                    key={j}
+                    stepIndex={index}
+                    taskIndex={j}
+                    task={task}
+                    count={step.tasks.length}
+                    done={level.tasksDone[j]}
+                    code={codes[task.tab]}
+                    next={level.done && j === step.tasks.length - 1 && step.step < total ? step.step + 1 : null}
+                  />
+                ) : null,
+              )}
           </>
         )}
       </div>
@@ -213,12 +218,28 @@ const StepItem = memo(function StepItem({
 })
 
 /** Задание после шага: «поправь сам» или «собери по частям». */
-function TaskBox({ stepIndex, step, done, code }: { stepIndex: number; step: GuideStep; done: boolean; code: string }) {
-  const { task } = step
+function TaskBox({
+  stepIndex,
+  taskIndex,
+  task,
+  count,
+  done,
+  code,
+  next,
+}: {
+  stepIndex: number
+  taskIndex: number
+  task: StepTask
+  count: number
+  done: boolean
+  code: string
+  /** Номер шага, который открылся после этого задания. */
+  next: number | null
+}) {
   return (
     <section className={styles.task} data-done={done} aria-label={`Задание: ${task.title}`}>
       <div className={styles.taskHead}>
-        <span className={styles.taskLabel}>Задание</span>
+        <span className={styles.taskLabel}>{count > 1 ? `Задание ${taskIndex + 1} из ${count}` : 'Задание'}</span>
         <h3>{task.title}</h3>
         {done && (
           <span className="chip chip--ok">
@@ -231,16 +252,27 @@ function TaskBox({ stepIndex, step, done, code }: { stepIndex: number; step: Gui
         <Rich text={task.text} />
       </p>
       {task.kind === 'edit' ? (
-        <EditTaskBody stepIndex={stepIndex} task={task} done={done} />
+        <EditTaskBody stepIndex={stepIndex} taskIndex={taskIndex} task={task} done={done} />
       ) : (
-        <BuildTaskBody stepIndex={stepIndex} task={task} code={code} />
+        <BuildTaskBody stepIndex={stepIndex} taskIndex={taskIndex} task={task} code={code} />
       )}
-      {done && step.step < 3 && <p className={styles.unlocked}>Шаг {step.step + 1} открыт — листай ниже.</p>}
+      {done && taskIndex < count - 1 && <p className={styles.unlocked}>Задание {taskIndex + 2} — ниже.</p>}
+      {next && <p className={styles.unlocked}>Шаг {next} открыт — листай ниже.</p>}
     </section>
   )
 }
 
-function EditTaskBody({ stepIndex, task, done }: { stepIndex: number; task: EditTask; done: boolean }) {
+function EditTaskBody({
+  stepIndex,
+  taskIndex,
+  task,
+  done,
+}: {
+  stepIndex: number
+  taskIndex: number
+  task: EditTask
+  done: boolean
+}) {
   const c = useController()
   const [hint, setHint] = useState(false)
   const tabTitle = c.variant.tabs[task.tab].title
@@ -250,7 +282,7 @@ function EditTaskBody({ stepIndex, task, done }: { stepIndex: number; task: Edit
         <button
           type="button"
           className={done ? 'key key--l' : 'key key--sun key--l'}
-          onClick={() => c.openTask(stepIndex)}
+          onClick={() => c.openTask(stepIndex, taskIndex)}
         >
           <TargetIcon size={15} />
           Открыть «{tabTitle}»
@@ -274,7 +306,17 @@ function EditTaskBody({ stepIndex, task, done }: { stepIndex: number; task: Edit
 }
 
 /** Кнопки «Добавить» всплывают в самом коде вкладки; здесь — только какие части уже на месте. */
-function BuildTaskBody({ stepIndex, task, code }: { stepIndex: number; task: BuildTask; code: string }) {
+function BuildTaskBody({
+  stepIndex,
+  taskIndex,
+  task,
+  code,
+}: {
+  stepIndex: number
+  taskIndex: number
+  task: BuildTask
+  code: string
+}) {
   const c = useController()
   const done = task.pieces.map((p) => p.isDone(code))
   const all = done.every(Boolean)
@@ -299,7 +341,7 @@ function BuildTaskBody({ stepIndex, task, code }: { stepIndex: number; task: Bui
         <button
           type="button"
           className={all ? 'key key--l' : 'key key--sun key--l'}
-          onClick={() => c.openTask(stepIndex)}
+          onClick={() => c.openTask(stepIndex, taskIndex)}
         >
           <TargetIcon size={15} />
           Открыть «{c.variant.tabs[task.tab].title}»

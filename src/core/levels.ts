@@ -1,13 +1,16 @@
 import type { GuideExtra, GuideStep, StepTask } from '../lessons/types.ts'
 import { partDone, stepDone, varLine } from './progress.ts'
 
-// Уровни гайда: шаг + задание после него. Следующий шаг открывается, когда пройден
-// предыдущий уровень. Всё считается по коду, поэтому после перезагрузки прогресс тот же.
+// Уровни гайда: шаг + задания после него (по одному, по порядку). Следующий шаг открывается,
+// когда пройден предыдущий уровень. Всё считается по коду, поэтому после перезагрузки прогресс тот же.
 
 export interface LevelState {
   stepDone: boolean
+  /** Какие задания шага выполнены — по порядку. */
+  tasksDone: boolean[]
+  /** Все задания шага выполнены. */
   taskDone: boolean
-  /** Шаг и задание выполнены. */
+  /** Шаг и все задания выполнены. */
   done: boolean
   /** Можно вставлять код шага. */
   unlocked: boolean
@@ -22,10 +25,11 @@ export function levelStates(steps: GuideStep[], codes: string[]): LevelState[] {
   const out: LevelState[] = []
   steps.forEach((step, i) => {
     const s = stepDone(codes[step.tab], step.fns)
-    const t = s && taskDone(step.task, codes)
+    const tasksDone = step.tasks.map((task) => s && taskDone(task, codes))
+    const t = tasksDone.every(Boolean)
     // шаг, код которого уже есть, не прячем, даже если раньше что-то сломали
     const unlocked = i === 0 || out[i - 1].done || s
-    out.push({ stepDone: s, taskDone: t, done: s && t, unlocked })
+    out.push({ stepDone: s, tasksDone, taskDone: t, done: s && t, unlocked })
   })
   return out
 }

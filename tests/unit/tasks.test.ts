@@ -16,7 +16,7 @@ import {
   TUTORIAL_CODES,
   TUTORIAL_ENGINE,
 } from '@/lessons/catch/tabs.ts'
-import { BASKET_TASK, editTarget, SPEEDUP_TASK, TEN_POINTS_TASK } from '@/lessons/catch/tasks.ts'
+import { BASKET_TASK, editTarget, ITEM_TASK, SPEEDUP_TASK, TEN_POINTS_TASK } from '@/lessons/catch/tasks.ts'
 import type { InsertPlan } from '@/lessons/types.ts'
 import { boot } from './sim.ts'
 
@@ -27,8 +27,11 @@ function apply(code: string, plan: InsertPlan): string {
   return lines.join('\n')
 }
 
-const engineWith = (emoji: string) =>
-  TUTORIAL_ENGINE.replace('var playerEmoji = "🧺";', `var playerEmoji = "${emoji}";`)
+const engineWith = (emoji: string, item = '🍎') =>
+  TUTORIAL_ENGINE.replace('var playerEmoji = "🧺";', `var playerEmoji = "${emoji}";`).replace(
+    'var itemEmoji   = "🍎";',
+    `var itemEmoji   = "${item}";`,
+  )
 
 describe('задание шага 1: своя корзина', () => {
   it('засчитано, только когда смайлик другой', () => {
@@ -87,6 +90,29 @@ describe('задание шага 3: десять очков', () => {
   })
 })
 
+describe('второй квест шага 2: не только яблоки', () => {
+  it('засчитано, только когда 🍎 заменили', () => {
+    expect(ITEM_TASK.isDone(TUTORIAL_ENGINE)).toBe(false)
+    expect(ITEM_TASK.isDone(engineWith('🧺', '🍩'))).toBe(true)
+    expect(ITEM_TASK.isDone(engineWith('🧺', ' '))).toBe(false)
+  })
+
+  it('кнопка выделяет смайлик яблока', () => {
+    const at = editTarget(TUTORIAL_ENGINE, ITEM_TASK.target)!
+    expect(TUTORIAL_ENGINE.split('\n')[at.line - 1].slice(at.from, at.to)).toBe('🍎')
+  })
+
+  it('шаг 2 пройден, только когда выполнены оба задания — по порядку', () => {
+    const withSpeed = [engineWith('🐱'), STEP_HERO, GOLD_APPLES, TUTORIAL_CODES[3]]
+    const l1 = levelStates(GUIDE_STEPS, withSpeed)[1]
+    expect(l1).toMatchObject({ stepDone: true, tasksDone: [true, false], done: false })
+    expect(levelStates(GUIDE_STEPS, withSpeed)[2].unlocked).toBe(false)
+    withSpeed[0] = engineWith('🐱', '🐟')
+    expect(levelStates(GUIDE_STEPS, withSpeed)[1].done).toBe(true)
+    expect(levelStates(GUIDE_STEPS, withSpeed)[2].unlocked).toBe(true)
+  })
+})
+
 describe('шаги открываются по очереди', () => {
   it('в начале открыт только шаг 1', () => {
     expect(levelStates(GUIDE_STEPS, TUTORIAL_CODES).map((l) => l.unlocked)).toEqual([true, false, false])
@@ -113,7 +139,7 @@ describe('шаги открываются по очереди', () => {
   })
 
   it('код бомбы и звезды сохраняет ускорение и 10 очков', () => {
-    const levels = levelStates(GUIDE_STEPS, [engineWith('🐱'), STEP_HERO, GOLD_APPLES, GOLD_CATCH])
+    const levels = levelStates(GUIDE_STEPS, [engineWith('🐱', '🍩'), STEP_HERO, GOLD_APPLES, GOLD_CATCH])
     expect(levels.every((l) => l.done)).toBe(true)
   })
 })

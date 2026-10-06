@@ -1,7 +1,7 @@
 import { useEffect, useMemo, useRef } from 'react'
 import { useApp, useController } from '@/app/context.ts'
 import { extrasDone, levelsDone } from '@/app/controller.ts'
-import { CheckIcon, LogoApple, PlayIcon, ResetIcon } from './icons.tsx'
+import { CheckIcon, LogoCube, PlayIcon, ResetIcon } from './icons.tsx'
 import styles from './Header.module.css'
 
 export function Header() {
@@ -11,7 +11,7 @@ export function Header() {
   return (
     <header className={styles.header}>
       <div className={styles.brand}>
-        <LogoApple className={styles.logo} />
+        <LogoCube className={styles.logo} />
         <span className={styles.name}>TimeBox</span>
         {!tutorial && <span className={styles.tag}>готовая игра</span>}
       </div>
@@ -36,7 +36,7 @@ export function Header() {
           aria-keyshortcuts="Control+Enter"
         >
           <PlayIcon size={15} />
-          Запустить
+          Собрать
           <span className={styles.shortcut} aria-hidden="true">
             Ctrl+Enter
           </span>

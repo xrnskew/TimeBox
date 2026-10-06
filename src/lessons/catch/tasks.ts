@@ -23,7 +23,7 @@ export const BASKET_TASK: EditTask = {
   text: 'Зайди в «Движок» и поменяй 🧺 на любой другой смайлик — например, 🐱 или 🛸.',
   tab: 0,
   target: /var\s+playerEmoji\s*=\s*["'](?<emoji>[^"']*)["']/d,
-  hint: ['Это строка `var playerEmoji = "🧺";` в самом начале. Поменяй смайлик между кавычками и нажми «Запустить».'],
+  hint: ['Это строка `var playerEmoji = "🧺";` в самом начале. Поменяй смайлик между кавычками и нажми «Собрать».'],
   isDone(engine) {
     const m = PLAYER_EMOJI.exec(stripComments(engine))
     if (!m) return false
@@ -75,6 +75,25 @@ export const SPEEDUP_TASK: BuildTask = {
       isDone: (code) => has(code, SPEEDUP_CALL),
     },
   ],
+}
+
+// ===== Шаг 2, второй квест → свои яблоки =====
+
+const ITEM_EMOJI = /^\s*var\s+itemEmoji\s*=\s*(["'])(.*?)\1/m
+
+export const ITEM_TASK: EditTask = {
+  kind: 'edit',
+  title: 'Не только яблоки',
+  text: 'Зайди в «Движок» и поменяй 🍎 на что-нибудь другое — например, 🍩 или 🐟.',
+  tab: 0,
+  target: /var\s+itemEmoji\s*=\s*["'](?<emoji>[^"']*)["']/d,
+  hint: ['Это строка `var itemEmoji   = "🍎";` в самом начале. Поменяй смайлик между кавычками и нажми «Собрать».'],
+  isDone(engine) {
+    const m = ITEM_EMOJI.exec(stripComments(engine))
+    if (!m) return false
+    const emoji = m[2].trim()
+    return emoji !== '' && emoji !== '🍎'
+  },
 }
 
 // ===== Шаг 3 → десять очков =====

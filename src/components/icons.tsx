@@ -122,24 +122,15 @@ export function BadgeIcon({ kind }: { kind: 'empty' | 'code' | 'done' | 'error' 
   )
 }
 
-/** Логотип: красное яблоко с листиком. */
-export function LogoApple({ className }: { className?: string }) {
+/** Логотип TimeBox: белый кубик — три грани разной яркости, тёмные рёбра. */
+export function LogoCube({ className }: { className?: string }) {
   return (
     <svg viewBox="0 0 32 32" aria-hidden="true" focusable="false" className={className}>
-      <path
-        d="M16 10.4c-2.2-1.6-6.2-1.9-8.5.8-2.6 3-2.2 8.5.5 12.4 1.8 2.6 3.7 4.3 5.7 3.9 1-.2 1.5-.7 2.3-.7s1.4.5 2.3.7c2 .4 3.9-1.3 5.7-3.9 2.7-3.9 3.1-9.4.5-12.4-2.3-2.7-6.3-2.4-8.5-.8Z"
-        fill="var(--apple)"
-      />
-      <path
-        d="M11 14.5c-.8 1.2-1 3-.6 4.6"
-        fill="none"
-        stroke="#fff"
-        strokeOpacity=".55"
-        strokeWidth="1.6"
-        strokeLinecap="round"
-      />
-      <path d="M16 10.4c0-2.3.7-4.1 2-5.4" fill="none" stroke="var(--ink)" strokeWidth="1.8" strokeLinecap="round" />
-      <path d="M17.6 7.3c1.5-2 3.8-2.7 6-2.2-.5 2.2-2.6 3.7-6 2.2Z" fill="var(--leaf-fill)" />
+      <g stroke="#0f1116" strokeWidth="1.3" strokeLinejoin="round">
+        <path d="M16 2.8 28.2 9.8 16 16.8 3.8 9.8Z" fill="#ffffff" />
+        <path d="M3.8 9.8 16 16.8v13.4L3.8 23.2Z" fill="#dfe3ea" />
+        <path d="M28.2 9.8v13.4L16 30.2V16.8Z" fill="#b4bbc8" />
+      </g>
     </svg>
   )
 }

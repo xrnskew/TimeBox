@@ -10,16 +10,16 @@ import {
   STEP_CATCH,
   STEP_HERO,
 } from './tabs.ts'
-import { BASKET_TASK, SPEEDUP_TASK, TEN_POINTS_TASK } from './tasks.ts'
+import { BASKET_TASK, ITEM_TASK, SPEEDUP_TASK, TEN_POINTS_TASK } from './tasks.ts'
 
 // Тон: для подростка, который программирует впервые. Коротко, на «ты».
 // Подробности спрятаны за кнопкой «Как это работает».
 // В тексте `код` — инлайн-код, [[Ctrl]] — клавиша.
 
 export const GUIDE_INTRO: GuideIntro = {
-  title: 'Лови яблоки',
-  lead: 'Вставь код шага, нажми «Запустить» и выполни задание — тогда откроется следующий шаг.',
-  tips: ['[[Ctrl]] + [[Enter]] — запустить', '[[Ctrl]] + [[Z]] — отменить правку', 'Клик по экрану, потом [[←]] [[→]]'],
+  title: 'Catch',
+  lead: 'Вставь код шага, нажми «Собрать» и выполни задание — тогда откроется следующий шаг.',
+  tips: ['[[Ctrl]] + [[Enter]] — собрать', '[[Ctrl]] + [[Z]] — отменить правку', 'Клик по экрану, потом [[←]] [[→]]'],
 }
 
 export const GUIDE_STEPS: GuideStep[] = [
@@ -36,7 +36,7 @@ export const GUIDE_STEPS: GuideStep[] = [
     code: STEP_HERO,
     checks: ['Корзина ездит от [[←]] и [[→]]', 'И не уезжает за край'],
     fns: ['movePlayer', 'drawPlayer'],
-    task: BASKET_TASK,
+    tasks: [BASKET_TASK],
   },
   {
     step: 2,
@@ -51,7 +51,7 @@ export const GUIDE_STEPS: GuideStep[] = [
     code: STEP_APPLES,
     checks: ['Яблоки падают', 'В «Приборах» растёт `items`'],
     fns: ['moveItems', 'drawItems'],
-    task: SPEEDUP_TASK,
+    tasks: [SPEEDUP_TASK, ITEM_TASK],
   },
   {
     step: 3,
@@ -66,7 +66,7 @@ export const GUIDE_STEPS: GuideStep[] = [
     code: STEP_CATCH,
     checks: ['Поймал — счёт растёт', 'Три промаха — «Игра окончена»'],
     fns: ['checkCatch'],
-    task: TEN_POINTS_TASK,
+    tasks: [TEN_POINTS_TASK],
   },
 ]
 

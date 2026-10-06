@@ -47,7 +47,7 @@ function GameScreen() {
         key={runId}
         ref={setFrame}
         srcDoc={doc}
-        title="Игра «Лови яблоки»"
+        title="Игра Catch"
         className={styles.iframe}
         onLoad={onFrameLoad}
       />
@@ -60,7 +60,7 @@ function GameScreen() {
       {game === 'blocked' && (
         <div className={styles.card}>
           <strong>Игра не запустилась</strong>
-          <p>В коде ошибка. Исправь её и нажми «Запустить».</p>
+          <p>В коде ошибка. Исправь её и нажми «Собрать».</p>
           <button type="button" className="key key--sun key--s" onClick={c.showError}>
             Показать ошибку
           </button>

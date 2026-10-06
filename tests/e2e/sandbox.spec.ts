@@ -3,6 +3,7 @@ import {
   APP,
   buildGame,
   completeBasket,
+  completeItem,
   game,
   insertStep,
   open,
@@ -25,7 +26,8 @@ test('1. игра уже крутится, вкладки шагов пусты�
   expect(await game(page, 'typeof playSound')).toBe('undefined')
   // сверху — название конструктора, в гайде — название игры
   await expect(page.getByRole('banner')).toContainText('TimeBox')
-  await expect(page.getByRole('heading', { level: 1, name: 'Лови яблоки' })).toBeVisible()
+  await expect(page.getByRole('heading', { level: 1, name: 'Catch' })).toBeVisible()
+  await expect(page.getByRole('button', { name: 'Собрать' })).toBeVisible()
   await expect(page.getByRole('navigation', { name: 'Прогресс' }).getByRole('button')).toHaveCount(5)
   await expect(page.getByRole('navigation', { name: 'Прогресс' })).toContainText('0/5')
   expect(errors).toEqual([])
@@ -35,7 +37,7 @@ test('2. шаг 1: корзина ездит стрелками, страниц�
   await open(page)
   await insertStep(page, 1)
   await expect(page.getByRole('tab', { name: 'Герой' })).toHaveAttribute('aria-selected', 'true')
-  await expect(page.getByRole('status')).toContainText('Теперь нажми «Запустить»')
+  await expect(page.getByRole('status')).toContainText('Теперь нажми «Собрать»')
   await run(page)
   // игра забрала фокус сама
   await expect(page.getByText('Играем: жми')).toBeVisible()
@@ -94,6 +96,8 @@ test('«Всё быстрее»: части функции всплывают в
   // в гайде кнопок нет — только какие части на месте и переход во вкладку
   await tab(page, 'Гайд')
   const guideTask = page.locator('#guide-step-2')
+  // второй квест прячется, пока не собрано ускорение
+  await expect(guideTask.getByRole('region', { name: /^Задание:/ })).toHaveCount(1)
   await expect(guideTask.getByRole('button', { name: /^Добавить:/ })).toHaveCount(0)
   await expect(guideTask.getByRole('list', { name: 'Части функции' }).getByRole('listitem')).toHaveCount(4)
 
@@ -129,9 +133,19 @@ test('«Всё быстрее»: части функции всплывают в
   expect(apples).toContain(
     'function speedUp() {\n  if (frame % 900 === 0 && fallSpeed < 8) {\n    fallSpeed = fallSpeed + 1;\n  }\n}',
   )
+  // второй квест открылся только теперь; шаг 3 ждёт его
   await tab(page, 'Гайд')
-  await expect(page.locator('#guide-step-2')).toHaveAttribute('data-state', 'done')
+  const step2 = page.locator('#guide-step-2')
+  await expect(step2).toHaveAttribute('data-state', 'active')
+  await expect(step2.getByRole('region', { name: 'Задание: Не только яблоки' })).toContainText('Задание 2 из 2')
+  await expect(page.locator('#guide-step-3')).toHaveAttribute('data-state', 'locked')
+  await completeItem(page, '🐟')
+  expect((await savedCodes(page))[0]).toContain('var itemEmoji   = "🐟";')
+  await tab(page, 'Гайд')
+  await expect(step2).toHaveAttribute('data-state', 'done')
+  await expect(page.locator('#guide-step-3')).toHaveAttribute('data-state', 'active')
   await run(page)
+  expect(await game(page, 'itemEmoji')).toBe('🐟')
   await game(page, 'frame = 899; moveItems()')
   expect(await game(page, 'fallSpeed')).toBe(4)
   await game(page, 'fallSpeed = 8; frame = 1799; moveItems()')
@@ -175,7 +189,7 @@ test('4. сломанная скобка и ошибка выполнения: �
   await page.keyboard.press('Shift+Home')
   await page.keyboard.press('Backspace')
   await page.keyboard.press('Backspace')
-  await page.getByRole('button', { name: 'Запустить' }).click()
+  await page.getByRole('button', { name: 'Собрать' }).click()
   const bar = page.getByRole('alert')
   await expect(bar).toContainText('Ошибка во вкладке «Поимка», строка 2: скобка { открыта, но не закрыта')
   await expect(page.locator('iframe').locator('xpath=..')).toHaveAttribute('data-game', 'blocked')

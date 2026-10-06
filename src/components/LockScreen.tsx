@@ -1,7 +1,7 @@
 import { useRef, useState } from 'react'
 import { checkFinishedPassword } from '@/core/lock.ts'
 import { rememberFinishedUnlocked } from '@/sandbox/storage.ts'
-import { LockIcon, LogoApple } from './icons.tsx'
+import { LockIcon, LogoCube } from './icons.tsx'
 import styles from './LockScreen.module.css'
 
 /** Экран перед готовой игрой: без пароля она не откроется, даже по прямой ссылке. */
@@ -26,7 +26,7 @@ export function LockScreen({ onUnlock }: { onUnlock: () => void }) {
         }}
       >
         <span className={styles.badge} aria-hidden="true">
-          <LogoApple className={styles.logo} />
+          <LogoCube className={styles.logo} />
           <span className={styles.lock}>
             <LockIcon size={16} />
           </span>
