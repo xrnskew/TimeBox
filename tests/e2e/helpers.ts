@@ -1,8 +1,7 @@
-import { resolve } from 'node:path'
-import { pathToFileURL } from 'node:url'
-import { expect, type Page } from '@playwright/test'
+import { expect, type Page, test } from '@playwright/test'
 
-export const APP = pathToFileURL(resolve('dist/index.html')).href
+/** Адрес песочницы в текущем проекте проверок: файл через file:// или сайт в подпапке. */
+export const app = () => test.info().project.use.baseURL!
 export const KEY = 'catch-sandbox-v1'
 
 /** Открыть песочницу с чистым хранилищем и дождаться редактора и игры. */
@@ -12,7 +11,7 @@ export async function open(page: Page, query = '') {
   page.on('console', (m) => {
     if (m.type() === 'error') errors.push(m.text())
   })
-  await page.goto(APP + query)
+  await page.goto(app() + query)
   await expect(page.locator('.cm-editor')).toHaveCount(1)
   await waitGame(page)
   return errors

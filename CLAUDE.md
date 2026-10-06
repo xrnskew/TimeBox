@@ -10,7 +10,8 @@
 ## Стек
 
 - React 19, TypeScript (strict-ish: `noUnusedLocals`, `noUnusedParameters`, `erasableSyntaxOnly`)
-- Vite 8, `@vitejs/plugin-react`, `vite-plugin-singlefile` (сборка — один `dist/index.html`)
+- Vite 8, `@vitejs/plugin-react`; `npm run build` — сайт в `dist/` (base из `BASE_PATH`, по умолчанию `/`),
+  `npm run build:single` — один файл `dist-single/hitbox.html` через `vite-plugin-singlefile`
 - CodeMirror 6, acorn
 - Стили — обычный CSS: токены в `src/styles/tokens.css`, компоненты на CSS-модулях. Tailwind нет.
 - Линтер: oxlint (`.oxlintrc.json`); формат — prettier `--print-width 120 --single-quote --no-semi`
@@ -34,14 +35,15 @@
 npm run lint
 npm run build      # tsc -b + vite build
 npm test           # vitest: ядро и логика игры без браузера
-npm run test:e2e   # playwright на dist/index.html (Chromium уже установлен в облачном окружении)
+npm run test:e2e   # playwright: hitbox.html через file:// и сайт в /TimeBox/ (Chromium уже установлен в облачном окружении)
 ```
 
 ## Деплой
 
 Vercel-проект `timebox` подключается к репозиторию GitHub и собирает основную ветку при
-каждом пуше; настройки сборки — в `vercel.json`. Вручную ничего не выкладывать без явной
-просьбы пользователя.
+каждом пуше; настройки сборки — в `vercel.json`. Запасной адрес — GitHub Pages
+(`.github/workflows/pages.yml`, base `/<репозиторий>/` через `BASE_PATH`); туда же кладётся
+`hitbox.html`. Вручную ничего не выкладывать без явной просьбы пользователя.
 
 ## Дизайн
 
