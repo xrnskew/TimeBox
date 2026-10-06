@@ -1,0 +1,106 @@
+/* Токены. Тёмная тема — из ТЗ; две правки по контрасту:
+   faint (#636873, 3.3:1) — только для декора и номеров строк, для текста — faint-text;
+   comment поднят с #6a9955 до #72a35c, чтобы на подсвеченной строке было не меньше 4.5:1. */
+:root,
+:root[data-theme='dark'] {
+  color-scheme: dark;
+
+  --ground: #141519;
+  --surface: #1b1d22;
+  --panel: #202228;
+  --raised: #292c33;
+  --line: #2d3037;
+  --line-strong: #3a3e47;
+
+  --ink: #dcdee3;
+  --dim: #9197a1;
+  --faint: #636873;
+  --faint-text: #80858f;
+
+  --accent: #4fc3f7;
+  --accent-ink: #06202c;
+  --accent-soft: rgba(79, 195, 247, 0.14);
+  --ok: #7cc47f;
+  --ok-soft: rgba(124, 196, 127, 0.14);
+  --warn: #e5b567;
+  --warn-soft: rgba(229, 181, 103, 0.12);
+  --danger: #f28b82;
+
+  --danger-bg: #2a1a1b;
+  --danger-border: #4a2b2c;
+  --danger-ink: #f3c4bf;
+  --danger-line: rgba(242, 139, 130, 0.13);
+
+  --selection: rgba(79, 195, 247, 0.2);
+  --selection-strong: rgba(79, 195, 247, 0.26);
+  --active-line: rgba(255, 255, 255, 0.035);
+  --bracket: rgba(79, 195, 247, 0.12);
+  --scrim: rgba(10, 11, 14, 0.6);
+  --shadow-pop: 0 10px 30px rgba(0, 0, 0, 0.45);
+
+  /* Подсветка в стиле VS Code */
+  --tok-comment: #72a35c;
+  --tok-string: #ce9178;
+  --tok-number: #b5cea8;
+  --tok-keyword: #569cd6;
+  --tok-definition: #dcdcaa;
+  --tok-variable: #9cdcfe;
+  --tok-operator: #d4d4d4;
+
+  --font-ui: 'Onest', system-ui, -apple-system, 'Segoe UI', sans-serif;
+  --font-mono: 'JetBrains Mono', ui-monospace, 'Cascadia Mono', Consolas, monospace;
+  --code-size: 14px;
+
+  /* Шкала: 13 / 15 / 17 / 21 / 28 */
+  --text-s: 13px;
+  --text-m: 15px;
+  --text-l: 17px;
+  --text-xl: 21px;
+  --text-xxl: 28px;
+}
+
+/* Режим проектора: светлая контрастная тема. Тёмная на проекторе выцветает. */
+:root[data-theme='projector'] {
+  color-scheme: light;
+
+  --ground: #eceef2;
+  --surface: #ffffff;
+  --panel: #f4f5f7;
+  --raised: #e7eaef;
+  --line: #d6dae1;
+  --line-strong: #bcc2cc;
+
+  --ink: #15171c;
+  --dim: #454b55;
+  --faint: #9aa0aa;
+  --faint-text: #5b616b;
+
+  --accent: #0b62a0;
+  --accent-ink: #ffffff;
+  --accent-soft: rgba(11, 98, 160, 0.1);
+  --ok: #2d7330;
+  --ok-soft: rgba(45, 115, 48, 0.1);
+  --warn: #805300;
+  --warn-soft: rgba(128, 83, 0, 0.08);
+  --danger: #b3261e;
+
+  --danger-bg: #fdecea;
+  --danger-border: #f2c3bd;
+  --danger-ink: #8c1d13;
+  --danger-line: rgba(179, 38, 30, 0.1);
+
+  --selection: rgba(11, 98, 160, 0.16);
+  --selection-strong: rgba(11, 98, 160, 0.22);
+  --active-line: rgba(0, 0, 0, 0.035);
+  --bracket: rgba(11, 98, 160, 0.12);
+  --scrim: rgba(30, 34, 42, 0.45);
+  --shadow-pop: 0 10px 30px rgba(20, 30, 50, 0.16);
+
+  --tok-comment: #3d7526;
+  --tok-string: #a1350f;
+  --tok-number: #17694a;
+  --tok-keyword: #1f4fc4;
+  --tok-definition: #6e5200;
+  --tok-variable: #0b4a78;
+  --tok-operator: #3b3f46;
+}
