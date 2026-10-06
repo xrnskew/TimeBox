@@ -32,17 +32,21 @@ export interface GuideStep {
   /** Индекс вкладки, куда вставляется код. */
   tab: number
   title: string
+  /** Одна строка: что получится после шага. */
+  lead: Rich
+  /** «Как это работает» — открывается по кнопке. */
+  how: Rich[]
+  code: string
+  /** Что проверить после запуска — коротко. */
+  checks: Rich[]
   /** Функции, которые должны быть объявлены и не пустые. */
   fns: string[]
-  body: Rich[]
-  code: string
-  checks: Rich[]
 }
 
 export interface GuideTask {
   n: number
   title: string
-  body: Rich[]
+  text: Rich
   hint: Rich[]
 }
 
@@ -51,7 +55,6 @@ export type GuidePart =
       mode: 'settings'
       title: string
       tab: number
-      body: Rich[]
       /** Имя переменной и строка, которая добавляется в «Движок». */
       name: string
       line: string
@@ -60,7 +63,6 @@ export type GuidePart =
       mode: 'replace'
       title: string
       tab: number
-      body: Rich[]
       code: string
       /** Признак «уже есть в коде» — проверяется по коду без комментариев. */
       marks: RegExp[]
@@ -70,8 +72,15 @@ export interface GuideExtra {
   n: number
   emoji: string
   title: string
-  body: Rich[]
+  text: Rich
   parts: GuidePart[]
+}
+
+export interface GuideIntro {
+  title: string
+  lead: Rich
+  /** Короткие подсказки с клавишами. */
+  tips: Rich[]
 }
 
 export interface Hint {
@@ -94,7 +103,7 @@ export interface Lesson {
   title: string
   tutorial: LessonVariant
   finished: LessonVariant
-  intro: Rich[]
+  intro: GuideIntro
   steps: GuideStep[]
   tasks: GuideTask[]
   extras: GuideExtra[]

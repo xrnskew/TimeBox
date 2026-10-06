@@ -8,7 +8,6 @@
 export interface RunConfig {
   /** Забрать фокус после загрузки. false — если до запуска нашли синтаксическую ошибку. */
   focus: boolean
-  speed: number
   hitboxes: boolean
 }
 
@@ -58,7 +57,7 @@ const escapeScriptEnd = (code: string) => code.replace(/<\/(script)/gi, '<\\/$1'
 
 export function createRunner(runtime: string): Runner {
   if (/<\/script/i.test(runtime)) throw new Error('В обвязке не должно быть </script>')
-  const sample = prefix(runtime, { focus: true, speed: 1, hitboxes: false })
+  const sample = prefix(runtime, { focus: true, hitboxes: false })
   // Считается автоматически: при правке обвязки ничего пересчитывать руками не надо.
   const headerLines = sample.split('\n').length - 1
 

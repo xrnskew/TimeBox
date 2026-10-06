@@ -1,29 +1,56 @@
 .workspace {
   display: flex;
   flex-direction: column;
+  gap: 12px;
   min-width: 0;
   min-height: 0;
-  border-right: 1px solid var(--line);
-  background: var(--surface);
+}
+
+/* Карточка: белый лист для гайда, тёмный монитор для кода */
+.card {
+  position: relative;
+  display: flex;
+  flex: 1;
+  flex-direction: column;
+  min-height: 0;
+  overflow: hidden;
+  border-radius: var(--radius-card);
+}
+
+.card[data-view='guide'] {
+  border: 1px solid var(--rule);
+  background: var(--paper);
+}
+
+.card[data-view='code'] {
+  border: 1px solid #0d1016;
+  background: var(--scr);
+  box-shadow: inset 0 0 0 6px var(--scr-2);
 }
 
 .note {
   display: flex;
   align-items: center;
   gap: 12px;
-  min-height: 40px;
-  padding: 5px 10px 5px 16px;
-  border-bottom: 1px solid var(--line);
+  min-height: 50px;
+  margin: 6px 6px 0;
+  padding: 6px 10px 6px 16px;
+  border-radius: 16px 16px 0 0;
+  background: var(--scr-2);
 }
 
 .note p {
   flex: 1;
   margin: 0;
   overflow: hidden;
-  color: var(--dim);
+  color: var(--scr-dim);
   font-size: var(--text-s);
   text-overflow: ellipsis;
   white-space: nowrap;
+}
+
+.note :global(.key) {
+  margin-bottom: 2px;
 }
 
 .work {
@@ -36,6 +63,10 @@
 .guide {
   position: absolute;
   inset: 0;
+}
+
+.editor {
+  inset: 0 6px 6px;
 }
 
 .editor :global(.cm-editor) {
@@ -55,34 +86,43 @@
 .toast {
   position: absolute;
   z-index: 10;
-  bottom: 16px;
+  bottom: 18px;
   left: 50%;
   display: flex;
   align-items: center;
-  gap: 8px;
+  gap: 10px;
   width: max-content;
   max-width: calc(100% - 32px);
-  padding: 8px 8px 8px 16px;
+  padding: 10px 10px 10px 18px;
   overflow: hidden;
-  border: 1px solid var(--line-strong);
-  border-radius: 10px;
-  background: var(--raised);
+  border-radius: 16px;
+  background: var(--ink);
+  color: #fff;
   box-shadow: var(--shadow-pop);
   transform: translateX(-50%);
   animation: rise 0.18s ease-out;
 }
 
 .toast p {
-  margin: 0 6px 0 0;
+  margin: 0 4px 0 0;
   font-size: 14px;
   line-height: 1.4;
+}
+
+.toast :global(.key) {
+  margin-bottom: 2px;
+}
+
+.close {
+  --key-bg: transparent;
+  --key-edge: transparent;
 }
 
 .countdown {
   position: absolute;
   inset: auto 0 0;
-  height: 2px;
-  background: var(--accent);
+  height: 3px;
+  background: var(--sun);
   transform-origin: left;
   animation: countdown linear forwards;
 }
@@ -99,7 +139,7 @@
 @keyframes rise {
   from {
     opacity: 0;
-    transform: translate(-50%, 6px);
+    transform: translate(-50%, 8px);
   }
 }
 
@@ -108,16 +148,17 @@
   display: flex;
   align-items: flex-start;
   gap: 10px;
-  padding: 10px 12px 10px 14px;
-  border-top: 1px solid var(--danger-border);
-  background: var(--danger-bg);
-  color: var(--danger-ink);
+  margin: 0 6px 6px;
+  padding: 10px 10px 8px 14px;
+  border-radius: 0 0 16px 16px;
+  background: var(--scr-danger-bg);
+  color: #ffd4d6;
 }
 
 .errorIcon {
   flex-shrink: 0;
   margin-top: 2px;
-  color: var(--danger);
+  color: var(--scr-danger);
 }
 
 .error p {
@@ -129,15 +170,16 @@
   overflow-wrap: anywhere;
 }
 
-@media (max-width: 1024px) {
-  .workspace {
-    border-right: 0;
-    border-bottom: 1px solid var(--line);
-  }
+/* в гайде ошибка — та же плашка, но на белом листе */
+.card[data-view='guide'] .error {
+  margin: 0;
+  border-radius: 0;
+}
 
-  .work {
+@media (max-width: 1024px) {
+  .card {
     flex: none;
-    height: 70vh;
+    height: 72vh;
   }
 }
 

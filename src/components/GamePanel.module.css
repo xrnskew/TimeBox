@@ -1,42 +1,55 @@
 .panel {
-  /* ширина игры; под неё подстраиваются инструменты */
-  --game-w: min(100%, 380px);
+  /* ширина приставки; экран внутри неё всегда 380 : 470 */
+  --console-w: min(100%, 440px);
   display: flex;
   flex-direction: column;
   align-items: center;
-  gap: 12px;
+  gap: 16px;
   min-width: 0;
   min-height: 0;
-  padding: 20px 20px 28px;
+  padding: 4px 4px 24px;
   overflow-y: auto;
-  background: var(--ground);
-}
-
-/* Рамка игры: 380px на узких экранах, на широких — чтобы под игрой всегда было видно подсказку.
-   Внутренний размер холста остаётся 380 × 470, рамка может быть любой ширины. */
-.frame {
-  position: relative;
-  flex-shrink: 0;
-  width: var(--game-w);
-  aspect-ratio: 380 / 470;
-  overflow: hidden;
-  border: 1px solid var(--line-strong);
-  border-radius: 14px;
-  background: #141414;
-  transition:
-    border-color 0.15s,
-    box-shadow 0.15s;
 }
 
 @media (min-width: 1025px) {
   .panel {
-    --game-w: min(100%, 600px, calc((100dvh - 330px) * 380 / 470));
+    --console-w: min(560px, max(400px, calc((100dvh - 430px) * 380 / 470 + 60px)));
   }
 }
 
-.frame[data-focused='true'] {
-  border-color: var(--accent);
-  box-shadow: 0 0 0 3px var(--accent-soft);
+/* ===== Приставка ===== */
+.console {
+  flex-shrink: 0;
+  width: var(--console-w);
+  padding: 18px 18px 14px;
+  border-radius: 30px 30px 46px 46px;
+  background: linear-gradient(165deg, var(--apple-hi), var(--apple) 42%, #c0261e);
+  box-shadow:
+    inset 0 2px 0 rgba(255, 255, 255, 0.35),
+    inset 0 -5px 0 rgba(0, 0, 0, 0.16),
+    0 24px 44px -16px rgba(161, 29, 23, 0.55);
+}
+
+.bezel {
+  padding: 12px 12px 4px;
+  border-radius: 18px 18px 30px 18px;
+  background: #20232c;
+  box-shadow:
+    inset 0 2px 8px rgba(0, 0, 0, 0.55),
+    0 1px 0 rgba(255, 255, 255, 0.25);
+}
+
+.screen {
+  position: relative;
+  aspect-ratio: 380 / 470;
+  overflow: hidden;
+  border-radius: 8px;
+  background: #141414;
+  transition: box-shadow 0.15s;
+}
+
+.screen[data-focused='true'] {
+  box-shadow: 0 0 0 2px rgba(91, 227, 125, 0.55);
 }
 
 .iframe {
@@ -46,44 +59,70 @@
   border: 0;
 }
 
+.led {
+  display: flex;
+  align-items: center;
+  gap: 8px;
+  min-height: 30px;
+  margin: 0;
+  padding: 0 4px;
+  color: #9aa1ae;
+  font-size: 12.5px;
+  font-weight: 500;
+}
+
+.led[data-on='true'] {
+  color: #e2e6ee;
+}
+
+.ledDot {
+  width: 9px;
+  height: 9px;
+  border-radius: 50%;
+  background: #5a2a2a;
+  box-shadow: inset 0 1px 2px rgba(0, 0, 0, 0.6);
+  transition:
+    background-color 0.2s,
+    box-shadow 0.2s;
+}
+
+.led[data-on='true'] .ledDot {
+  background: #5be37d;
+  box-shadow: 0 0 10px #5be37d;
+}
+
+/* ===== Надписи поверх экрана: всегда тёмные, под ними тёмный холст ===== */
 .clickToPlay {
   position: absolute;
   inset: 0;
   display: grid;
   place-items: center;
   border: 0;
-  background: rgba(10, 11, 14, 0.28);
+  background: rgba(10, 11, 14, 0.3);
   cursor: pointer;
 }
 
 .clickToPlay span {
-  padding: 10px 18px;
+  padding: 11px 20px;
   border-radius: 999px;
-  background: rgba(20, 21, 25, 0.88);
-  color: #f2f3f5;
-  font-size: var(--text-m);
-  font-weight: 600;
-  box-shadow: 0 0 0 1px rgba(255, 255, 255, 0.12);
+  background: #fff;
+  color: var(--ink);
+  font-family: var(--font-display);
+  font-size: 14px;
+  font-weight: 700;
+  box-shadow: 0 4px 0 var(--rule-2);
+  transition: transform 0.07s;
 }
 
 .clickToPlay:hover span {
-  box-shadow: 0 0 0 2px #4fc3f7;
+  transform: translateY(-1px);
 }
 
-.pausedChip {
-  position: absolute;
-  top: 12px;
-  right: 12px;
-  padding: 3px 10px;
-  border-radius: 999px;
-  background: rgba(20, 21, 25, 0.88);
-  color: #e5b567;
-  font-size: var(--text-s);
-  font-weight: 600;
-  box-shadow: 0 0 0 1px rgba(229, 181, 103, 0.4);
+.clickToPlay:active span {
+  box-shadow: 0 0 0 var(--rule-2);
+  transform: translateY(4px);
 }
 
-/* Карточки поверх игры всегда тёмные: под ними тёмный холст, в любой теме. */
 .card,
 .bottomCard {
   position: absolute;
@@ -92,10 +131,10 @@
   justify-items: center;
   gap: 8px;
   width: min(86%, 300px);
-  padding: 14px 16px;
-  border-radius: 12px;
-  background: rgba(27, 29, 34, 0.94);
-  color: #dcdee3;
+  padding: 16px 16px 12px;
+  border-radius: 16px;
+  background: rgba(24, 28, 37, 0.95);
+  color: var(--scr-ink);
   text-align: center;
   box-shadow: 0 0 0 1px rgba(255, 255, 255, 0.1);
   transform: translateX(-50%);
@@ -107,13 +146,15 @@
 }
 
 .card strong {
-  font-size: var(--text-l);
+  font-family: var(--font-display);
+  font-size: var(--text-m);
+  font-weight: 700;
 }
 
 .card p,
 .bottomCard p {
   margin: 0;
-  color: #b9bdc6;
+  color: var(--scr-dim);
   font-size: 14px;
 }
 
@@ -126,93 +167,154 @@
   font-variant-numeric: tabular-nums;
 }
 
-/* ===== Под игрой ===== */
+/* ===== Кнопки на корпусе ===== */
 .controls {
   display: flex;
-  flex-wrap: wrap;
-  justify-content: center;
-  gap: 6px;
+  align-items: center;
+  gap: 16px;
+  margin-top: 16px;
+  padding: 0 4px;
 }
 
-.hint {
-  margin: -2px 0 0;
-  color: var(--dim);
-  font-size: var(--text-s);
+.dpad {
+  display: flex;
+  gap: 10px;
 }
 
-.touch {
-  display: none;
-  gap: 12px;
-}
-
-@media (pointer: coarse), (hover: none) {
-  .touch {
-    display: flex;
-  }
-}
-
-.touchKey {
-  width: 88px;
-  height: 64px;
-  border: 1px solid var(--line-strong);
-  border-radius: 14px;
-  background: var(--panel);
-  color: var(--ink);
-  font-size: 28px;
+.arrow {
+  display: grid;
+  place-items: center;
+  width: 62px;
+  height: 52px;
+  border: 0;
+  border-radius: 16px;
+  background: #1f222b;
+  color: #eceef2;
+  box-shadow:
+    0 5px 0 #0b0d12,
+    inset 0 1px 0 rgba(255, 255, 255, 0.14);
   touch-action: none;
   user-select: none;
   -webkit-user-select: none;
+  -webkit-tap-highlight-color: transparent;
+  transition:
+    transform 0.06s,
+    box-shadow 0.06s;
 }
 
-.touchKey:active {
-  background: var(--raised);
-  border-color: var(--accent);
+.arrow:active {
+  box-shadow:
+    0 0 0 #0b0d12,
+    inset 0 1px 0 rgba(255, 255, 255, 0.14);
+  transform: translateY(5px);
+}
+
+.switch {
+  display: flex;
+  align-items: center;
+  gap: 10px;
+  margin-left: auto;
+  padding: 6px 4px;
+  border: 0;
+  background: transparent;
+  color: #fff;
+  font-size: 14px;
+  font-weight: 700;
+}
+
+.switch:disabled {
+  opacity: 0.55;
+}
+
+.track {
+  position: relative;
+  width: 48px;
+  height: 28px;
+  border-radius: 999px;
+  background: rgba(0, 0, 0, 0.28);
+  box-shadow: inset 0 2px 4px rgba(0, 0, 0, 0.35);
+  transition: background-color 0.15s;
+}
+
+.thumb {
+  position: absolute;
+  top: 4px;
+  left: 4px;
+  width: 20px;
+  height: 20px;
+  border-radius: 50%;
+  background: #fbf7f5;
+  box-shadow: 0 2px 0 rgba(0, 0, 0, 0.25);
+  transition: transform 0.15s;
+}
+
+.switch[aria-checked='true'] .track {
+  background: var(--sun);
+}
+
+.switch[aria-checked='true'] .thumb {
+  transform: translateX(20px);
+}
+
+.grille {
+  display: flex;
+  gap: 5px;
+  margin-right: 4px;
+  transform: rotate(-28deg);
+}
+
+.grille i {
+  width: 5px;
+  height: 28px;
+  border-radius: 3px;
+  background: rgba(0, 0, 0, 0.22);
+  box-shadow: inset 0 1px 2px rgba(0, 0, 0, 0.3);
 }
 
 /* ===== Приборы и консоль ===== */
 .tools {
-  width: max(var(--game-w), min(100%, 400px));
-  border: 1px solid var(--line);
-  border-radius: 12px;
-  background: var(--surface);
+  flex-shrink: 0;
+  width: var(--console-w);
+  overflow: hidden;
+  border: 1px solid var(--rule);
+  border-radius: 18px;
+  background: var(--paper);
 }
 
 .toolTabs {
   display: flex;
-  border-bottom: 1px solid var(--line);
+  gap: 4px;
+  padding: 6px 6px 0;
 }
 
 .toolTabs button {
-  position: relative;
   display: inline-flex;
   align-items: center;
   gap: 6px;
-  padding: 7px 14px;
+  padding: 7px 12px;
   border: 0;
+  border-radius: 10px;
   background: transparent;
-  color: var(--dim);
+  color: var(--ink-2);
   font-size: var(--text-s);
-  font-weight: 500;
+  font-weight: 600;
+}
+
+.toolTabs button:hover {
+  background: var(--paper-2);
 }
 
 .toolTabs button[aria-selected='true'] {
+  background: var(--paper-2);
   color: var(--ink);
-}
-
-.toolTabs button[aria-selected='true']::after {
-  content: '';
-  position: absolute;
-  inset: auto 10px -1px;
-  height: 2px;
-  background: var(--accent);
 }
 
 .unread {
   min-width: 18px;
   padding: 0 5px;
   border-radius: 999px;
-  background: var(--accent);
-  color: var(--accent-ink);
+  background: var(--apple);
+  color: #fff;
   font-size: 11px;
   line-height: 18px;
   text-align: center;
@@ -220,13 +322,13 @@
 
 .toolBody {
   position: relative;
-  padding: 8px 14px 10px;
+  padding: 10px 16px 12px;
 }
 
 .inspector {
   display: grid;
   grid-template-columns: repeat(3, minmax(0, 1fr));
-  gap: 4px 16px;
+  gap: 6px 16px;
   margin: 0;
 }
 
@@ -236,7 +338,7 @@
 
 .inspector dt {
   overflow: hidden;
-  color: var(--tok-variable);
+  color: var(--ink-2);
   font-family: var(--font-mono);
   font-size: 12px;
   text-overflow: ellipsis;
@@ -246,8 +348,9 @@
   margin: 0;
   overflow: hidden;
   color: var(--ink);
-  font-family: var(--font-mono);
+  font-family: var(--font-display);
   font-size: var(--text-m);
+  font-weight: 600;
   font-variant-numeric: tabular-nums;
   text-overflow: ellipsis;
   white-space: nowrap;
@@ -255,15 +358,15 @@
 
 .empty {
   margin: 2px 0;
-  color: var(--dim);
+  color: var(--ink-2);
   font-size: var(--text-s);
   line-height: 1.6;
 }
 
-.console {
-  max-height: 168px;
+.logList {
+  max-height: 150px;
   margin: 0;
-  padding: 0 0 28px;
+  padding: 0 0 34px;
   overflow-y: auto;
   list-style: none;
   font-family: var(--font-mono);
@@ -271,74 +374,55 @@
   line-height: 1.55;
 }
 
-.console li {
+.logList li {
   display: flex;
   gap: 10px;
   justify-content: space-between;
-  padding: 2px 0;
-  border-bottom: 1px solid var(--line);
+  padding: 3px 0;
+  border-bottom: 1px solid var(--paper-2);
   overflow-wrap: anywhere;
 }
 
-.console li[data-level='warn'] {
-  color: var(--warn);
+.logList li[data-level='warn'] {
+  color: #8a5a00;
 }
 
-.console li[data-level='error'] {
+.logList li[data-level='error'] {
   color: var(--danger);
 }
 
 .count {
   flex-shrink: 0;
-  color: var(--faint-text);
+  color: var(--ink-2);
 }
 
 .clear {
   position: absolute;
-  right: 8px;
+  right: 10px;
   bottom: 6px;
-}
-
-/* ===== Игра по ссылке ===== */
-.shared {
-  display: flex;
-  flex-wrap: wrap;
-  align-items: center;
-  justify-content: space-between;
-  gap: 8px 12px;
-  width: max(var(--game-w), min(100%, 400px));
-  padding: 10px 12px 10px 14px;
-  border: 1px solid color-mix(in srgb, var(--accent) 45%, transparent);
-  border-radius: 12px;
-  background: var(--accent-soft);
-}
-
-.shared p {
-  margin: 0;
-  font-size: 14px;
-}
-
-.shared div {
-  display: flex;
-  gap: 6px;
 }
 
 /* ===== Готовая версия ===== */
 .features {
-  width: max(var(--game-w), min(100%, 400px));
-  padding: 4px 4px 0;
+  flex-shrink: 0;
+  width: var(--console-w);
+  padding: 14px 18px;
+  border: 1px solid var(--rule);
+  border-radius: 18px;
+  background: var(--paper);
 }
 
 .features h2 {
-  margin: 4px 0 8px;
+  margin: 0 0 8px;
+  font-family: var(--font-display);
   font-size: var(--text-m);
-  font-weight: 650;
+  font-weight: 700;
 }
 
 .features ul {
   margin: 0;
   padding-left: 20px;
-  color: var(--dim);
+  color: var(--ink-2);
   font-size: 14px;
   line-height: 1.6;
 }
@@ -350,8 +434,17 @@
 }
 
 @media (max-width: 420px) {
-  .panel {
-    padding: 16px 16px 24px;
+  .console {
+    padding: 14px 14px 12px;
+    border-radius: 26px 26px 38px 38px;
+  }
+
+  .arrow {
+    width: 58px;
+  }
+
+  .grille {
+    display: none;
   }
 
   .inspector {

@@ -55,28 +55,3 @@ export function loadBest(key: string): number {
 export function saveBest(key: string, best: number) {
   write(`${key}:best`, String(best))
 }
-
-export interface Prefs {
-  projector: boolean
-  codeSize: number
-}
-
-const PREFS_KEY = 'timebox:prefs'
-export const DEFAULT_PREFS: Prefs = { projector: false, codeSize: 14 }
-
-export function loadPrefs(): Prefs {
-  try {
-    const p = JSON.parse(read(PREFS_KEY) ?? '{}') as Partial<Prefs>
-    return {
-      projector: p.projector === true,
-      codeSize:
-        typeof p.codeSize === 'number' && p.codeSize >= 11 && p.codeSize <= 24 ? p.codeSize : DEFAULT_PREFS.codeSize,
-    }
-  } catch {
-    return { ...DEFAULT_PREFS }
-  }
-}
-
-export function savePrefs(p: Prefs) {
-  write(PREFS_KEY, JSON.stringify(p))
-}

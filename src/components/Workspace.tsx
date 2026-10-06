@@ -6,7 +6,7 @@ import { CloseIcon, ResetIcon, WarnIcon } from './icons.tsx'
 import { TabBar } from './TabBar.tsx'
 import styles from './Workspace.module.css'
 
-/** Левая колонка: вкладки, подсказка, редактор или гайд, уведомление, ошибка. */
+/** Левая колонка: вкладки и карточка — белый лист гайда или тёмный монитор с кодом. */
 export function Workspace() {
   const c = useController()
   const view = useApp((s) => s.view)
@@ -14,17 +14,19 @@ export function Workspace() {
   return (
     <section className={styles.workspace} aria-label="Код">
       <TabBar />
-      {view !== 'guide' && <NoteBar tab={view} />}
-      <div className={styles.work}>
-        <EditorHost />
-        {c.variant.hasGuide && (
-          <div className={styles.guide} hidden={view !== 'guide'}>
-            <Guide />
-          </div>
-        )}
-        <ToastView />
+      <div className={styles.card} data-view={view === 'guide' ? 'guide' : 'code'}>
+        {view !== 'guide' && <NoteBar tab={view} />}
+        <div className={styles.work}>
+          <EditorHost />
+          {c.variant.hasGuide && (
+            <div className={styles.guide} hidden={view !== 'guide'}>
+              <Guide />
+            </div>
+          )}
+          <ToastView />
+        </div>
+        <ErrorBar />
       </div>
-      <ErrorBar />
     </section>
   )
 }
@@ -32,24 +34,18 @@ export function Workspace() {
 function NoteBar({ tab }: { tab: number }) {
   const c = useController()
   const def = c.variant.tabs[tab]
+  const engine = tab === 0
   return (
     <div className={styles.note}>
       <p>{def.note}</p>
-      {tab === 0 ? (
-        <button type="button" className="btn btn--warn btn--small" onClick={() => c.openDialog({ kind: 'reset', tab })}>
-          <ResetIcon size={13} />
-          Сбросить движок
-        </button>
-      ) : (
-        <button
-          type="button"
-          className="btn btn--ghost btn--small"
-          onClick={() => c.openDialog({ kind: 'reset', tab })}
-        >
-          <ResetIcon size={13} />
-          Сбросить вкладку
-        </button>
-      )}
+      <button
+        type="button"
+        className={engine ? 'key key--sun key--s' : 'key key--dark key--s'}
+        onClick={() => c.openDialog({ kind: 'reset', tab })}
+      >
+        <ResetIcon size={13} />
+        {engine ? 'Сбросить движок' : 'Сбросить вкладку'}
+      </button>
     </div>
   )
 }
@@ -98,7 +94,7 @@ function ToastBody({ toast }: { toast: Toast }) {
       {toast.undo && (
         <button
           type="button"
-          className="btn btn--outline btn--small"
+          className="key key--sun key--s"
           onClick={() => {
             toast.undo?.()
             c.dismissToast()
@@ -110,11 +106,11 @@ function ToastBody({ toast }: { toast: Toast }) {
       )}
       <button
         type="button"
-        className="btn btn--ghost btn--small btn--icon"
+        className={`key key--dark key--s key--icon ${styles.close}`}
         aria-label="Закрыть"
         onClick={c.dismissToast}
       >
-        <CloseIcon />
+        <CloseIcon size={12} />
       </button>
       <span
         className={styles.countdown}
@@ -134,7 +130,7 @@ function ErrorBar() {
       <WarnIcon className={styles.errorIcon} />
       <p>{error.text}</p>
       {error.tab !== null && (
-        <button type="button" className="btn btn--small btn--outline" onClick={c.showError}>
+        <button type="button" className="key key--dark key--s" onClick={c.showError}>
           Показать
         </button>
       )}

@@ -1,106 +1,71 @@
-/* Токены. Тёмная тема — из ТЗ; две правки по контрасту:
-   faint (#636873, 3.3:1) — только для декора и номеров строк, для текста — faint-text;
-   comment поднят с #6a9955 до #72a35c, чтобы на подсвеченной строке было не меньше 4.5:1. */
-:root,
-:root[data-theme='dark'] {
-  color-scheme: dark;
+/* Токены. Идея: стол, на котором лежит красная карманная приставка с игрой и стоит
+   тёмный монитор с кодом. Гайд — белая бумага. Кнопки — объёмные клавиши.
+   Контраст текста проверен: не ниже 4.5:1 на своём фоне. */
+:root {
+  color-scheme: light;
 
-  --ground: #141519;
-  --surface: #1b1d22;
-  --panel: #202228;
-  --raised: #292c33;
-  --line: #2d3037;
-  --line-strong: #3a3e47;
+  /* Стол и бумага */
+  --desk: #e3e8ef;
+  --paper: #ffffff;
+  --paper-2: #f2f4f8;
+  --rule: #d2d8e1;
+  --rule-2: #b9c1cd;
 
-  --ink: #dcdee3;
-  --dim: #9197a1;
-  --faint: #636873;
-  --faint-text: #80858f;
+  --ink: #151a23;
+  --ink-2: #4f5867;
+  /* только для декора: 3.8:1 */
+  --ink-3: #7b8494;
 
-  --accent: #4fc3f7;
-  --accent-ink: #06202c;
-  --accent-soft: rgba(79, 195, 247, 0.14);
-  --ok: #7cc47f;
-  --ok-soft: rgba(124, 196, 127, 0.14);
-  --warn: #e5b567;
-  --warn-soft: rgba(229, 181, 103, 0.12);
-  --danger: #f28b82;
+  /* Яблоко: приставка и главная кнопка */
+  --apple: #d42c24;
+  --apple-hi: #ea4a3c;
+  --apple-deep: #a11d17;
+  --leaf: #1a7343;
+  --leaf-fill: #2b9a59;
+  --leaf-soft: #e2f3e9;
+  --sun: #ffc83a;
+  --sun-deep: #d99a00;
+  --sun-soft: #fff4cc;
+  --danger: #c4262e;
+  --danger-soft: #fdebec;
 
-  --danger-bg: #2a1a1b;
-  --danger-border: #4a2b2c;
-  --danger-ink: #f3c4bf;
-  --danger-line: rgba(242, 139, 130, 0.13);
+  /* Экран: монитор с кодом и экран приставки */
+  --scr: #181c25;
+  --scr-2: #1f2430;
+  --scr-3: #272d3b;
+  --scr-line: #2c3241;
+  --scr-ink: #e4e7ed;
+  --scr-dim: #9ba3b1;
+  --scr-faint: #687184;
+  --scr-danger: #ff8a8f;
+  --scr-danger-bg: #2d1c22;
+  --scr-danger-line: rgba(255, 138, 143, 0.12);
+  --scr-selection: rgba(110, 176, 245, 0.24);
+  --scr-active-line: rgba(255, 255, 255, 0.035);
 
-  --selection: rgba(79, 195, 247, 0.2);
-  --selection-strong: rgba(79, 195, 247, 0.26);
-  --active-line: rgba(255, 255, 255, 0.035);
-  --bracket: rgba(79, 195, 247, 0.12);
-  --scrim: rgba(10, 11, 14, 0.6);
-  --shadow-pop: 0 10px 30px rgba(0, 0, 0, 0.45);
-
-  /* Подсветка в стиле VS Code */
-  --tok-comment: #72a35c;
-  --tok-string: #ce9178;
+  /* Подсветка кода на тёмном экране */
+  --tok-comment: #7db365;
+  --tok-string: #e0a07e;
   --tok-number: #b5cea8;
-  --tok-keyword: #569cd6;
-  --tok-definition: #dcdcaa;
+  --tok-keyword: #6eb0f5;
+  --tok-definition: #e9da8e;
   --tok-variable: #9cdcfe;
   --tok-operator: #d4d4d4;
 
+  --font-display: 'Unbounded', 'Onest', system-ui, sans-serif;
   --font-ui: 'Onest', system-ui, -apple-system, 'Segoe UI', sans-serif;
   --font-mono: 'JetBrains Mono', ui-monospace, 'Cascadia Mono', Consolas, monospace;
   --code-size: 14px;
 
-  /* Шкала: 13 / 15 / 17 / 21 / 28 */
+  /* Шкала: 13 / 15 / 17 / 21 / 28 / 36 */
   --text-s: 13px;
   --text-m: 15px;
   --text-l: 17px;
   --text-xl: 21px;
   --text-xxl: 28px;
-}
+  --text-hero: 36px;
 
-/* Режим проектора: светлая контрастная тема. Тёмная на проекторе выцветает. */
-:root[data-theme='projector'] {
-  color-scheme: light;
-
-  --ground: #eceef2;
-  --surface: #ffffff;
-  --panel: #f4f5f7;
-  --raised: #e7eaef;
-  --line: #d6dae1;
-  --line-strong: #bcc2cc;
-
-  --ink: #15171c;
-  --dim: #454b55;
-  --faint: #9aa0aa;
-  --faint-text: #5b616b;
-
-  --accent: #0b62a0;
-  --accent-ink: #ffffff;
-  --accent-soft: rgba(11, 98, 160, 0.1);
-  --ok: #2d7330;
-  --ok-soft: rgba(45, 115, 48, 0.1);
-  --warn: #805300;
-  --warn-soft: rgba(128, 83, 0, 0.08);
-  --danger: #b3261e;
-
-  --danger-bg: #fdecea;
-  --danger-border: #f2c3bd;
-  --danger-ink: #8c1d13;
-  --danger-line: rgba(179, 38, 30, 0.1);
-
-  --selection: rgba(11, 98, 160, 0.16);
-  --selection-strong: rgba(11, 98, 160, 0.22);
-  --active-line: rgba(0, 0, 0, 0.035);
-  --bracket: rgba(11, 98, 160, 0.12);
-  --scrim: rgba(30, 34, 42, 0.45);
-  --shadow-pop: 0 10px 30px rgba(20, 30, 50, 0.16);
-
-  --tok-comment: #3d7526;
-  --tok-string: #a1350f;
-  --tok-number: #17694a;
-  --tok-keyword: #1f4fc4;
-  --tok-definition: #6e5200;
-  --tok-variable: #0b4a78;
-  --tok-operator: #3b3f46;
+  --radius-key: 12px;
+  --radius-card: 22px;
+  --shadow-pop: 0 18px 40px rgba(21, 26, 35, 0.18), 0 2px 6px rgba(21, 26, 35, 0.08);
 }

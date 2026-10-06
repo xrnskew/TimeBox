@@ -5,26 +5,7 @@ import { findSyntaxError, firstSyntaxError, type SyntaxIssue } from '@/core/synt
 import { createTabEditors, type TabEditors } from '@/editor/createTabEditors.ts'
 import type { Lesson, LessonVariant } from '@/lessons/types.ts'
 import { runner } from '@/sandbox/harness.ts'
-import {
-  decodeShare,
-  downloadFile,
-  encodeShare,
-  makeCodeFile,
-  readCodeFile,
-  readShareToken,
-  SHARE_PARAM,
-} from '@/sandbox/share.ts'
-import {
-  loadActive,
-  loadBest,
-  loadCodes,
-  loadPrefs,
-  type Prefs,
-  saveActive,
-  saveBest,
-  saveCodes,
-  savePrefs,
-} from '@/sandbox/storage.ts'
+import { loadActive, loadBest, loadCodes, saveActive, saveBest, saveCodes } from '@/sandbox/storage.ts'
 import { createStore, type Store } from './store.ts'
 
 export type View = 'guide' | number
@@ -45,11 +26,7 @@ export interface Toast {
   ms: number
 }
 
-export type Dialog =
-  | null
-  | { kind: 'reset'; tab: number }
-  | { kind: 'resetAll' }
-  | { kind: 'share'; url: string | null }
+export type Dialog = null | { kind: 'reset'; tab: number } | { kind: 'resetAll' }
 
 export interface AppState {
   view: View
@@ -64,16 +41,11 @@ export interface AppState {
   doc: string
   game: GameStatus
   gameFocused: boolean
-  paused: boolean
-  speed: number
   hitboxes: boolean
   best: number
   lastScore: number
   toast: Toast | null
   dialog: Dialog
-  /** Сейчас идёт игра по ссылке, а не свой код. */
-  shared: boolean
-  prefs: Prefs
   panel: Panel
   unreadLogs: number
 }
@@ -95,7 +67,6 @@ export type Controller = ReturnType<typeof createController>
 
 export function createController(lesson: Lesson, variant: LessonVariant) {
   const tabs = variant.tabs
-  const ids = tabs.map((t) => t.id)
   const key = variant.storageKey
 
   let latestCodes = loadCodes(key, tabs.length) ?? [...variant.initial]
@@ -123,15 +94,11 @@ export function createController(lesson: Lesson, variant: LessonVariant) {
     doc: '',
     game: 'running',
     gameFocused: false,
-    paused: false,
-    speed: 1,
     hitboxes: false,
     best: loadBest(key),
     lastScore: 0,
     toast: null,
     dialog: null,
-    shared: false,
-    prefs: loadPrefs(),
     panel: 'inspector',
     unreadLogs: 0,
   })
@@ -142,7 +109,6 @@ export function createController(lesson: Lesson, variant: LessonVariant) {
   let frame: HTMLIFrameElement | null = null
   let runCodes = latestCodes
   let preRunSyntax = false
-  let sharedCodes: string[] | null = null
   let snapshotTimer = 0
   let saveTimer = 0
   let toastId = 0
@@ -200,7 +166,7 @@ export function createController(lesson: Lesson, variant: LessonVariant) {
   }
 
   // ===== Запуск =====
-  function launch(codes: string[], own: boolean) {
+  function launch(codes: string[]) {
     runCodes = codes
     editors?.clearErrors()
     dismissToast()
@@ -212,47 +178,40 @@ export function createController(lesson: Lesson, variant: LessonVariant) {
     let error: ShownError | null = null
     if (bad) {
       const { line, message } = bad.issue
-      error = { text: formatError({ title: title(bad.tab), line }, message), tab: own ? bad.tab : null, line }
-      if (own) editors?.markError(bad.tab, line)
+      error = { text: formatError({ title: title(bad.tab), line }, message), tab: bad.tab, line }
+      editors?.markError(bad.tab, line)
     }
     const s = store.get()
     store.set({
-      doc: runner.buildDoc(codes, { focus: !bad, speed: s.speed, hitboxes: s.hitboxes }),
+      doc: runner.buildDoc(codes, { focus: !bad, hitboxes: s.hitboxes }),
       runId: s.runId + 1,
       error,
       runtimeErrorTab: null,
       game: bad ? 'blocked' : 'running',
       gameFocused: false,
-      paused: false,
       lastScore: 0,
       unreadLogs: 0,
     })
     // Нашли ошибку до запуска — игра не стартует, фокус остаётся в редакторе.
-    if (bad && own) editors?.focus()
+    if (bad) editors?.focus()
   }
 
   function run() {
-    if (sharedCodes) {
-      sharedCodes = null
-      clearHash()
-      store.set({ shared: false })
-    }
     saveNow()
     snapshot()
-    launch(latestCodes, true)
+    launch(latestCodes)
   }
 
   function onGameError(message: string, line: number) {
     // Пока есть ошибка, найденная до запуска, синтаксические сообщения из iframe игнорируем.
     if (preRunSyntax && isSyntaxMessage(message)) return
     if (store.get().error) return
-    const own = !sharedCodes
     const place = line ? runner.locate(line, runCodes) : null
     const text = formatError(place ? { title: title(place.tab), line: place.line } : null, explainRuntimeError(message))
-    if (place && own) editors?.markError(place.tab, place.line)
+    if (place) editors?.markError(place.tab, place.line)
     store.set({
-      error: { text, tab: place && own ? place.tab : null, line: place?.line ?? null },
-      runtimeErrorTab: place && own ? place.tab : null,
+      error: { text, tab: place?.tab ?? null, line: place?.line ?? null },
+      runtimeErrorTab: place?.tab ?? null,
     })
   }
 
@@ -350,7 +309,7 @@ export function createController(lesson: Lesson, variant: LessonVariant) {
     const s = store.get()
     const score = w.score
     const lives = w.lives
-    if (s.shared || typeof score !== 'number') return
+    if (typeof score !== 'number') return
     if (score > s.best) {
       store.set({ best: score })
       saveBest(key, score)
@@ -399,7 +358,7 @@ export function createController(lesson: Lesson, variant: LessonVariant) {
     )
   }
 
-  // ===== Сбросы и загрузка кода =====
+  // ===== Сбросы =====
   function replaceAll(codes: string[]): number[] {
     if (!editors) return []
     const ed = editors
@@ -433,90 +392,7 @@ export function createController(lesson: Lesson, variant: LessonVariant) {
     else toast('Код и так в исходном виде.')
   }
 
-  function loadIntoTabs(codes: string[], text: string) {
-    const changed = replaceAll(codes)
-    run()
-    if (changed.length) toast(text, () => undoAll(changed), 30_000)
-    else toast('Этот код у тебя уже есть.')
-  }
-
-  // ===== Ссылка, файлы =====
-  const codeFile = () => makeCodeFile('catch', variant.id, ids, codesNow())
-
-  function clearHash() {
-    if (location.hash) history.replaceState(null, '', location.pathname + location.search)
-  }
-
-  async function openShare() {
-    store.set({ dialog: { kind: 'share', url: null } })
-    const token = await encodeShare(codeFile())
-    const url = `${location.href.split('#')[0]}#${SHARE_PARAM}=${token}`
-    const d = store.get().dialog
-    if (d?.kind === 'share') store.set({ dialog: { kind: 'share', url } })
-  }
-
-  async function startShared() {
-    const token = readShareToken(location.hash)
-    if (!token) return
-    const codes = readCodeFile(await decodeShare(token), ids)
-    if (!codes) {
-      clearHash()
-      toast('Ссылка повреждена — открыт твой код.')
-      return
-    }
-    sharedCodes = codes
-    store.set({ shared: true })
-    launch(codes, false)
-  }
-
-  function acceptShared() {
-    const codes = sharedCodes
-    if (!codes) return
-    sharedCodes = null
-    clearHash()
-    store.set({ shared: false })
-    loadIntoTabs(codes, 'Код по ссылке теперь у тебя во вкладках.')
-  }
-
-  function exitShared() {
-    sharedCodes = null
-    clearHash()
-    store.set({ shared: false })
-    run()
-  }
-
-  async function importFile(file: File) {
-    let data: unknown = null
-    try {
-      data = JSON.parse(await file.text())
-    } catch {
-      // не JSON
-    }
-    const codes = readCodeFile(data, ids)
-    if (!codes) {
-      toast(`Этот файл не подходит: в нём нет кода для «${lesson.title}».`)
-      return
-    }
-    loadIntoTabs(codes, `Код из файла «${file.name}» загружен.`)
-  }
-
-  // ===== Настройки вида =====
-  function applyPrefs(p: Prefs) {
-    const root = document.documentElement
-    root.dataset.theme = p.projector ? 'projector' : 'dark'
-    root.style.setProperty('--code-size', `${p.codeSize}px`)
-  }
-
-  function setPrefs(patch: Partial<Prefs>) {
-    const prefs = { ...store.get().prefs, ...patch }
-    prefs.codeSize = Math.min(24, Math.max(11, prefs.codeSize))
-    store.set({ prefs })
-    applyPrefs(prefs)
-    savePrefs(prefs)
-  }
-
   // ===== Запуск приложения =====
-  applyPrefs(store.get().prefs)
   window.addEventListener('message', onMessage)
   window.addEventListener('pagehide', saveNow)
   document.addEventListener('visibilitychange', () => {
@@ -530,8 +406,7 @@ export function createController(lesson: Lesson, variant: LessonVariant) {
   })
   window.setInterval(poll, 200)
 
-  launch(latestCodes, true)
-  void startShared()
+  launch(latestCodes)
 
   return {
     lesson,
@@ -573,26 +448,10 @@ export function createController(lesson: Lesson, variant: LessonVariant) {
       if (!preRunSyntax) focusGame()
     },
     focusGame,
-    togglePause() {
-      const paused = !store.get().paused
-      store.set({ paused })
-      sendCtl({ type: 'ctl', paused })
-      if (!paused) focusGame()
-    },
-    stepFrame() {
-      if (!store.get().paused) store.set({ paused: true })
-      sendCtl({ type: 'ctl', paused: true, step: true })
-    },
-    toggleSpeed() {
-      const speed = store.get().speed === 1 ? 0.5 : 1
-      store.set({ speed })
-      sendCtl({ type: 'ctl', speed })
-    },
     toggleHitboxes() {
       const hitboxes = !store.get().hitboxes
       store.set({ hitboxes })
       sendCtl({ type: 'ctl', hitboxes })
-      if (store.get().paused) sendCtl({ type: 'ctl', step: true })
     },
     pressKey(k: string, down: boolean) {
       sendCtl({ type: 'key', key: k, down })
@@ -621,23 +480,6 @@ export function createController(lesson: Lesson, variant: LessonVariant) {
     },
     confirmReset,
     confirmResetAll,
-
-    openShare,
-    acceptShared,
-    exitShared,
-    importFile,
-    exportCode() {
-      downloadFile('lovi-yabloki-kod.json', JSON.stringify(codeFile(), null, 2), 'application/json')
-    },
-    downloadGame() {
-      downloadFile(
-        'lovi-yabloki.html',
-        runner.buildDoc(codesNow(), { focus: true, speed: 1, hitboxes: false }),
-        'text/html',
-      )
-    },
-
-    setPrefs,
   }
 }
 

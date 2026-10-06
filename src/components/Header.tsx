@@ -1,7 +1,7 @@
-import { useEffect, useMemo, useRef, useState } from 'react'
+import { useEffect, useMemo, useRef } from 'react'
 import { useApp, useController } from '@/app/context.ts'
 import { stepsDone } from '@/app/controller.ts'
-import { AppleIcon, EyeIcon, PlayIcon, ResetIcon, ShareIcon } from './icons.tsx'
+import { AppleIcon, LogoApple, PlayIcon, ResetIcon } from './icons.tsx'
 import styles from './Header.module.css'
 
 export function Header() {
@@ -11,48 +11,43 @@ export function Header() {
   return (
     <header className={styles.header}>
       <div className={styles.brand}>
-        <span className={styles.logo} aria-hidden="true">
-          🍎
-        </span>
+        <LogoApple className={styles.logo} />
         <span className={styles.name}>{c.lesson.title}</span>
-        <span className={styles.tag}>{tutorial ? 'песочница' : 'готовая версия'}</span>
+        {!tutorial && <span className={styles.tag}>готовая игра</span>}
       </div>
 
-      {tutorial && <StepBranch />}
+      {tutorial ? (
+        <StepApples />
+      ) : (
+        <a className={`key key--s ${styles.back}`} href={location.pathname}>
+          Учебная версия
+        </a>
+      )}
 
       <div className={styles.actions}>
-        <ViewMenu />
-        <button type="button" className={`btn btn--ghost ${styles.tool}`} onClick={() => void c.openShare()}>
-          <ShareIcon />
-          <span className={styles.wideOnly}>Поделиться</span>
-        </button>
-        <button
-          type="button"
-          className={`btn btn--ghost ${styles.tool}`}
-          onClick={() => c.openDialog({ kind: 'resetAll' })}
-        >
-          <ResetIcon />
+        <button type="button" className="key key--ghost key--s" onClick={() => c.openDialog({ kind: 'resetAll' })}>
+          <ResetIcon size={13} />
           <span className={styles.wideOnly}>Сбросить всё</span>
         </button>
-        <span className={styles.shortcut} aria-hidden="true">
-          <kbd>Ctrl</kbd>+<kbd>Enter</kbd>
-        </span>
         <button
           type="button"
-          className={`btn btn--primary ${styles.run}`}
+          className={`key key--apple key--l ${styles.run}`}
           onClick={c.run}
           aria-keyshortcuts="Control+Enter"
         >
-          <PlayIcon />
+          <PlayIcon size={15} />
           Запустить
+          <span className={styles.shortcut} aria-hidden="true">
+            Ctrl+Enter
+          </span>
         </button>
       </div>
     </header>
   )
 }
 
-/** Ветка с тремя яблоками: сделанный шаг — зелёное яблоко. Учитель видит прогресс издалека. */
-function StepBranch() {
+/** Три яблока — три шага: сделанный шаг зеленеет. Учитель видит прогресс издалека. */
+function StepApples() {
   const c = useController()
   const codes = useApp((s) => s.codes)
   const done = useMemo(() => stepsDone(c, codes), [c, codes])
@@ -61,7 +56,7 @@ function StepBranch() {
   const apples = useRef<(HTMLSpanElement | null)[]>([])
   const counter = useRef<HTMLSpanElement | null>(null)
 
-  // Единственная анимация без действия ученика: шаг засчитан — яблоко падает в корзинку.
+  // Единственная анимация без действия ученика: шаг засчитан — яблоко подпрыгивает и зеленеет.
   useEffect(() => {
     const before = prev.current
     prev.current = done
@@ -85,22 +80,14 @@ function StepBranch() {
   }
 
   return (
-    <nav className={styles.branch} aria-label="Прогресс по шагам">
-      <svg className={styles.twig} viewBox="0 0 200 20" preserveAspectRatio="none" aria-hidden="true">
-        <path
-          d="M2 6 C 50 2, 90 12, 140 6 S 190 4, 198 8"
-          fill="none"
-          stroke="var(--line-strong)"
-          strokeWidth="2"
-          strokeLinecap="round"
-        />
-      </svg>
+    <nav className={styles.progress} aria-label="Прогресс по шагам">
       <ol className={styles.apples}>
         {c.lesson.steps.map((step, i) => (
           <li key={step.step}>
             <button
               type="button"
               className={styles.apple}
+              data-done={done[i]}
               onClick={() => openStep(step.step)}
               aria-label={`Шаг ${step.step}, «${c.variant.tabs[step.tab].title}»: ${done[i] ? 'сделан' : 'не сделан'}`}
             >
@@ -113,7 +100,7 @@ function StepBranch() {
               >
                 <AppleIcon ripe={done[i]} />
               </span>
-              <span className={done[i] ? styles.labelDone : styles.label}>{c.variant.tabs[step.tab].title}</span>
+              <span className={styles.label}>{c.variant.tabs[step.tab].title}</span>
             </button>
           </li>
         ))}
@@ -127,95 +114,5 @@ function StepBranch() {
         {count}/{c.lesson.steps.length}
       </span>
     </nav>
-  )
-}
-
-function ViewMenu() {
-  const c = useController()
-  const prefs = useApp((s) => s.prefs)
-  const [open, setOpen] = useState(false)
-  const root = useRef<HTMLDivElement>(null)
-
-  useEffect(() => {
-    if (!open) return
-    const onDown = (e: PointerEvent) => {
-      if (!root.current?.contains(e.target as Node)) setOpen(false)
-    }
-    const onKey = (e: KeyboardEvent) => {
-      if (e.key === 'Escape') setOpen(false)
-    }
-    document.addEventListener('pointerdown', onDown)
-    document.addEventListener('keydown', onKey)
-    return () => {
-      document.removeEventListener('pointerdown', onDown)
-      document.removeEventListener('keydown', onKey)
-    }
-  }, [open])
-
-  const other = c.variant.hasGuide
-    ? { href: '?finished', text: 'Открыть готовую игру' }
-    : { href: location.pathname, text: 'Вернуться к учебной версии' }
-
-  return (
-    <div className={`${styles.menuRoot} ${styles.tool}`} ref={root}>
-      <button
-        type="button"
-        className="btn btn--ghost"
-        aria-expanded={open}
-        aria-haspopup="true"
-        onClick={() => setOpen(!open)}
-      >
-        <EyeIcon />
-        <span className={styles.wideOnly}>Вид</span>
-      </button>
-      {open && (
-        <div className={styles.menu} role="group" aria-label="Вид">
-          <button
-            type="button"
-            className={styles.menuRow}
-            aria-pressed={prefs.projector}
-            onClick={() => c.setPrefs({ projector: !prefs.projector })}
-          >
-            <span>
-              Режим проектора
-              <small>Светлая тема — её хорошо видно на экране в классе</small>
-            </span>
-            <span className={styles.switch} data-on={prefs.projector} aria-hidden="true" />
-          </button>
-          <div className={styles.menuRow}>
-            <span>Размер кода</span>
-            <span className={styles.stepper}>
-              <button
-                type="button"
-                className="btn btn--outline btn--small btn--icon"
-                aria-label="Мельче"
-                disabled={prefs.codeSize <= 11}
-                onClick={() => c.setPrefs({ codeSize: prefs.codeSize - 1 })}
-              >
-                −
-              </button>
-              <output aria-live="polite">{prefs.codeSize}</output>
-              <button
-                type="button"
-                className="btn btn--outline btn--small btn--icon"
-                aria-label="Крупнее"
-                disabled={prefs.codeSize >= 24}
-                onClick={() => c.setPrefs({ codeSize: prefs.codeSize + 1 })}
-              >
-                +
-              </button>
-            </span>
-          </div>
-          <a
-            className={styles.menuLink}
-            href={other.href}
-            target={c.variant.hasGuide ? '_blank' : undefined}
-            rel="noreferrer"
-          >
-            {other.text}
-          </a>
-        </div>
-      )}
-    </div>
   )
 }

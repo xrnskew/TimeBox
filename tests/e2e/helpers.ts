@@ -61,6 +61,6 @@ export async function insertStep(page: Page, n: number) {
   const tabTitle = ['Герой', 'Яблоки', 'Поимка'][n - 1]
   await page
     .locator(`#guide-step-${n}`)
-    .getByRole('button', { name: `Вставить во вкладку «${tabTitle}»` })
+    .getByRole('button', { name: `Вставить в «${tabTitle}»` })
     .click()
 }

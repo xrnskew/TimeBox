@@ -69,8 +69,8 @@
   // ===== Часы кадров =====
   // Движок сдвигает всё на фиксированное число пикселей за кадр. Чтобы на мониторе
   // 120 или 144 Гц игра не шла в 2 раза быстрее, кадры игры идут не чаще 60 раз в секунду.
-  // Здесь же пауза, шаг по кадрам и замедление.
-  var ctl = { paused: false, step: false, speed: cfg.speed || 1, hitboxes: !!cfg.hitboxes };
+  var INTERVAL = 1000 / 60;
+  var ctl = { hitboxes: !!cfg.hitboxes };
   var queue = [];
   var nextId = 1;
   var scheduled = false;
@@ -93,24 +93,18 @@
 
   function schedule() {
     if (scheduled || !queue.length) return;
-    if (ctl.paused && !ctl.step) return;
     scheduled = true;
     nativeRAF(tick);
   }
 
   function tick(t) {
     scheduled = false;
-    if (!ctl.step) {
-      if (ctl.paused) return;
-      var interval = 1000 / 60 / ctl.speed;
-      if (last < 0 || t - last > interval * 4) last = t - interval;
-      if (t - last < interval - 2) {
-        schedule();
-        return;
-      }
-      last += interval;
+    if (last < 0 || t - last > INTERVAL * 4) last = t - INTERVAL;
+    if (t - last < INTERVAL - 2) {
+      schedule();
+      return;
     }
-    ctl.step = false;
+    last += INTERVAL;
 
     var batch = queue;
     queue = [];
@@ -139,14 +133,7 @@
     var d = e.data;
     if (!d || d.tbc !== 1 || e.source !== window.parent) return;
     if (d.type === "ctl") {
-      if (typeof d.speed === "number") ctl.speed = d.speed;
       if (typeof d.hitboxes === "boolean") ctl.hitboxes = d.hitboxes;
-      if (typeof d.paused === "boolean" && d.paused !== ctl.paused) {
-        ctl.paused = d.paused;
-        last = -1;
-      }
-      if (d.step) ctl.step = true;
-      schedule();
     } else if (d.type === "key") {
       // экранные кнопки ← → для планшетов
       document.dispatchEvent(new KeyboardEvent(d.down ? "keydown" : "keyup", { key: d.key, bubbles: true }));

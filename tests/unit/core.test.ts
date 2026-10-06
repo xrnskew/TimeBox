@@ -77,7 +77,7 @@ describe('синтаксис', () => {
 describe('склейка и карта строк', () => {
   const runner = createRunner(runtime)
   const codes = ['var a = 1;\nvar MARK_A = 2;', '// x', 'function f() {\n  MARK_C();\n}']
-  const doc = runner.buildDoc(codes, { focus: true, speed: 1, hitboxes: false })
+  const doc = runner.buildDoc(codes, { focus: true, hitboxes: false })
   const lines = doc.split('\n')
   const lineOf = (marker: string) => lines.findIndex((l) => l.includes(marker)) + 1
 
@@ -93,7 +93,7 @@ describe('склейка и карта строк', () => {
   })
 
   it('без фокуса число строк обвязки то же', () => {
-    const noFocus = runner.buildDoc(codes, { focus: false, speed: 1, hitboxes: false }).split('\n')
+    const noFocus = runner.buildDoc(codes, { focus: false, hitboxes: false }).split('\n')
     expect(noFocus.length).toBe(lines.length)
     expect(noFocus[runner.headerLines]).toBe(codes[0].split('\n')[0])
   })
@@ -105,7 +105,7 @@ describe('склейка и карта строк', () => {
   })
 
   it('</script> в строке ученика не обрывает документ', () => {
-    const d = runner.buildDoc(['console.log("</script>");'], { focus: true, speed: 1, hitboxes: false })
+    const d = runner.buildDoc(['console.log("</script>");'], { focus: true, hitboxes: false })
     expect(d.match(/<\/script>/g)).toHaveLength(2)
   })
 })

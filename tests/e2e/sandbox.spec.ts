@@ -21,13 +21,13 @@ test('2. шаг 1: корзина ездит стрелками, страниц�
   await expect(page.getByRole('status')).toContainText('Теперь нажми «Запустить»')
   await run(page)
   // игра забрала фокус сама
-  await expect(page.getByText('Двигай корзину')).toBeVisible()
+  await expect(page.getByText('Играем: жми')).toBeVisible()
   await expect(page.getByText('Кликни, чтобы играть')).toHaveCount(0)
   // клик в редактор уводит фокус, клик по игре — возвращает
   await page.locator('.cm-content').click()
   await expect(page.getByText('Кликни, чтобы играть')).toBeVisible()
   await page.getByText('Кликни, чтобы играть').click()
-  await expect(page.getByText('Двигай корзину')).toBeVisible()
+  await expect(page.getByText('Играем: жми')).toBeVisible()
   const x0 = await game<number>(page, 'playerX')
   await page.keyboard.down('ArrowRight')
   await page.waitForTimeout(300)
@@ -164,7 +164,7 @@ test('8. бомба и звезда: строка в «Движке», повт�
   const star = page.locator('#guide-task-5')
   await tab(page, 'Гайд')
   await star.getByRole('button', { name: 'Добавить строку в «Движок»' }).click()
-  for (const name of ['Вставить во вкладку «Яблоки»', 'Вставить во вкладку «Поимка»']) {
+  for (const name of ['Вставить в «Яблоки»', 'Вставить в «Поимка»']) {
     await tab(page, 'Гайд')
     await star.getByRole('button', { name }).click()
   }
@@ -249,7 +249,7 @@ test('живая проверка синтаксиса: значок и подч
   await expect(page.locator('.cm-lintRange-error, .cm-lintPoint-error').first()).toBeVisible()
 })
 
-test('консоль, «Приборы», пауза и шаг по кадрам', async ({ page }) => {
+test('консоль, «Приборы», 60 кадров и «Границы»', async ({ page }) => {
   await open(page)
   await insertStep(page, 1)
   await insertStep(page, 2)
@@ -267,16 +267,6 @@ test('консоль, «Приборы», пауза и шаг по кадрам
   await expect(page.locator('#tool-panel')).toContainText('lives')
   await expect(page.locator('#tool-panel dd').nth(1)).toHaveText('3')
 
-  await page.getByRole('button', { name: 'Пауза' }).click()
-  await page.waitForTimeout(100)
-  const f1 = await game<number>(page, 'frame')
-  await page.waitForTimeout(300)
-  expect(await game<number>(page, 'frame')).toBe(f1)
-  await page.getByRole('button', { name: 'Кадр' }).click()
-  await expect.poll(() => game<number>(page, 'frame')).toBe(f1 + 1)
-  await page.getByRole('button', { name: 'Дальше' }).click()
-  await expect.poll(() => game<number>(page, 'frame')).toBeGreaterThan(f1 + 5)
-
   // не больше 60 кадров в секунду
   const a = await game<number>(page, 'frame')
   await page.waitForTimeout(1000)
@@ -284,33 +274,31 @@ test('консоль, «Приборы», пауза и шаг по кадрам
   expect(perSecond).toBeGreaterThan(30)
   expect(perSecond).toBeLessThan(66)
 
-  await page.getByRole('button', { name: 'Границы' }).click()
-  await expect(page.getByRole('button', { name: 'Границы' })).toHaveAttribute('aria-pressed', 'true')
-  await page.getByRole('button', { name: 'Замедлить' }).click()
-  await expect(page.getByRole('button', { name: 'Замедлить' })).toHaveAttribute('aria-pressed', 'true')
+  const hitboxes = page.getByRole('switch', { name: 'Границы' })
+  await hitboxes.click()
+  await expect(hitboxes).toHaveAttribute('aria-checked', 'true')
   await page.screenshot({ path: 'test-results/shots/tools.png' })
 })
 
-test('ссылка на игру: открывается чужая игра, код можно взять себе', async ({ page, browser }) => {
+test('лишних кнопок нет: «Поделиться», «Вид», пауза, кадр, замедление убраны', async ({ page }) => {
   await open(page)
-  await insertStep(page, 1)
-  await page.getByRole('button', { name: 'Поделиться' }).click()
-  const field = page.getByRole('textbox', { name: 'Ссылка на игру' })
-  await expect(field).toHaveValue(/#play=z/)
-  const url = await field.inputValue()
+  for (const name of ['Поделиться', 'Вид', 'Пауза', 'Кадр', 'Замедлить'])
+    await expect(page.getByRole('button', { name, exact: true })).toHaveCount(0)
+})
 
-  // у друга своё хранилище — отдельный контекст браузера
-  const friend = await browser.newContext()
-  const other = await friend.newPage()
-  await other.goto(url)
-  await expect(other.getByText('Это игра по ссылке')).toBeVisible()
-  await other.getByRole('button', { name: 'Взять код себе' }).click()
-  await expect(other.getByText('Это игра по ссылке')).toBeHidden()
-  await other.waitForTimeout(600)
-  const codes = await other.evaluate(() => JSON.parse(localStorage.getItem('catch-sandbox-v1')!))
-  expect(codes[1]).toContain('function movePlayer()')
-  expect(other.url()).not.toContain('#play=')
-  await friend.close()
+test('гайд: код и объяснение открываются кнопками, подсказки — тоже', async ({ page }) => {
+  await open(page)
+  const step = page.locator('#guide-step-1')
+  await expect(step.locator('pre')).toHaveCount(0)
+  await step.getByRole('button', { name: 'Показать код' }).click()
+  await expect(step.locator('pre')).toContainText('function movePlayer()')
+  await step.getByRole('button', { name: 'Скрыть код' }).click()
+  await expect(step.locator('pre')).toHaveCount(0)
+  await step.getByRole('button', { name: 'Как это работает' }).click()
+  await expect(step).toContainText('корзина — это просто буква')
+  const hint = page.getByRole('button', { name: 'Подсказка' }).first()
+  await hint.click()
+  await expect(page.getByText('Всё в начале «Движка»')).toBeVisible()
 })
 
 test('готовая версия: своё сохранение, гайда нет, список «Что тут есть»', async ({ page }) => {
@@ -322,18 +310,6 @@ test('готовая версия: своё сохранение, гайда н�
   await tab(page, 'Поимка') // смена вкладки сохраняет сразу
   expect(await page.evaluate(() => localStorage.getItem('catch-sandbox-finished-v1'))).not.toBeNull()
   expect(await page.evaluate(() => localStorage.getItem('catch-sandbox-v1'))).toBeNull()
-})
-
-test('режим проектора и размер кода', async ({ page }) => {
-  await open(page)
-  await page.getByRole('button', { name: 'Вид' }).click()
-  await page.getByRole('button', { name: /Режим проектора/ }).click()
-  await expect(page.locator('html')).toHaveAttribute('data-theme', 'projector')
-  await page.getByRole('button', { name: 'Крупнее' }).click()
-  expect(await page.evaluate(() => document.documentElement.style.getPropertyValue('--code-size'))).toBe('15px')
-  await page.keyboard.press('Escape')
-  await tab(page, 'Движок')
-  await page.screenshot({ path: 'test-results/shots/projector.png' })
 })
 
 test('телефон: экранные стрелки двигают корзину, холст чёткий, а для кода — 380 × 470', async ({ browser }) => {

@@ -6,11 +6,13 @@
 
 .main {
   display: grid;
-  grid-template-columns: minmax(0, 1fr) clamp(420px, 40vw, 640px);
+  grid-template-columns: minmax(0, 1fr) auto;
+  gap: 24px;
   min-height: 0;
+  padding: 8px 24px 20px;
 }
 
-/* До 1024px колонки складываются: редактор высотой 70vh, игра под ним. */
+/* До 1024px колонки складываются: редактор сверху, приставка под ним. */
 @media (max-width: 1024px) {
   .app {
     height: auto;
@@ -19,5 +21,7 @@
 
   .main {
     grid-template-columns: minmax(0, 1fr);
+    gap: 20px;
+    padding: 8px 16px 20px;
   }
 }
