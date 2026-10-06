@@ -32,46 +32,72 @@ export interface GuideStep {
   /** Индекс вкладки, куда вставляется код. */
   tab: number
   title: string
+  /** Одна строка: что получится после шага. */
+  lead: Rich
+  /** «Как это работает» — открывается по кнопке. */
+  how: Rich[]
+  code: string
+  /** Что проверить после запуска — коротко. */
+  checks: Rich[]
   /** Функции, которые должны быть объявлены и не пустые. */
   fns: string[]
-  body: Rich[]
-  code: string
-  checks: Rich[]
+  /** Задания после шага — открываются по одному. Следующий шаг откроется, когда выполнены все. */
+  tasks: StepTask[]
 }
 
-export interface GuideTask {
-  n: number
+/** Куда вставить кусок кода: после строки `after` (с 1). */
+export interface InsertPlan {
+  after: number
+  text: string
+}
+
+/** Задание «поправь сам»: кнопка открывает вкладку и выделяет, что менять. */
+export interface EditTask {
+  kind: 'edit'
   title: string
-  body: Rich[]
+  text: Rich
+  tab: number
+  /** Что выделить в коде: первая группа регулярного выражения (флаг d). */
+  target: RegExp
   hint: Rich[]
+  isDone: (code: string) => boolean
 }
 
-export type GuidePart =
-  | {
-      mode: 'settings'
-      title: string
-      tab: number
-      body: Rich[]
-      /** Имя переменной и строка, которая добавляется в «Движок». */
-      name: string
-      line: string
-    }
-  | {
-      mode: 'replace'
-      title: string
-      tab: number
-      body: Rich[]
-      code: string
-      /** Признак «уже есть в коде» — проверяется по коду без комментариев. */
-      marks: RegExp[]
-    }
+/** Кусок функции, который добавляется кнопкой. */
+export interface BuildPiece {
+  title: string
+  /** Куда и что вставить (вставка всплывает в коде призраком); null — пока нельзя (нет предыдущей части). */
+  plan: (code: string) => InsertPlan | null
+  isDone: (code: string) => boolean
+}
+
+/** Задание «собери по частям»: функция собирается кнопками кусок за куском. */
+export interface BuildTask {
+  kind: 'build'
+  title: string
+  text: Rich
+  tab: number
+  pieces: BuildPiece[]
+}
+
+export type StepTask = EditTask | BuildTask
 
 export interface GuideExtra {
   n: number
   emoji: string
   title: string
-  body: Rich[]
-  parts: GuidePart[]
+  text: Rich
+  /** Одна строка в «Движок». */
+  setting: { tab: number; name: string; line: string }
+  /** Код для нескольких вкладок — вставляется одной кнопкой. */
+  codes: { tab: number; code: string; marks: RegExp[] }[]
+}
+
+export interface GuideIntro {
+  title: string
+  lead: Rich
+  /** Короткие подсказки с клавишами. */
+  tips: Rich[]
 }
 
 export interface Hint {
@@ -94,13 +120,10 @@ export interface Lesson {
   title: string
   tutorial: LessonVariant
   finished: LessonVariant
-  intro: Rich[]
+  intro: GuideIntro
   steps: GuideStep[]
-  tasks: GuideTask[]
   extras: GuideExtra[]
   /** Предупреждение под бомбой и звездой. */
   extrasNote: Rich
-  /** Задания после бомбы и звезды. */
-  moreTasks: GuideTask[]
   hints: HintSet
 }

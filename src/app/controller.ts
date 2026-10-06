@@ -1,29 +1,22 @@
 import { explainRuntimeError, formatError, isSyntaxMessage } from '@/core/errors.ts'
 import { planSettingInsert } from '@/core/insert.ts'
+import { extraStates, levelStates } from '@/core/levels.ts'
+import { checkFinishedPassword } from '@/core/lock.ts'
 import { hasContent, stepDone } from '@/core/progress.ts'
 import { findSyntaxError, firstSyntaxError, type SyntaxIssue } from '@/core/syntax.ts'
 import { createTabEditors, type TabEditors } from '@/editor/createTabEditors.ts'
+import type { SlotSource } from '@/editor/slots.ts'
+import { editTarget } from '@/lessons/catch/tasks.ts'
 import type { Lesson, LessonVariant } from '@/lessons/types.ts'
 import { runner } from '@/sandbox/harness.ts'
-import {
-  decodeShare,
-  downloadFile,
-  encodeShare,
-  makeCodeFile,
-  readCodeFile,
-  readShareToken,
-  SHARE_PARAM,
-} from '@/sandbox/share.ts'
 import {
   loadActive,
   loadBest,
   loadCodes,
-  loadPrefs,
-  type Prefs,
+  rememberFinishedUnlocked,
   saveActive,
   saveBest,
   saveCodes,
-  savePrefs,
 } from '@/sandbox/storage.ts'
 import { createStore, type Store } from './store.ts'
 
@@ -45,11 +38,7 @@ export interface Toast {
   ms: number
 }
 
-export type Dialog =
-  | null
-  | { kind: 'reset'; tab: number }
-  | { kind: 'resetAll' }
-  | { kind: 'share'; url: string | null }
+export type Dialog = null | { kind: 'reset'; tab: number } | { kind: 'resetAll' } | { kind: 'unlock' }
 
 export interface AppState {
   view: View
@@ -64,16 +53,11 @@ export interface AppState {
   doc: string
   game: GameStatus
   gameFocused: boolean
-  paused: boolean
-  speed: number
   hitboxes: boolean
   best: number
   lastScore: number
   toast: Toast | null
   dialog: Dialog
-  /** Сейчас идёт игра по ссылке, а не свой код. */
-  shared: boolean
-  prefs: Prefs
   panel: Panel
   unreadLogs: number
 }
@@ -95,7 +79,6 @@ export type Controller = ReturnType<typeof createController>
 
 export function createController(lesson: Lesson, variant: LessonVariant) {
   const tabs = variant.tabs
-  const ids = tabs.map((t) => t.id)
   const key = variant.storageKey
 
   let latestCodes = loadCodes(key, tabs.length) ?? [...variant.initial]
@@ -123,15 +106,11 @@ export function createController(lesson: Lesson, variant: LessonVariant) {
     doc: '',
     game: 'running',
     gameFocused: false,
-    paused: false,
-    speed: 1,
     hitboxes: false,
     best: loadBest(key),
     lastScore: 0,
     toast: null,
     dialog: null,
-    shared: false,
-    prefs: loadPrefs(),
     panel: 'inspector',
     unreadLogs: 0,
   })
@@ -142,13 +121,14 @@ export function createController(lesson: Lesson, variant: LessonVariant) {
   let frame: HTMLIFrameElement | null = null
   let runCodes = latestCodes
   let preRunSyntax = false
-  let sharedCodes: string[] | null = null
   let snapshotTimer = 0
   let saveTimer = 0
   let toastId = 0
   let logId = 0
 
   const codesNow = () => (editors ? editors.getCodes() : latestCodes)
+  /** Код всех вкладок, но у одной — новый (редактор ещё не применил правку). */
+  const codesWith = (tab: number, code: string) => codesNow().map((c, i) => (i === tab ? code : c))
   const title = (tab: number) => tabs[tab].title
 
   // ===== Сохранение =====
@@ -200,7 +180,7 @@ export function createController(lesson: Lesson, variant: LessonVariant) {
   }
 
   // ===== Запуск =====
-  function launch(codes: string[], own: boolean) {
+  function launch(codes: string[]) {
     runCodes = codes
     editors?.clearErrors()
     dismissToast()
@@ -212,47 +192,40 @@ export function createController(lesson: Lesson, variant: LessonVariant) {
     let error: ShownError | null = null
     if (bad) {
       const { line, message } = bad.issue
-      error = { text: formatError({ title: title(bad.tab), line }, message), tab: own ? bad.tab : null, line }
-      if (own) editors?.markError(bad.tab, line)
+      error = { text: formatError({ title: title(bad.tab), line }, message), tab: bad.tab, line }
+      editors?.markError(bad.tab, line)
     }
     const s = store.get()
     store.set({
-      doc: runner.buildDoc(codes, { focus: !bad, speed: s.speed, hitboxes: s.hitboxes }),
+      doc: runner.buildDoc(codes, { focus: !bad, hitboxes: s.hitboxes }),
       runId: s.runId + 1,
       error,
       runtimeErrorTab: null,
       game: bad ? 'blocked' : 'running',
       gameFocused: false,
-      paused: false,
       lastScore: 0,
       unreadLogs: 0,
     })
     // Нашли ошибку до запуска — игра не стартует, фокус остаётся в редакторе.
-    if (bad && own) editors?.focus()
+    if (bad) editors?.focus()
   }
 
   function run() {
-    if (sharedCodes) {
-      sharedCodes = null
-      clearHash()
-      store.set({ shared: false })
-    }
     saveNow()
     snapshot()
-    launch(latestCodes, true)
+    launch(latestCodes)
   }
 
   function onGameError(message: string, line: number) {
     // Пока есть ошибка, найденная до запуска, синтаксические сообщения из iframe игнорируем.
     if (preRunSyntax && isSyntaxMessage(message)) return
     if (store.get().error) return
-    const own = !sharedCodes
     const place = line ? runner.locate(line, runCodes) : null
     const text = formatError(place ? { title: title(place.tab), line: place.line } : null, explainRuntimeError(message))
-    if (place && own) editors?.markError(place.tab, place.line)
+    if (place) editors?.markError(place.tab, place.line)
     store.set({
-      error: { text, tab: place && own ? place.tab : null, line: place?.line ?? null },
-      runtimeErrorTab: place && own ? place.tab : null,
+      error: { text, tab: place?.tab ?? null, line: place?.line ?? null },
+      runtimeErrorTab: place?.tab ?? null,
     })
   }
 
@@ -350,7 +323,7 @@ export function createController(lesson: Lesson, variant: LessonVariant) {
     const s = store.get()
     const score = w.score
     const lives = w.lives
-    if (s.shared || typeof score !== 'number') return
+    if (typeof score !== 'number') return
     if (score > s.best) {
       store.set({ best: score })
       saveBest(key, score)
@@ -363,12 +336,12 @@ export function createController(lesson: Lesson, variant: LessonVariant) {
     if (!editors) return
     selectView(tab)
     if (editors.getCode(tab) === code) {
-      toast(`Этот код уже во вкладке «${title(tab)}». Нажми «Запустить».`)
+      toast(`Этот код уже во вкладке «${title(tab)}». Нажми «Собрать».`)
       return
     }
     editors.replace(tab, code)
     const ed = editors
-    toast(`${done} Теперь нажми «Запустить».`, () => ed.undo(tab))
+    toast(`${done} Теперь нажми «Собрать».`, () => ed.undo(tab))
   }
 
   function insertStep(index: number) {
@@ -376,30 +349,162 @@ export function createController(lesson: Lesson, variant: LessonVariant) {
     replaceTab(step.tab, step.code, `Код шага ${step.step} — во вкладке «${title(step.tab)}».`)
   }
 
-  function insertPart(extraIndex: number, partIndex: number) {
-    const part = lesson.extras[extraIndex].parts[partIndex]
-    if (!editors) return
-    if (part.mode === 'replace') {
-      replaceTab(part.tab, part.code, `«${part.title}» — во вкладке «${title(part.tab)}».`)
+  /** Открыть вкладку задания: «поправь сам» — выделить, что менять; «собери» — к всплывшему куску. */
+  function openTask(stepIndex: number, taskIndex: number) {
+    const task = lesson.steps[stepIndex].tasks[taskIndex]
+    if (!task || !editors) return
+    selectView(task.tab)
+    if (task.kind === 'build') {
+      const next = nextPiece(stepIndex, editors.getCode(task.tab))
+      if (next) editors.gotoLine(next.plan.after)
+      else editors.focus()
       return
     }
-    // В «Движок» никогда не вставляем целиком — только одну строку.
-    const plan = planSettingInsert(editors.getCode(part.tab), part.name, part.line)
-    selectView(part.tab)
-    if (plan.kind === 'exists') {
-      editors.gotoLine(plan.line)
-      toast(`${part.name} уже есть в «${title(part.tab)}», строка ${plan.line}. Ничего не добавил.`)
+    const at = editTarget(editors.getCode(task.tab), task.target)
+    if (at) editors.select(at.line, at.from, at.to)
+    else editors.focus()
+  }
+
+  /** Задание шага «собери по частям» (в шаге оно одно). */
+  function buildTaskOf(stepIndex: number) {
+    const tasks = lesson.steps[stepIndex].tasks
+    const index = tasks.findIndex((t) => t.kind === 'build')
+    const task = tasks[index]
+    return task?.kind === 'build' ? { task, index } : null
+  }
+
+  /** Какую часть задания «собери по частям» добавлять сейчас: первая несделанная, если для неё есть место. */
+  function nextPiece(stepIndex: number, code: string) {
+    const task = buildTaskOf(stepIndex)?.task
+    if (!task) return null
+    const index = task.pieces.findIndex((p) => !p.isDone(code))
+    if (index < 0) return null
+    const plan = task.pieces[index].plan(code)
+    return plan ? { index, plan } : null
+  }
+
+  /** Источник кусков для редактора: во вкладке задания, когда код шага уже вставлен, а задание не собрано. */
+  function slotSources(): (SlotSource | null)[] {
+    return variant.tabs.map((_, tab) => {
+      if (!variant.hasGuide) return null
+      const stepIndex = lesson.steps.findIndex((_, i) => buildTaskOf(i)?.task.tab === tab)
+      if (stepIndex < 0) return null
+      const step = lesson.steps[stepIndex]
+      const { task, index: taskIndex } = buildTaskOf(stepIndex)!
+      return (code: string) => {
+        if (!stepDone(code, step.fns)) return null
+        // задания шага идут по одному: куски всплывают, когда дошла очередь сборки
+        const before = levelStates(lesson.steps, codesWith(task.tab, code))[stepIndex].tasksDone.slice(0, taskIndex)
+        if (!before.every(Boolean)) return null
+        const next = nextPiece(stepIndex, code)
+        if (!next) return null
+        const piece = task.pieces[next.index]
+        return {
+          after: next.plan.after,
+          code: next.plan.text.replace(/^\n+/, ''),
+          n: next.index + 1,
+          total: task.pieces.length,
+          title: piece.title,
+          onAdd: () => insertPiece(stepIndex, next.index),
+        }
+      }
+    })
+  }
+
+  /** Задание «собери по частям»: добавить кусок функции. */
+  function insertPiece(stepIndex: number, pieceIndex: number) {
+    const task = buildTaskOf(stepIndex)?.task
+    if (!task || !editors) return
+    const piece = task.pieces[pieceIndex]
+    const code = editors.getCode(task.tab)
+    selectView(task.tab)
+    if (piece.isDone(code)) {
+      toast(`«${piece.title}» уже есть во вкладке «${title(task.tab)}».`)
       return
     }
-    const line = editors.insertLine(part.tab, plan.after, plan.text)
+    const plan = piece.plan(code)
+    if (!plan) {
+      toast('Сначала добавь предыдущую часть.')
+      return
+    }
+    const line = editors.insertLine(task.tab, plan.after, plan.text)
     editors.gotoLine(line)
+    // следующая часть может всплыть далеко от этой (вызов — в moveItems): прокручиваем к ней
+    const next = nextPiece(stepIndex, editors.getCode(task.tab))
+    if (next) editors.reveal(next.plan.after)
     const ed = editors
-    toast(`Добавил в «${title(part.tab)}» строку ${line} с ${part.name}. Остальные настройки на месте.`, () =>
-      ed.undo(part.tab),
+    const done = task.pieces.every((p) => p.isDone(ed.getCode(task.tab)))
+    const more = buildTaskOf(stepIndex)!.index < lesson.steps[stepIndex].tasks.length - 1
+    toast(
+      done
+        ? `Функция собрана! Через 15 секунд после запуска яблоки полетят быстрее.${more ? ' Следующий квест — в «Гайде».' : ''}`
+        : `Часть ${pieceIndex + 1} из ${task.pieces.length} на месте. Жми «Добавить» у следующей.`,
+      () => ed.undo(task.tab),
     )
   }
 
-  // ===== Сбросы и загрузка кода =====
+  /** Бомбу и звезду можно добавить, только когда основная игра собрана: три шага с заданиями. */
+  function extraLocked(extraIndex: number): boolean {
+    const codes = codesNow()
+    const allDone = levelStates(lesson.steps, codes).every((l) => l.done)
+    const state = extraStates(lesson.extras, allDone, codes)[extraIndex]
+    if (state.unlocked) return false
+    toast(
+      allDone
+        ? `Сначала добавь «${lesson.extras[extraIndex - 1].title}».`
+        : 'Сначала собери игру: пройди три шага вместе с заданиями.',
+    )
+    return true
+  }
+
+  /** Бомба и звезда, кнопка 1: одна строка в «Движок». Целиком «Движок» не заменяем. */
+  function insertExtraSetting(extraIndex: number) {
+    const { setting } = lesson.extras[extraIndex]
+    if (!editors || extraLocked(extraIndex)) return
+    const plan = planSettingInsert(editors.getCode(setting.tab), setting.name, setting.line)
+    selectView(setting.tab)
+    if (plan.kind === 'exists') {
+      editors.gotoLine(plan.line)
+      toast(`${setting.name} уже есть в «${title(setting.tab)}», строка ${plan.line}. Ничего не добавил.`)
+      return
+    }
+    const line = editors.insertLine(setting.tab, plan.after, plan.text)
+    editors.gotoLine(line)
+    const ed = editors
+    toast(`Добавил в «${title(setting.tab)}» строку ${line} с ${setting.name}. Остальные настройки на месте.`, () =>
+      ed.undo(setting.tab),
+    )
+  }
+
+  /** Бомба и звезда, кнопка 2: код сразу в несколько вкладок — одной правкой в каждой. */
+  function insertExtraCode(extraIndex: number) {
+    const extra = lesson.extras[extraIndex]
+    if (!editors || extraLocked(extraIndex)) return
+    const ed = editors
+    const changed = extra.codes.filter((c) => ed.getCode(c.tab) !== c.code)
+    selectView(extra.codes[0].tab)
+    const where = extra.codes.map((c) => `«${title(c.tab)}»`).join(' и ')
+    if (!changed.length) {
+      toast(`Этот код уже во вкладках ${where}. Нажми «Собрать».`)
+      return
+    }
+    for (const c of changed) ed.replace(c.tab, c.code)
+    toast(`${extra.emoji} ${extra.title} — во вкладках ${where}. Теперь нажми «Собрать».`, () => {
+      for (const c of changed) ed.undo(c.tab)
+    })
+  }
+
+  /** Готовая игра под паролем: true — пароль подошёл. */
+  function unlockFinished(password: string): boolean {
+    if (!checkFinishedPassword(password)) return false
+    rememberFinishedUnlocked()
+    saveNow()
+    const opened = window.open('?finished', '_blank')
+    if (!opened) location.assign('?finished')
+    return true
+  }
+
+  // ===== Сбросы =====
   function replaceAll(codes: string[]): number[] {
     if (!editors) return []
     const ed = editors
@@ -433,90 +538,7 @@ export function createController(lesson: Lesson, variant: LessonVariant) {
     else toast('Код и так в исходном виде.')
   }
 
-  function loadIntoTabs(codes: string[], text: string) {
-    const changed = replaceAll(codes)
-    run()
-    if (changed.length) toast(text, () => undoAll(changed), 30_000)
-    else toast('Этот код у тебя уже есть.')
-  }
-
-  // ===== Ссылка, файлы =====
-  const codeFile = () => makeCodeFile('catch', variant.id, ids, codesNow())
-
-  function clearHash() {
-    if (location.hash) history.replaceState(null, '', location.pathname + location.search)
-  }
-
-  async function openShare() {
-    store.set({ dialog: { kind: 'share', url: null } })
-    const token = await encodeShare(codeFile())
-    const url = `${location.href.split('#')[0]}#${SHARE_PARAM}=${token}`
-    const d = store.get().dialog
-    if (d?.kind === 'share') store.set({ dialog: { kind: 'share', url } })
-  }
-
-  async function startShared() {
-    const token = readShareToken(location.hash)
-    if (!token) return
-    const codes = readCodeFile(await decodeShare(token), ids)
-    if (!codes) {
-      clearHash()
-      toast('Ссылка повреждена — открыт твой код.')
-      return
-    }
-    sharedCodes = codes
-    store.set({ shared: true })
-    launch(codes, false)
-  }
-
-  function acceptShared() {
-    const codes = sharedCodes
-    if (!codes) return
-    sharedCodes = null
-    clearHash()
-    store.set({ shared: false })
-    loadIntoTabs(codes, 'Код по ссылке теперь у тебя во вкладках.')
-  }
-
-  function exitShared() {
-    sharedCodes = null
-    clearHash()
-    store.set({ shared: false })
-    run()
-  }
-
-  async function importFile(file: File) {
-    let data: unknown = null
-    try {
-      data = JSON.parse(await file.text())
-    } catch {
-      // не JSON
-    }
-    const codes = readCodeFile(data, ids)
-    if (!codes) {
-      toast(`Этот файл не подходит: в нём нет кода для «${lesson.title}».`)
-      return
-    }
-    loadIntoTabs(codes, `Код из файла «${file.name}» загружен.`)
-  }
-
-  // ===== Настройки вида =====
-  function applyPrefs(p: Prefs) {
-    const root = document.documentElement
-    root.dataset.theme = p.projector ? 'projector' : 'dark'
-    root.style.setProperty('--code-size', `${p.codeSize}px`)
-  }
-
-  function setPrefs(patch: Partial<Prefs>) {
-    const prefs = { ...store.get().prefs, ...patch }
-    prefs.codeSize = Math.min(24, Math.max(11, prefs.codeSize))
-    store.set({ prefs })
-    applyPrefs(prefs)
-    savePrefs(prefs)
-  }
-
   // ===== Запуск приложения =====
-  applyPrefs(store.get().prefs)
   window.addEventListener('message', onMessage)
   window.addEventListener('pagehide', saveNow)
   document.addEventListener('visibilitychange', () => {
@@ -530,8 +552,7 @@ export function createController(lesson: Lesson, variant: LessonVariant) {
   })
   window.setInterval(poll, 200)
 
-  launch(latestCodes, true)
-  void startShared()
+  launch(latestCodes)
 
   return {
     lesson,
@@ -550,6 +571,7 @@ export function createController(lesson: Lesson, variant: LessonVariant) {
         lint: checkSyntax,
         onChange,
         onRun: run,
+        slots: slotSources(),
       })
       editors.setVisible(view !== 'guide')
       const err = store.get().error
@@ -573,26 +595,10 @@ export function createController(lesson: Lesson, variant: LessonVariant) {
       if (!preRunSyntax) focusGame()
     },
     focusGame,
-    togglePause() {
-      const paused = !store.get().paused
-      store.set({ paused })
-      sendCtl({ type: 'ctl', paused })
-      if (!paused) focusGame()
-    },
-    stepFrame() {
-      if (!store.get().paused) store.set({ paused: true })
-      sendCtl({ type: 'ctl', paused: true, step: true })
-    },
-    toggleSpeed() {
-      const speed = store.get().speed === 1 ? 0.5 : 1
-      store.set({ speed })
-      sendCtl({ type: 'ctl', speed })
-    },
     toggleHitboxes() {
       const hitboxes = !store.get().hitboxes
       store.set({ hitboxes })
       sendCtl({ type: 'ctl', hitboxes })
-      if (store.get().paused) sendCtl({ type: 'ctl', step: true })
     },
     pressKey(k: string, down: boolean) {
       sendCtl({ type: 'key', key: k, down })
@@ -605,7 +611,11 @@ export function createController(lesson: Lesson, variant: LessonVariant) {
     },
 
     insertStep,
-    insertPart,
+    openTask,
+    insertPiece,
+    insertExtraSetting,
+    insertExtraCode,
+    unlockFinished,
 
     toast,
     dismissToast,
@@ -621,23 +631,6 @@ export function createController(lesson: Lesson, variant: LessonVariant) {
     },
     confirmReset,
     confirmResetAll,
-
-    openShare,
-    acceptShared,
-    exitShared,
-    importFile,
-    exportCode() {
-      downloadFile('lovi-yabloki-kod.json', JSON.stringify(codeFile(), null, 2), 'application/json')
-    },
-    downloadGame() {
-      downloadFile(
-        'lovi-yabloki.html',
-        runner.buildDoc(codesNow(), { focus: true, speed: 1, hitboxes: false }),
-        'text/html',
-      )
-    },
-
-    setPrefs,
   }
 }
 
@@ -654,6 +647,17 @@ export function tabBadges(c: Controller, s: Pick<AppState, 'codes' | 'syntax' | 
   })
 }
 
-export function stepsDone(c: Controller, codes: string[]): boolean[] {
-  return c.lesson.steps.map((st) => stepDone(codes[st.tab], st.fns))
+/** Пройден ли уровень: шаг и задание после него. */
+export function levelsDone(c: Controller, codes: string[]): boolean[] {
+  return levelStates(c.lesson.steps, codes).map((l) => l.done)
+}
+
+/** Бомба и звезда: добавлены ли (и переменная, и код). */
+export function extrasDone(c: Controller, codes: string[]): boolean[] {
+  const levels = levelStates(c.lesson.steps, codes)
+  return extraStates(
+    c.lesson.extras,
+    levels.every((l) => l.done),
+    codes,
+  ).map((x) => x.done)
 }

@@ -1,0 +1,89 @@
+/* Кусок, который «всплывает» в коде: пунктирная рамка, внутри призрак будущего кода
+   с тем же отступом, что у строк, и кнопка «Добавить».
+   Отступы снаружи — только padding: высоту блока CodeMirror меряет без margin,
+   и с ним номера строк ниже съезжают. */
+.cm-slot {
+  padding: 4px 16px 6px 0;
+}
+
+.cm-slotBox {
+  padding: 7px 10px 8px 6px;
+  border: 1.5px dashed rgba(255, 200, 58, 0.55);
+  border-left-width: 2px;
+  border-radius: 0 12px 12px 0;
+  background: rgba(255, 200, 58, 0.07);
+  font-family: var(--font-ui);
+  animation: cm-slot-rise 0.28s cubic-bezier(0.2, 0.8, 0.3, 1);
+}
+
+.cm-slotHead {
+  display: flex;
+  align-items: center;
+  gap: 10px;
+  padding-left: 2px;
+}
+
+.cm-slotNum {
+  flex-shrink: 0;
+  padding: 1px 7px;
+  border-radius: 6px;
+  background: var(--sun);
+  color: #151a23;
+  font-family: var(--font-display);
+  font-size: 11px;
+  font-weight: 700;
+  line-height: 1.6;
+  font-variant-numeric: tabular-nums;
+}
+
+.cm-slotTitle {
+  flex: 1;
+  min-width: 0;
+  overflow: hidden;
+  color: var(--scr-ink);
+  font-size: 13px;
+  font-weight: 600;
+  text-overflow: ellipsis;
+  white-space: nowrap;
+}
+
+.cm-slot .cm-slotAdd {
+  flex-shrink: 0;
+  gap: 6px;
+  margin-bottom: 2px;
+}
+
+.cm-slotCode {
+  margin-top: 6px;
+  overflow-x: auto;
+  color: rgba(255, 214, 112, 0.62);
+  font-family: var(--font-mono);
+  white-space: pre;
+}
+
+/* Только что добавленные строки на миг подсвечиваются — видно, куда встал кусок. */
+.cm-flash {
+  animation: cm-flash 1.6s ease-out;
+}
+
+@keyframes cm-slot-rise {
+  from {
+    opacity: 0;
+    transform: translateY(6px);
+  }
+}
+
+@keyframes cm-flash {
+  from {
+    background-color: rgba(255, 200, 58, 0.24);
+  }
+  to {
+    background-color: transparent;
+  }
+}
+
+@media (prefers-reduced-motion: reduce) {
+  .cm-slotBox {
+    animation: none;
+  }
+}

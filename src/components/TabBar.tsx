@@ -45,10 +45,10 @@ export function TabBar() {
           id="tab-guide"
           aria-selected={view === 'guide'}
           tabIndex={view === 'guide' ? 0 : -1}
-          className={`${styles.tab} ${styles.guide}`}
+          className={`key ${styles.tab} ${styles.guide}`}
           onClick={() => c.selectView('guide')}
         >
-          <BookIcon />
+          <BookIcon size={15} />
           Гайд
         </button>
       )}
@@ -62,7 +62,7 @@ export function TabBar() {
             id={`tab-${i}`}
             aria-selected={view === i}
             tabIndex={view === i ? 0 : -1}
-            className={styles.tab}
+            className={`key ${styles.tab}`}
             data-error={badge === 'error' || undefined}
             onClick={() => c.selectView(i)}
             title={`${tab.title}: ${BADGE_TEXT[badge]}`}

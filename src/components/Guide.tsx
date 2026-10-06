@@ -1,51 +1,57 @@
-import { memo } from 'react'
+import { memo, useMemo, useState } from 'react'
 import { useApp, useController } from '@/app/context.ts'
-import { type FnState, partDone, stepStates, varLine } from '@/core/progress.ts'
-import type { GuideExtra, GuidePart, GuideStep, GuideTask } from '@/lessons/types.ts'
+import { type ExtraState, extraStates, type LevelState, levelStates } from '@/core/levels.ts'
+import { type FnState, stepStates } from '@/core/progress.ts'
+import type { BuildTask, EditTask, GuideExtra, GuideStep, StepTask } from '@/lessons/types.ts'
 import { CodeBlock } from './CodeBlock.tsx'
-import { CheckIcon, WarnIcon } from './icons.tsx'
+import { BulbIcon, CheckIcon, CodeIcon, HelpIcon, InsertIcon, LockIcon, TargetIcon, WarnIcon } from './icons.tsx'
 import { Rich } from './Rich.tsx'
 import styles from './Guide.module.css'
 
-// Гайд заменяет презентацию: ученик идёт в своём темпе. Не размонтируется,
-// чтобы помнить прокрутку.
+// Гайд заменяет презентацию: ученик идёт в своём темпе. После каждого шага — задание;
+// следующий шаг открывается, когда оно выполнено. Не размонтируется, чтобы помнить прокрутку.
 export function Guide() {
   const c = useController()
   const codes = useApp((s) => s.codes)
   const { lesson } = c
-  const total = lesson.steps.length
+  const levels = useMemo(() => levelStates(lesson.steps, codes), [lesson, codes])
+  const allDone = levels.every((l) => l.done)
+  const extras = useMemo(() => extraStates(lesson.extras, allDone, codes), [lesson, allDone, codes])
 
   return (
     <article className={styles.guide}>
-      <header className={styles.intro}>
-        <h1>{lesson.title}</h1>
-        {lesson.intro.map((p, i) => (
-          <p key={i}>
-            <Rich text={p} />
-          </p>
-        ))}
+      <header className={styles.hero}>
+        <h1>{lesson.intro.title}</h1>
+        <p className={styles.lead}>
+          <Rich text={lesson.intro.lead} />
+        </p>
+        <ul className={styles.tips}>
+          {lesson.intro.tips.map((t) => (
+            <li key={t}>
+              <Rich text={t} />
+            </li>
+          ))}
+        </ul>
       </header>
 
-      {lesson.steps.map((step, i) => (
-        <StepSection key={step.step} index={i} step={step} total={total} code={codes[step.tab]} />
-      ))}
-
-      <section className={styles.section} aria-labelledby="guide-tasks">
-        <h2 id="guide-tasks">Задания на улучшение</h2>
-        <p className={styles.lead}>Готового кода тут нет — только условие и подсказка. Попробуй сам.</p>
-        {lesson.tasks.map((t) => (
-          <Task key={t.n} task={t} />
+      <ol className={styles.track} aria-label="Шаги">
+        {lesson.steps.map((step, i) => (
+          <StepItem key={step.step} index={i} step={step} total={lesson.steps.length} level={levels[i]} codes={codes} />
         ))}
-      </section>
+      </ol>
 
       <section className={styles.section} aria-labelledby="guide-extras">
         <h2 id="guide-extras">Бомба и звезда</h2>
-        <p className={styles.lead}>
-          Тут код есть. Каждое задание — из трёх частей, делай их по порядку и запускай после каждой.
+        <p className={styles.sub}>
+          {allDone
+            ? 'Две кнопки на каждую: сначала переменная, потом код.'
+            : 'Сначала собери игру: пройди три шага вместе с заданиями — тогда откроются.'}
         </p>
-        {lesson.extras.map((x, i) => (
-          <Extra key={x.n} index={i} extra={x} codes={codes} />
-        ))}
+        <div className={styles.extras}>
+          {lesson.extras.map((x, i) => (
+            <Extra key={x.n} index={i} extra={x} state={extras[i]} />
+          ))}
+        </div>
         <p className={styles.warn}>
           <WarnIcon size={15} className={styles.warnIcon} />
           <span>
@@ -54,23 +60,12 @@ export function Guide() {
         </p>
       </section>
 
-      {lesson.moreTasks.length > 0 && (
-        <section className={styles.section} aria-labelledby="guide-more">
-          <h2 id="guide-more">Ещё одно задание</h2>
-          {lesson.moreTasks.map((t) => (
-            <Task key={t.n} task={t} />
-          ))}
-        </section>
-      )}
-
       <footer className={styles.footer}>
-        <p>
-          Хочешь посмотреть, какой может получиться игра целиком?{' '}
-          <a href="?finished" target="_blank" rel="noreferrer">
-            Открой готовую версию
-          </a>
-          . У неё своё сохранение — твой код она не тронет.
-        </p>
+        <button type="button" className="key key--l" onClick={() => c.openDialog({ kind: 'unlock' })}>
+          <LockIcon size={16} />
+          Открыть готовую игру
+        </button>
+        <span>Под паролем.</span>
       </footer>
     </article>
   )
@@ -82,156 +77,353 @@ const FN_TEXT: Record<FnState, string> = {
   missing: 'функции пока нет',
 }
 
-const StepSection = memo(function StepSection({
+const StepItem = memo(function StepItem({
   index,
   step,
   total,
-  code,
+  level,
+  codes,
 }: {
   index: number
   step: GuideStep
   total: number
-  code: string
+  level: LevelState
+  codes: string[]
 }) {
   const c = useController()
+  const [showCode, setShowCode] = useState(false)
+  const [showHow, setShowHow] = useState(false)
   const tabTitle = c.variant.tabs[step.tab].title
-  const states = stepStates(code, step.fns)
-  const done = states.every((s) => s.state === 'ok')
+  const states = stepStates(codes[step.tab], step.fns)
+  const id = `guide-step-${step.step}`
+  const state = !level.unlocked ? 'locked' : level.done ? 'done' : 'active'
 
   return (
-    <section
-      id={`guide-step-${step.step}`}
-      className={styles.section}
-      aria-labelledby={`guide-step-${step.step}-title`}
-    >
-      <p className={styles.stepNo}>
-        Шаг {step.step} из {total}
-      </p>
-      <div className={styles.titleRow}>
-        <h2 id={`guide-step-${step.step}-title`}>{step.title}</h2>
-        {done ? (
-          <span className="chip chip--ok">
-            <CheckIcon size={12} />
-            Сделано
-          </span>
+    <li id={id} className={styles.step} data-state={state}>
+      <span className={styles.node} aria-hidden="true">
+        {state === 'done' ? <CheckIcon size={22} /> : state === 'locked' ? <LockIcon size={18} /> : step.step}
+      </span>
+      <div className={styles.stepBody}>
+        <div className={styles.stepHead}>
+          <h2>
+            <span className="visually-hidden">
+              Шаг {step.step} из {total}.{' '}
+            </span>
+            {step.title}
+          </h2>
+          {state === 'done' && (
+            <span className="chip chip--ok">
+              <CheckIcon size={12} />
+              Сделано
+            </span>
+          )}
+          {state === 'active' && (
+            <span className="chip chip--todo">{level.stepDone ? 'Осталось задание' : 'Не сделано'}</span>
+          )}
+          {state === 'locked' && (
+            <span className="chip chip--todo">
+              <LockIcon size={11} />
+              Закрыто
+            </span>
+          )}
+        </div>
+        <p className={styles.stepLead}>
+          <Rich text={step.lead} />
+        </p>
+
+        {state === 'locked' ? (
+          <p className={styles.lockedText}>Откроется, когда выполнишь задание шага {step.step - 1}.</p>
         ) : (
-          <span className="chip chip--todo">Не сделано</span>
+          <>
+            <ul className={styles.fns} aria-label={`Что должно быть во вкладке «${tabTitle}»`}>
+              {states.map((s) => (
+                <li key={s.name} data-state={s.state} title={`${s.name} — ${FN_TEXT[s.state]}`}>
+                  {s.state === 'ok' ? <CheckIcon size={12} /> : <span className={styles.dot} aria-hidden="true" />}
+                  <code>{s.name}</code>
+                  <span className="visually-hidden"> — {FN_TEXT[s.state]}</span>
+                </li>
+              ))}
+            </ul>
+
+            <div className={styles.actions}>
+              <button type="button" className="key key--apple key--l" onClick={() => c.insertStep(index)}>
+                <InsertIcon size={16} />
+                Вставить в «{tabTitle}»
+              </button>
+              <button
+                type="button"
+                className="key key--l"
+                aria-expanded={showCode}
+                onClick={() => setShowCode(!showCode)}
+              >
+                <CodeIcon size={16} />
+                {showCode ? 'Скрыть код' : 'Показать код'}
+              </button>
+              <button
+                type="button"
+                className="key key--l key--ghost"
+                aria-expanded={showHow}
+                onClick={() => setShowHow(!showHow)}
+              >
+                <HelpIcon size={16} />
+                Как это работает
+              </button>
+            </div>
+
+            {showHow && (
+              <ul className={styles.how}>
+                {step.how.map((t, i) => (
+                  <li key={i}>
+                    <Rich text={t} />
+                  </li>
+                ))}
+              </ul>
+            )}
+            {showCode && (
+              <div className={styles.code}>
+                <CodeBlock code={step.code} />
+                <p className={styles.aside}>Можно не вставлять, а перепечатать руками — так лучше запомнится.</p>
+              </div>
+            )}
+
+            <ul className={styles.checks} aria-label="Проверь">
+              {step.checks.map((t, i) => (
+                <li key={i}>
+                  <Rich text={t} />
+                </li>
+              ))}
+            </ul>
+
+            {/* задания открываются по одному: следующее — когда выполнено предыдущее */}
+            {level.stepDone &&
+              step.tasks.map((task, j) =>
+                level.tasksDone.slice(0, j).every(Boolean) ? (
+                  <TaskBox
+                    key={j}
+                    stepIndex={index}
+                    taskIndex={j}
+                    task={task}
+                    count={step.tasks.length}
+                    done={level.tasksDone[j]}
+                    code={codes[task.tab]}
+                    next={level.done && j === step.tasks.length - 1 && step.step < total ? step.step + 1 : null}
+                  />
+                ) : null,
+              )}
+          </>
         )}
       </div>
-      {step.body.map((p, i) => (
-        <p key={i}>
-          <Rich text={p} />
-        </p>
-      ))}
-
-      <InsertRow tab={tabTitle} label={`Вставить во вкладку «${tabTitle}»`} onClick={() => c.insertStep(index)} />
-      <CodeBlock code={step.code} />
-      <p className={styles.aside}>Можно не вставлять, а перепечатать руками — так лучше запомнится.</p>
-
-      <div className={styles.check}>
-        <h3>Проверь</h3>
-        <ul className={styles.checks}>
-          {step.checks.map((t, i) => (
-            <li key={i}>
-              <Rich text={t} />
-            </li>
-          ))}
-        </ul>
-        <p className={styles.fnTitle}>«Сделано» загорится, когда во вкладке «{tabTitle}»:</p>
-        <ul className={styles.fns}>
-          {states.map((s) => (
-            <li key={s.name} data-state={s.state}>
-              {s.state === 'ok' ? <CheckIcon size={13} /> : <span className={styles.dot} aria-hidden="true" />}
-              <code className="inline-code">{s.name}</code> — {FN_TEXT[s.state]}
-            </li>
-          ))}
-        </ul>
-      </div>
-    </section>
+    </li>
   )
 })
 
-function InsertRow({ tab, label, onClick }: { tab: string; label: string; onClick: () => void }) {
+/** Задание после шага: «поправь сам» или «собери по частям». */
+function TaskBox({
+  stepIndex,
+  taskIndex,
+  task,
+  count,
+  done,
+  code,
+  next,
+}: {
+  stepIndex: number
+  taskIndex: number
+  task: StepTask
+  count: number
+  done: boolean
+  code: string
+  /** Номер шага, который открылся после этого задания. */
+  next: number | null
+}) {
   return (
-    <div className={styles.insert}>
-      <span className={styles.tabLabel}>Вкладка «{tab}»</span>
-      <button type="button" className="btn btn--outline" onClick={onClick}>
-        {label}
-      </button>
-    </div>
+    <section className={styles.task} data-done={done} aria-label={`Задание: ${task.title}`}>
+      <div className={styles.taskHead}>
+        <span className={styles.taskLabel}>{count > 1 ? `Задание ${taskIndex + 1} из ${count}` : 'Задание'}</span>
+        <h3>{task.title}</h3>
+        {done && (
+          <span className="chip chip--ok">
+            <CheckIcon size={12} />
+            Выполнено
+          </span>
+        )}
+      </div>
+      <p className={styles.taskText}>
+        <Rich text={task.text} />
+      </p>
+      {task.kind === 'edit' ? (
+        <EditTaskBody stepIndex={stepIndex} taskIndex={taskIndex} task={task} done={done} />
+      ) : (
+        <BuildTaskBody stepIndex={stepIndex} taskIndex={taskIndex} task={task} code={code} />
+      )}
+      {done && taskIndex < count - 1 && <p className={styles.unlocked}>Задание {taskIndex + 2} — ниже.</p>}
+      {next && <p className={styles.unlocked}>Шаг {next} открыт — листай ниже.</p>}
+    </section>
   )
 }
 
-function Task({ task }: { task: GuideTask }) {
-  return (
-    <div className={styles.task}>
-      <h3>
-        <span className={styles.taskNum}>{task.n}.</span> {task.title}
-      </h3>
-      {task.body.map((p, i) => (
-        <p key={i}>
-          <Rich text={p} />
-        </p>
-      ))}
-      <details className={styles.hint}>
-        <summary>Подсказка</summary>
-        {task.hint.map((p, i) => (
-          <p key={i}>
-            <Rich text={p} />
-          </p>
-        ))}
-      </details>
-    </div>
-  )
-}
-
-function isPartDone(part: GuidePart, codes: string[]) {
-  const code = codes[part.tab]
-  return part.mode === 'settings' ? varLine(code, part.name) > 0 : partDone(code, part.marks)
-}
-
-const Extra = memo(function Extra({ index, extra, codes }: { index: number; extra: GuideExtra; codes: string[] }) {
+function EditTaskBody({
+  stepIndex,
+  taskIndex,
+  task,
+  done,
+}: {
+  stepIndex: number
+  taskIndex: number
+  task: EditTask
+  done: boolean
+}) {
   const c = useController()
+  const [hint, setHint] = useState(false)
+  const tabTitle = c.variant.tabs[task.tab].title
   return (
-    <div className={styles.extra} id={`guide-task-${extra.n}`}>
-      <h3 className={styles.extraTitle}>
-        <span className={styles.taskNum}>{extra.n}.</span> <span aria-hidden="true">{extra.emoji}</span> {extra.title}
-      </h3>
-      {extra.body.map((p, i) => (
-        <p key={i}>
-          <Rich text={p} />
-        </p>
-      ))}
-      {extra.parts.map((part, j) => {
-        const tabTitle = c.variant.tabs[part.tab].title
-        const done = isPartDone(part, codes)
-        return (
-          <div key={j} className={styles.part}>
-            <div className={styles.titleRow}>
-              <h4>
-                Часть {j + 1}. {part.title}
-              </h4>
-              {done && (
-                <span className="chip chip--ok">
-                  <CheckIcon size={12} />
-                  уже есть в коде
-                </span>
-              )}
+    <>
+      <div className={styles.actions}>
+        <button
+          type="button"
+          className={done ? 'key key--l' : 'key key--sun key--l'}
+          onClick={() => c.openTask(stepIndex, taskIndex)}
+        >
+          <TargetIcon size={15} />
+          Открыть «{tabTitle}»
+        </button>
+        <button type="button" className="key key--l key--ghost" aria-expanded={hint} onClick={() => setHint(!hint)}>
+          <BulbIcon size={15} />
+          {hint ? 'Скрыть подсказку' : 'Подсказка'}
+        </button>
+      </div>
+      {hint && (
+        <div className={styles.hint}>
+          {task.hint.map((p, i) => (
+            <p key={i}>
+              <Rich text={p} />
+            </p>
+          ))}
+        </div>
+      )}
+    </>
+  )
+}
+
+/** Кнопки «Добавить» всплывают в самом коде вкладки; здесь — только какие части уже на месте. */
+function BuildTaskBody({
+  stepIndex,
+  taskIndex,
+  task,
+  code,
+}: {
+  stepIndex: number
+  taskIndex: number
+  task: BuildTask
+  code: string
+}) {
+  const c = useController()
+  const done = task.pieces.map((p) => p.isDone(code))
+  const all = done.every(Boolean)
+  const next = done.indexOf(false)
+  return (
+    <>
+      <ol className={styles.pieces} aria-label="Части функции">
+        {task.pieces.map((piece, j) => {
+          const state = done[j] ? 'done' : j === next ? 'next' : 'wait'
+          return (
+            <li key={j} className={styles.piece} data-state={state}>
+              <span className={styles.partNode} aria-hidden="true">
+                {done[j] ? <CheckIcon size={13} /> : j + 1}
+              </span>
+              <span className={styles.partTitle}>{piece.title}</span>
+              <span className="visually-hidden">{done[j] ? ' — на месте' : ' — ещё нет'}</span>
+            </li>
+          )
+        })}
+      </ol>
+      <div className={styles.actions}>
+        <button
+          type="button"
+          className={all ? 'key key--l' : 'key key--sun key--l'}
+          onClick={() => c.openTask(stepIndex, taskIndex)}
+        >
+          <TargetIcon size={15} />
+          Открыть «{c.variant.tabs[task.tab].title}»
+        </button>
+      </div>
+    </>
+  )
+}
+
+const Extra = memo(function Extra({ index, extra, state }: { index: number; extra: GuideExtra; state: ExtraState }) {
+  const c = useController()
+  const [open, setOpen] = useState(false)
+  const settingTab = c.variant.tabs[extra.setting.tab].title
+  const where = extra.codes.map((x) => `«${c.variant.tabs[x.tab].title}»`).join(' и ')
+  const locked = !state.unlocked
+
+  return (
+    <div className={styles.extra} id={`guide-task-${extra.n}`} data-locked={locked} data-done={state.done}>
+      <div className={styles.extraHead}>
+        <span className={styles.emoji} aria-hidden="true">
+          {locked ? <LockIcon size={22} /> : extra.emoji}
+        </span>
+        <div>
+          <h3>
+            <span className="visually-hidden">Задание {extra.n}. </span>
+            {extra.title}
+          </h3>
+          <p>
+            <Rich text={extra.text} />
+          </p>
+        </div>
+        {state.done && (
+          <span className={`chip chip--ok ${styles.extraChip}`}>
+            <CheckIcon size={12} />
+            Готово
+          </span>
+        )}
+      </div>
+
+      <div className={styles.extraButtons}>
+        <button
+          type="button"
+          className={state.settingDone ? 'key key--l' : 'key key--sun key--l'}
+          disabled={locked}
+          onClick={() => c.insertExtraSetting(index)}
+        >
+          {state.settingDone ? <CheckIcon size={15} /> : <span className={styles.keyNum}>1</span>}
+          Добавить переменную в «{settingTab}»
+        </button>
+        <button
+          type="button"
+          className={state.codeDone ? 'key key--l' : 'key key--apple key--l'}
+          disabled={locked || !state.settingDone}
+          onClick={() => c.insertExtraCode(index)}
+        >
+          {state.codeDone ? <CheckIcon size={15} /> : <span className={styles.keyNum}>2</span>}
+          Вставить код в {where}
+        </button>
+        <button
+          type="button"
+          className="key key--l key--ghost"
+          aria-expanded={open}
+          disabled={locked}
+          onClick={() => setOpen(!open)}
+        >
+          <CodeIcon size={15} />
+          {open ? 'Скрыть код' : 'Показать код'}
+        </button>
+      </div>
+
+      {open && !locked && (
+        <div className={styles.extraCode}>
+          <p className={styles.codeLabel}>«{settingTab}» — одна строка</p>
+          <CodeBlock code={extra.setting.line} />
+          {extra.codes.map((x) => (
+            <div key={x.tab}>
+              <p className={styles.codeLabel}>«{c.variant.tabs[x.tab].title}»</p>
+              <CodeBlock code={x.code} />
             </div>
-            {part.body.map((p, i) => (
-              <p key={i}>
-                <Rich text={p} />
-              </p>
-            ))}
-            <InsertRow
-              tab={tabTitle}
-              label={part.mode === 'settings' ? `Добавить строку в «${tabTitle}»` : `Вставить во вкладку «${tabTitle}»`}
-              onClick={() => c.insertPart(index, j)}
-            />
-            <CodeBlock code={part.mode === 'settings' ? part.line : part.code} />
-          </div>
-        )
-      })}
+          ))}
+        </div>
+      )}
     </div>
   )
 })

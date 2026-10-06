@@ -56,27 +56,21 @@ export function saveBest(key: string, best: number) {
   write(`${key}:best`, String(best))
 }
 
-export interface Prefs {
-  projector: boolean
-  codeSize: number
-}
+// Готовая игра открыта паролем — помним до закрытия вкладки (sessionStorage).
+const UNLOCK_KEY = 'catch-sandbox-finished-unlocked'
 
-const PREFS_KEY = 'timebox:prefs'
-export const DEFAULT_PREFS: Prefs = { projector: false, codeSize: 14 }
-
-export function loadPrefs(): Prefs {
+export function isFinishedUnlocked(): boolean {
   try {
-    const p = JSON.parse(read(PREFS_KEY) ?? '{}') as Partial<Prefs>
-    return {
-      projector: p.projector === true,
-      codeSize:
-        typeof p.codeSize === 'number' && p.codeSize >= 11 && p.codeSize <= 24 ? p.codeSize : DEFAULT_PREFS.codeSize,
-    }
+    return sessionStorage.getItem(UNLOCK_KEY) === '1'
   } catch {
-    return { ...DEFAULT_PREFS }
+    return false
   }
 }
 
-export function savePrefs(p: Prefs) {
-  write(PREFS_KEY, JSON.stringify(p))
+export function rememberFinishedUnlocked() {
+  try {
+    sessionStorage.setItem(UNLOCK_KEY, '1')
+  } catch {
+    // нет хранилища — пароль спросят ещё раз
+  }
 }

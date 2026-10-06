@@ -1,124 +1,139 @@
 .header {
   display: flex;
   align-items: center;
-  gap: 20px;
-  min-height: 60px;
-  padding: 8px 16px;
-  border-bottom: 1px solid var(--line);
-  background: var(--ground);
+  gap: 24px;
+  padding: 14px 24px 6px;
 }
 
 .brand {
   display: flex;
-  align-items: center;
-  gap: 9px;
   flex-shrink: 0;
+  align-items: center;
+  gap: 10px;
 }
 
 .logo {
-  font-size: 22px;
-  line-height: 1;
+  width: 34px;
+  height: 34px;
 }
 
 .name {
-  font-size: var(--text-l);
-  font-weight: 650;
+  font-family: var(--font-display);
+  font-size: 19px;
+  font-weight: 700;
   letter-spacing: -0.01em;
 }
 
 .tag {
-  padding: 1px 8px;
-  border: 1px solid var(--line-strong);
+  padding: 3px 10px;
   border-radius: 999px;
-  color: var(--faint-text);
+  background: var(--paper);
+  color: var(--ink-2);
   font-size: 12px;
+  font-weight: 600;
 }
 
-/* ===== Ветка с яблоками ===== */
-.branch {
-  position: relative;
+.back {
+  margin-bottom: 0;
+}
+
+/* ===== Чек-поинты: шаги зелёные, бомба и звезда — жёлтые ===== */
+.progress {
   display: flex;
   align-items: center;
-  gap: 10px;
-  padding-left: 18px;
-  border-left: 1px solid var(--line);
-}
-
-.twig {
-  position: absolute;
-  top: 2px;
-  left: 14px;
-  width: calc(100% - 64px);
-  height: 14px;
-  pointer-events: none;
-}
-
-.apples {
-  position: relative;
-  display: flex;
   gap: 6px;
+  padding: 4px 14px 4px 6px;
+  border: 1px solid var(--rule);
+  border-radius: 999px;
+  background: var(--paper);
+}
+
+.points {
+  display: flex;
+  align-items: center;
+  gap: 2px;
   margin: 0;
   padding: 0;
   list-style: none;
 }
 
-.apple {
+/* граница между игрой и дополнительным */
+.points > li[data-kind='step'] + li[data-kind='extra'] {
+  margin-left: 6px;
+  padding-left: 8px;
+  border-left: 1px solid var(--rule-2);
+}
+
+.point {
+  --mark: var(--leaf-fill);
+  --mark-ink: #fff;
+  --mark-ring: var(--rule-2);
   display: flex;
-  flex-direction: column;
   align-items: center;
-  gap: 1px;
-  min-width: 54px;
-  padding: 4px 4px 2px;
+  gap: 7px;
+  padding: 5px 10px 5px 6px;
   border: 0;
-  border-radius: 8px;
+  border-radius: 999px;
   background: transparent;
+  color: var(--ink-2);
+  font-size: 13px;
+  font-weight: 600;
 }
 
-.apple:hover {
-  background: var(--raised);
+.point[data-kind='extra'] {
+  --mark: var(--sun);
+  --mark-ink: #151a23;
+  --mark-ring: rgba(255, 200, 58, 0.45);
 }
 
-.appleBody {
-  display: block;
-  height: 26px;
-  transform-origin: 50% 0;
+.point:hover {
+  background: var(--paper-2);
 }
 
-.label,
-.labelDone {
-  color: var(--faint-text);
-  font-size: 11px;
-  line-height: 1.2;
+.point[data-done='true'] {
+  color: var(--leaf);
 }
 
-.labelDone {
-  color: var(--ok);
+.point[data-kind='extra'][data-done='true'] {
+  color: var(--sun);
+}
+
+.mark {
+  display: grid;
+  place-items: center;
+  width: 20px;
+  height: 20px;
+  border: 2px solid var(--mark-ring);
+  border-radius: 50%;
+  color: var(--mark-ink);
+}
+
+.point[data-done='true'] .mark {
+  border-color: var(--mark);
+  background: var(--mark);
 }
 
 .count {
-  min-width: 2.6em;
-  color: var(--ink);
-  font-size: var(--text-l);
-  font-weight: 650;
+  min-width: 2.4em;
+  font-family: var(--font-display);
+  font-size: var(--text-m);
+  font-weight: 700;
   font-variant-numeric: tabular-nums;
 }
 
-.justRipe {
-  animation: drop 0.7s cubic-bezier(0.3, 0.7, 0.4, 1);
+.justDone {
+  animation: hop 0.6s cubic-bezier(0.3, 0.7, 0.4, 1);
 }
 
-@keyframes drop {
+@keyframes hop {
   0% {
-    transform: rotate(0) translateY(0);
+    transform: none;
   }
-  20% {
-    transform: rotate(-12deg) translateY(0);
+  35% {
+    transform: translateY(-6px) scale(1.2);
   }
-  45% {
-    transform: rotate(8deg) translateY(4px) scale(1.12);
-  }
-  70% {
-    transform: rotate(-3deg) translateY(-1px);
+  65% {
+    transform: translateY(1px) scale(0.95);
   }
   100% {
     transform: none;
@@ -126,138 +141,40 @@
 }
 
 .pop {
-  animation: pop 0.5s ease-out 0.35s;
+  animation: pop 0.5s ease-out 0.3s;
 }
 
 @keyframes pop {
   40% {
     transform: scale(1.3);
-    color: var(--ok);
+    color: var(--leaf);
   }
 }
 
-/* ===== Кнопки справа ===== */
+/* ===== Справа ===== */
 .actions {
   display: flex;
   align-items: center;
-  gap: 4px;
+  gap: 10px;
   margin-left: auto;
 }
 
-.shortcut {
-  display: inline-flex;
-  align-items: center;
-  gap: 3px;
-  margin: 0 6px 0 10px;
-  color: var(--faint-text);
-  font-size: 12px;
+.actions :global(.key) {
+  margin-bottom: 0;
 }
 
 .run {
-  min-height: 36px;
-  padding: 0 16px;
-  font-size: var(--text-m);
+  padding: 0 18px 0 20px;
 }
 
-/* ===== Меню «Вид» ===== */
-.menuRoot {
-  position: relative;
-}
-
-.menu {
-  position: absolute;
-  z-index: 30;
-  top: calc(100% + 6px);
-  right: 0;
-  display: grid;
-  width: 290px;
-  padding: 6px;
-  border: 1px solid var(--line-strong);
-  border-radius: 12px;
-  background: var(--panel);
-  box-shadow: var(--shadow-pop);
-}
-
-.menuRow {
-  display: flex;
-  align-items: center;
-  justify-content: space-between;
-  gap: 12px;
-  width: 100%;
-  padding: 9px 10px;
-  border: 0;
-  border-radius: 8px;
-  background: transparent;
-  font-size: 14px;
-  text-align: left;
-}
-
-button.menuRow:hover {
-  background: var(--raised);
-}
-
-.menuRow small {
-  display: block;
-  margin-top: 2px;
-  color: var(--faint-text);
-  font-size: 12px;
-  line-height: 1.35;
-}
-
-.switch {
-  position: relative;
-  flex-shrink: 0;
-  width: 34px;
-  height: 20px;
-  border-radius: 999px;
-  background: var(--line-strong);
-  transition: background-color 0.15s;
-}
-
-.switch::after {
-  content: '';
-  position: absolute;
-  top: 3px;
-  left: 3px;
-  width: 14px;
-  height: 14px;
-  border-radius: 50%;
-  background: var(--surface);
-  transition: transform 0.15s;
-}
-
-.switch[data-on='true'] {
-  background: var(--accent);
-}
-
-.switch[data-on='true']::after {
-  transform: translateX(14px);
-}
-
-.stepper {
-  display: inline-flex;
-  align-items: center;
-  gap: 8px;
-}
-
-.stepper output {
-  min-width: 2ch;
-  font-variant-numeric: tabular-nums;
-  text-align: center;
-}
-
-.menuLink {
-  display: block;
-  margin-top: 4px;
-  padding: 9px 10px;
-  border-top: 1px solid var(--line);
-  color: var(--accent);
-  font-size: 14px;
-  text-decoration: none;
-}
-
-.menuLink:hover {
-  text-decoration: underline;
+.shortcut {
+  margin-left: 4px;
+  padding: 3px 7px;
+  border-radius: 6px;
+  background: rgba(0, 0, 0, 0.16);
+  font-family: var(--font-mono);
+  font-size: 11px;
+  font-weight: 500;
 }
 
 @media (max-width: 1180px) {
@@ -267,62 +184,49 @@ button.menuRow:hover {
 }
 
 @media (max-width: 860px) {
-  .header {
-    flex-wrap: wrap;
-    row-gap: 6px;
-    gap: 12px;
-  }
-
-  .branch {
-    order: 3;
-    width: 100%;
-    padding-left: 0;
-    border-left: 0;
-  }
-
-  .wideOnly {
+  .label {
     display: none;
   }
 
-  .actions :global(.btn--ghost) {
-    width: 34px;
-    padding: 0;
+  .point {
+    padding: 5px;
   }
 }
 
-/* Телефон: в первой строке название и «Запустить», во второй — ветка и кнопки-значки. */
-@media (max-width: 560px) {
+/* Телефон: в первой строке название и «Собрать», во второй — чек-поинты и сброс. */
+@media (max-width: 640px) {
+  .header {
+    flex-wrap: wrap;
+    gap: 10px 12px;
+    padding: 12px 16px 4px;
+  }
+
   .actions {
     display: contents;
   }
 
   .run {
     order: 1;
+    min-height: 44px;
+    margin-left: auto;
+    padding: 0 14px;
+    font-size: 15px;
+  }
+
+  .progress {
+    order: 2;
+  }
+
+  .actions > :first-child {
+    order: 3;
     margin-left: auto;
   }
 
-  .header {
-    gap: 8px;
-  }
-
-  /* basis auto: ветка не втискивается в первую строку, а переносится целиком */
-  .branch {
-    order: 2;
-    flex: 1 1 auto;
-    width: auto;
-  }
-
-  .tool {
-    order: 3;
-  }
-
-  .apple {
-    min-width: 44px;
-  }
-}
-
-@media (max-width: 420px) {
-  .tag {
+  .wideOnly {
     display: none;
+  }
+
+  .name {
+    font-size: 16px;
   }
 }

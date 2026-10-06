@@ -39,7 +39,7 @@ export async function run(page: Page) {
   await page.evaluate(() => {
     ;(document.querySelector('iframe')!.contentWindow as Window & { __old?: number }).__old = 1
   })
-  await page.getByRole('button', { name: 'Запустить' }).click()
+  await page.getByRole('button', { name: 'Собрать' }).click()
   await page.waitForFunction(() => {
     const w = document.querySelector('iframe')?.contentWindow as (Window & { __old?: number }) | null
     return !!w && !w.__old && w.document.readyState === 'complete'
@@ -61,6 +61,51 @@ export async function insertStep(page: Page, n: number) {
   const tabTitle = ['Герой', 'Яблоки', 'Поимка'][n - 1]
   await page
     .locator(`#guide-step-${n}`)
-    .getByRole('button', { name: `Вставить во вкладку «${tabTitle}»` })
+    .getByRole('button', { name: `Вставить в «${tabTitle}»` })
     .click()
+}
+
+/** Задание шага 1: заменить корзину в «Движке» — кнопка выделяет смайлик, печатаем новый. */
+export async function completeBasket(page: Page, emoji = '🐱') {
+  await tab(page, 'Гайд')
+  await page.locator('#guide-step-1').getByRole('button', { name: 'Открыть «Движок»' }).click()
+  await page.keyboard.type(emoji)
+}
+
+/** Задание шага 2: собрать speedUp — кнопки «Добавить» всплывают прямо в коде «Яблок». */
+export async function completeSpeedUp(page: Page) {
+  await tab(page, 'Гайд')
+  await page.locator('#guide-step-2').getByRole('button', { name: 'Открыть «Яблоки»' }).click()
+  for (let i = 0; i < 4; i++)
+    await page
+      .locator('.cm-editor')
+      .getByRole('button', { name: /^Добавить:/ })
+      .click()
+  await expect(page.locator('.cm-editor').getByRole('button', { name: /^Добавить:/ })).toHaveCount(0)
+}
+
+/** Второй квест шага 2: заменить яблоко в «Движке» — кнопка выделяет 🍎, печатаем новый смайлик. */
+export async function completeItem(page: Page, emoji = '🍩') {
+  await tab(page, 'Гайд')
+  await page.locator('#guide-step-2').getByRole('button', { name: 'Открыть «Движок»' }).click()
+  await page.keyboard.type(emoji)
+}
+
+/** Задание шага 3: десять очков — кнопка выделяет «1», печатаем «10». */
+export async function completeTenPoints(page: Page) {
+  await tab(page, 'Гайд')
+  await page.locator('#guide-step-3').getByRole('button', { name: 'Открыть «Поимка»' }).click()
+  await page.keyboard.type('10')
+}
+
+/** Вся основная игра: три шага и четыре задания. */
+export async function buildGame(page: Page) {
+  await insertStep(page, 1)
+  await completeBasket(page)
+  await insertStep(page, 2)
+  await completeSpeedUp(page)
+  await completeItem(page)
+  await insertStep(page, 3)
+  await completeTenPoints(page)
+  await tab(page, 'Гайд')
 }
