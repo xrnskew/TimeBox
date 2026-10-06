@@ -122,40 +122,6 @@ export function BadgeIcon({ kind }: { kind: 'empty' | 'code' | 'done' | 'error' 
   )
 }
 
-/** Яблоко для прогресса в шапке: шаг не сделан — контур, сделан — зелёное с галочкой. */
-export function AppleIcon({ ripe, className }: { ripe: boolean; className?: string }) {
-  const color = ripe ? 'var(--leaf-fill)' : 'var(--ink-3)'
-  return (
-    <svg width="26" height="26" viewBox="0 0 24 24" aria-hidden="true" focusable="false" className={className}>
-      <path
-        d="M12 7.6c-1.6-1.2-4.6-1.4-6.3.6-1.9 2.2-1.6 6.3.4 9.2 1.3 1.9 2.7 3.2 4.2 2.9.7-.1 1.1-.5 1.7-.5s1 .4 1.7.5c1.5.3 2.9-1 4.2-2.9 2-2.9 2.3-7 .4-9.2-1.7-2-4.7-1.8-6.3-.6Z"
-        fill={ripe ? color : 'none'}
-        stroke={color}
-        strokeWidth="1.6"
-        strokeLinejoin="round"
-      />
-      <path d="M12 7.6c0-1.7.5-3 1.5-4" fill="none" stroke={color} strokeWidth="1.6" strokeLinecap="round" />
-      <path
-        d="M13.3 5.3c1.1-1.5 2.8-2 4.4-1.6-.4 1.6-1.9 2.7-4.4 1.6Z"
-        fill={ripe ? color : 'none'}
-        stroke={color}
-        strokeWidth="1.2"
-        strokeLinejoin="round"
-      />
-      {ripe && (
-        <path
-          d="m8.6 13.4 2.3 2.3 4.4-4.6"
-          fill="none"
-          stroke="#fff"
-          strokeWidth="2"
-          strokeLinecap="round"
-          strokeLinejoin="round"
-        />
-      )}
-    </svg>
-  )
-}
-
 /** Логотип: красное яблоко с листиком. */
 export function LogoApple({ className }: { className?: string }) {
   return (

@@ -48,12 +48,11 @@ function after(code: string, re: RegExp, text: string): InsertPlan | null {
 export const SPEEDUP_TASK: BuildTask = {
   kind: 'build',
   title: 'Всё быстрее',
-  text: 'Каждые 15 секунд яблоки падают быстрее, но не быстрее 8. Собери функцию по частям — жми кнопки по порядку.',
+  text: 'Каждые 15 секунд яблоки падают быстрее, но не быстрее 8. Открой «Яблоки»: части функции всплывут прямо в коде — жми «Добавить» по порядку.',
   tab: 2,
   pieces: [
     {
       title: 'Пустая функция speedUp',
-      code: '// каждые 15 секунд игра становится быстрее\nfunction speedUp() {\n}',
       plan: (code) => ({
         after: code.split('\n').length,
         text: '\n// каждые 15 секунд игра становится быстрее\nfunction speedUp() {\n}',
@@ -62,19 +61,16 @@ export const SPEEDUP_TASK: BuildTask = {
     },
     {
       title: 'Раз в 15 секунд, пока скорость меньше 8',
-      code: '  if (frame % 900 === 0 && fallSpeed < 8) {\n  }',
       plan: (code) => after(code, SPEEDUP_DECL, '  if (frame % 900 === 0 && fallSpeed < 8) {\n  }'),
       isDone: (code) => has(code, SPEEDUP_IF),
     },
     {
       title: 'Прибавить скорость',
-      code: '    fallSpeed = fallSpeed + 1;',
       plan: (code) => after(code, SPEEDUP_IF, '    fallSpeed = fallSpeed + 1;'),
       isDone: (code) => has(code, SPEEDUP_IF) && has(code, SPEEDUP_STEP),
     },
     {
       title: 'Вызывать каждый кадр в moveItems',
-      code: '  speedUp();',
       plan: (code) => (has(code, SPEEDUP_DECL) ? after(code, FRAME_TICK, '  speedUp();') : null),
       isDone: (code) => has(code, SPEEDUP_CALL),
     },

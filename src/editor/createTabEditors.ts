@@ -26,6 +26,7 @@ import { classHighlighter } from '@lezer/highlight'
 import type { SyntaxIssue } from '@/core/syntax.ts'
 import type { HintSet } from '@/lessons/types.ts'
 import { hintCompletions, hintHover, syntaxLinter } from './assist.ts'
+import { codeSlots, type SlotSource } from './slots.ts'
 import { editorTheme } from './theme.ts'
 
 // Один EditorView и по одному EditorState на вкладку. История отмены живёт в EditorState,
@@ -50,6 +51,24 @@ const errorLineField = StateField.define<DecorationSet>({
   provide: (f) => EditorView.decorations.from(f),
 })
 
+// ===== Только что вставленные строки: короткая подсветка, гаснет при следующей правке =====
+const setFlash = StateEffect.define<{ from: number; to: number }>()
+const flashField = StateField.define<DecorationSet>({
+  create: () => Decoration.none,
+  update(deco, tr) {
+    for (const e of tr.effects) {
+      if (!e.is(setFlash)) continue
+      const doc = tr.state.doc
+      const marks = []
+      for (let n = Math.max(e.value.from, 1); n <= Math.min(e.value.to, doc.lines); n++)
+        marks.push(Decoration.line({ class: 'cm-flash' }).range(doc.line(n).from))
+      return Decoration.set(marks)
+    }
+    return tr.docChanged ? Decoration.none : deco
+  },
+  provide: (f) => EditorView.decorations.from(f),
+})
+
 export interface TabEditorsOptions {
   parent: HTMLElement
   docs: string[]
@@ -59,6 +78,8 @@ export interface TabEditorsOptions {
   /** Код вкладки изменился. byUser — печатает ученик, а не программа. */
   onChange: (tab: number, byUser: boolean) => void
   onRun: () => void
+  /** Куски, которые всплывают в коде вкладки с кнопкой «Добавить» (по одному источнику на вкладку). */
+  slots?: (SlotSource | null)[]
 }
 
 export interface TabEditors {
@@ -78,6 +99,8 @@ export interface TabEditors {
   gotoLine(line: number): void
   /** Выделить кусок строки (столбцы с 0) и прокрутить к нему. Вкладка должна быть открыта. */
   select(line: number, from: number, to: number): void
+  /** Прокрутить к строке, не трогая курсор и фокус. Вкладка должна быть открыта. */
+  reveal(line: number): void
   focus(): void
   destroy(): void
 }
@@ -116,6 +139,7 @@ export function createTabEditors(o: TabEditorsOptions): TabEditors {
     hintHover(o.hints),
     syntaxLinter(o.lint),
     errorLineField,
+    flashField,
     // На Mac по умолчанию работает только Cmd — Ctrl задаём явно
     keymap.of([
       { key: 'Ctrl-z', run: undo, preventDefault: true },
@@ -134,7 +158,10 @@ export function createTabEditors(o: TabEditorsOptions): TabEditors {
     }),
   ]
 
-  const states = o.docs.map((doc) => EditorState.create({ doc, extensions }))
+  const states = o.docs.map((doc, tab) => {
+    const slots = o.slots?.[tab]
+    return EditorState.create({ doc, extensions: slots ? [extensions, codeSlots(slots)] : extensions })
+  })
   const view = new EditorView({ state: states[current], parent: o.parent })
 
   const stateOf = (tab: number) => (tab === current ? view.state : states[tab])
@@ -184,11 +211,14 @@ export function createTabEditors(o: TabEditorsOptions): TabEditors {
       const n = Math.min(after, doc.lines)
       const changes = n === 0 ? { from: 0, insert: `${text}\n` } : { from: doc.line(n).to, insert: `\n${text}` }
       const lineNo = n + 1
+      // подсвечиваем только строки с кодом: пустая строка-отступ перед куском не в счёт
+      const lead = /^\n*/.exec(text)?.[0].length ?? 0
       apply(tab, {
         changes,
+        effects: setFlash.of({ from: lineNo + lead, to: lineNo + text.split('\n').length - 1 }),
         annotations: [isolateHistory.of('full'), programmatic.of(true)],
       })
-      return lineNo
+      return lineNo + lead
     },
     undo(tab) {
       if (tab === current) return undo(view)
@@ -223,6 +253,11 @@ export function createTabEditors(o: TabEditorsOptions): TabEditors {
       const b = Math.min(l.from + to, l.to)
       view.dispatch({ selection: { anchor: a, head: b }, effects: EditorView.scrollIntoView(a, { y: 'center' }) })
       view.focus()
+    },
+    reveal(line) {
+      const doc = view.state.doc
+      const l = doc.line(Math.min(Math.max(line, 1), doc.lines))
+      view.dispatch({ effects: EditorView.scrollIntoView(l.to, { y: 'center' }) })
     },
     focus() {
       view.focus()

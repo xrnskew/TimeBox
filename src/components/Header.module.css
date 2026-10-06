@@ -37,7 +37,7 @@
   margin-bottom: 0;
 }
 
-/* ===== Три яблока ===== */
+/* ===== Чек-поинты: шаги зелёные, бомба и звезда — жёлтые ===== */
 .progress {
   display: flex;
   align-items: center;
@@ -48,19 +48,30 @@
   background: var(--paper);
 }
 
-.apples {
+.points {
   display: flex;
+  align-items: center;
   gap: 2px;
   margin: 0;
   padding: 0;
   list-style: none;
 }
 
-.apple {
+/* граница между игрой и дополнительным */
+.points > li[data-kind='step'] + li[data-kind='extra'] {
+  margin-left: 6px;
+  padding-left: 8px;
+  border-left: 1px solid var(--rule-2);
+}
+
+.point {
+  --mark: var(--leaf-fill);
+  --mark-ink: #fff;
+  --mark-ring: var(--rule-2);
   display: flex;
   align-items: center;
-  gap: 6px;
-  padding: 4px 10px 4px 6px;
+  gap: 7px;
+  padding: 5px 10px 5px 6px;
   border: 0;
   border-radius: 999px;
   background: transparent;
@@ -69,18 +80,37 @@
   font-weight: 600;
 }
 
-.apple:hover {
+.point[data-kind='extra'] {
+  --mark: var(--sun);
+  --mark-ink: #151a23;
+  --mark-ring: rgba(255, 200, 58, 0.45);
+}
+
+.point:hover {
   background: var(--paper-2);
 }
 
-.apple[data-done='true'] {
+.point[data-done='true'] {
   color: var(--leaf);
 }
 
-.appleBody {
-  display: block;
-  height: 26px;
-  transform-origin: 50% 90%;
+.point[data-kind='extra'][data-done='true'] {
+  color: var(--sun);
+}
+
+.mark {
+  display: grid;
+  place-items: center;
+  width: 20px;
+  height: 20px;
+  border: 2px solid var(--mark-ring);
+  border-radius: 50%;
+  color: var(--mark-ink);
+}
+
+.point[data-done='true'] .mark {
+  border-color: var(--mark);
+  background: var(--mark);
 }
 
 .count {
@@ -91,19 +121,19 @@
   font-variant-numeric: tabular-nums;
 }
 
-.justRipe {
-  animation: hop 0.7s cubic-bezier(0.3, 0.7, 0.4, 1);
+.justDone {
+  animation: hop 0.6s cubic-bezier(0.3, 0.7, 0.4, 1);
 }
 
 @keyframes hop {
   0% {
     transform: none;
   }
-  30% {
-    transform: translateY(-7px) rotate(-10deg) scale(1.15);
+  35% {
+    transform: translateY(-6px) scale(1.2);
   }
-  60% {
-    transform: translateY(1px) rotate(6deg) scale(0.96);
+  65% {
+    transform: translateY(1px) scale(0.95);
   }
   100% {
     transform: none;
@@ -158,12 +188,12 @@
     display: none;
   }
 
-  .apple {
-    padding: 4px;
+  .point {
+    padding: 5px;
   }
 }
 
-/* Телефон: в первой строке название и «Запустить», во второй — яблоки и сброс. */
+/* Телефон: в первой строке название и «Запустить», во второй — чек-поинты и сброс. */
 @media (max-width: 640px) {
   .header {
     flex-wrap: wrap;

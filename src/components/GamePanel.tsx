@@ -1,7 +1,7 @@
 import { type MouseEvent, type PointerEvent, useEffect, useRef } from 'react'
 import { useApp, useController } from '@/app/context.ts'
 import { useStore } from '@/app/store.ts'
-import { TriangleIcon } from './icons.tsx'
+import { ResetIcon, TriangleIcon } from './icons.tsx'
 import styles from './GamePanel.module.css'
 
 /** Правая колонка: красная карманная приставка с игрой, под ней «Приборы» и консоль. */
@@ -83,15 +83,18 @@ function GameOver() {
   const score = useApp((s) => s.lastScore)
   const best = useApp((s) => s.best)
   const ref = useRef<HTMLButtonElement>(null)
-  // Enter сразу после проигрыша — «Сыграть ещё».
+  // Enter сразу после проигрыша — «Начать заново».
   useEffect(() => ref.current?.focus(), [])
+  // карточка посередине экрана закрывает надпись «Игра окончена» с холста и повторяет её
   return (
-    <div className={styles.bottomCard}>
+    <div className={styles.card}>
+      <strong>Игра окончена</strong>
       <p>
         Счёт: <b>{score}</b>. Рекорд: <b>{best}</b>.
       </p>
-      <button ref={ref} type="button" className="key key--apple key--s" onClick={c.run}>
-        Сыграть ещё
+      <button ref={ref} type="button" className="key key--apple" onClick={c.run}>
+        <ResetIcon size={14} />
+        Начать заново
       </button>
     </div>
   )
@@ -114,6 +117,7 @@ function Controls() {
   const hitboxes = useApp((s) => s.hitboxes)
   const game = useApp((s) => s.game)
 
+  // Фокус остаётся у игры: иначе кнопка забирает его, и поверх экрана всплывает «Кликни, чтобы играть».
   const hold = (k: string) => ({
     onPointerDown: (e: PointerEvent<HTMLButtonElement>) => {
       try {
@@ -121,13 +125,13 @@ function Controls() {
       } catch {
         // без захвата тоже работает
       }
+      c.focusGame()
       c.pressKey(k, true)
     },
-    onPointerUp: () => {
-      c.pressKey(k, false)
-      c.focusGame()
-    },
+    onPointerUp: () => c.pressKey(k, false),
     onPointerCancel: () => c.pressKey(k, false),
+    // mousedown (и тот, что браузер шлёт после касания) переносит фокус на кнопку — не даём
+    onMouseDown: (e: MouseEvent) => e.preventDefault(),
     onContextMenu: (e: MouseEvent) => e.preventDefault(),
   })
 

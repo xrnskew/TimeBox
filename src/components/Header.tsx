@@ -1,7 +1,7 @@
 import { useEffect, useMemo, useRef } from 'react'
 import { useApp, useController } from '@/app/context.ts'
-import { levelsDone } from '@/app/controller.ts'
-import { AppleIcon, LogoApple, PlayIcon, ResetIcon } from './icons.tsx'
+import { extrasDone, levelsDone } from '@/app/controller.ts'
+import { CheckIcon, LogoApple, PlayIcon, ResetIcon } from './icons.tsx'
 import styles from './Header.module.css'
 
 export function Header() {
@@ -12,12 +12,12 @@ export function Header() {
     <header className={styles.header}>
       <div className={styles.brand}>
         <LogoApple className={styles.logo} />
-        <span className={styles.name}>{c.lesson.title}</span>
+        <span className={styles.name}>TimeBox</span>
         {!tutorial && <span className={styles.tag}>готовая игра</span>}
       </div>
 
       {tutorial ? (
-        <StepApples />
+        <Checkpoints />
       ) : (
         <a className={`key key--s ${styles.back}`} href={location.pathname}>
           Учебная версия
@@ -46,61 +46,81 @@ export function Header() {
   )
 }
 
-/** Три яблока — три шага: шаг вместе с заданием пройден — яблоко зеленеет. Учитель видит прогресс издалека. */
-function StepApples() {
+/** Чек-поинты: три шага (зелёные) и бомба со звездой (жёлтые) в одном ряду. Учитель видит прогресс издалека. */
+function Checkpoints() {
   const c = useController()
   const codes = useApp((s) => s.codes)
-  const done = useMemo(() => levelsDone(c, codes), [c, codes])
+  const levels = useMemo(() => levelsDone(c, codes), [c, codes])
+  const extras = useMemo(() => extrasDone(c, codes), [c, codes])
+  const points = [
+    ...c.lesson.steps.map((step, i) => ({
+      key: `step-${step.step}`,
+      kind: 'step' as const,
+      label: c.variant.tabs[step.tab].title,
+      aria: `Шаг ${step.step}, «${c.variant.tabs[step.tab].title}»`,
+      target: `guide-step-${step.step}`,
+      done: levels[i],
+    })),
+    ...c.lesson.extras.map((x, i) => ({
+      key: `extra-${x.n}`,
+      kind: 'extra' as const,
+      label: x.title,
+      aria: `Дополнительно: «${x.title}»`,
+      target: `guide-task-${x.n}`,
+      done: extras[i],
+    })),
+  ]
+  const done = points.map((p) => p.done)
   const count = done.filter(Boolean).length
   const prev = useRef<boolean[] | null>(null)
-  const apples = useRef<(HTMLSpanElement | null)[]>([])
+  const marks = useRef<(HTMLSpanElement | null)[]>([])
   const counter = useRef<HTMLSpanElement | null>(null)
+  const doneKey = done.join()
 
-  // Единственная анимация без действия ученика: шаг с заданием пройден — яблоко подпрыгивает и зеленеет.
+  // Единственная анимация без действия ученика: чек-поинт пройден — галочка подпрыгивает.
   useEffect(() => {
+    const now = doneKey.split(',').map((d) => d === 'true')
     const before = prev.current
-    prev.current = done
+    prev.current = now
     if (!before) return
     let any = false
-    done.forEach((d, i) => {
+    now.forEach((d, i) => {
       if (d && !before[i]) {
         any = true
-        apples.current[i]?.classList.add(styles.justRipe)
+        marks.current[i]?.classList.add(styles.justDone)
       }
     })
     if (any) counter.current?.classList.add(styles.pop)
-  }, [done])
+  }, [doneKey])
 
-  const openStep = (n: number) => {
+  const open = (id: string) => {
     c.selectView('guide')
-    setTimeout(
-      () => document.getElementById(`guide-step-${n}`)?.scrollIntoView({ behavior: 'smooth', block: 'start' }),
-      30,
-    )
+    setTimeout(() => document.getElementById(id)?.scrollIntoView({ behavior: 'smooth', block: 'start' }), 30)
   }
 
   return (
-    <nav className={styles.progress} aria-label="Прогресс по шагам">
-      <ol className={styles.apples}>
-        {c.lesson.steps.map((step, i) => (
-          <li key={step.step}>
+    <nav className={styles.progress} aria-label="Прогресс">
+      <ol className={styles.points}>
+        {points.map((p, i) => (
+          <li key={p.key} data-kind={p.kind}>
             <button
               type="button"
-              className={styles.apple}
-              data-done={done[i]}
-              onClick={() => openStep(step.step)}
-              aria-label={`Шаг ${step.step}, «${c.variant.tabs[step.tab].title}»: ${done[i] ? 'сделан' : 'не сделан'}`}
+              className={styles.point}
+              data-kind={p.kind}
+              data-done={p.done}
+              onClick={() => open(p.target)}
+              aria-label={`${p.aria}: ${p.done ? 'сделано' : 'не сделано'}`}
             >
               <span
                 ref={(el) => {
-                  apples.current[i] = el
+                  marks.current[i] = el
                 }}
-                className={styles.appleBody}
-                onAnimationEnd={(e) => e.currentTarget.classList.remove(styles.justRipe)}
+                className={styles.mark}
+                onAnimationEnd={(e) => e.currentTarget.classList.remove(styles.justDone)}
               >
-                <AppleIcon ripe={done[i]} />
+                {p.done && <CheckIcon size={13} />}
               </span>
-              <span className={styles.label}>{c.variant.tabs[step.tab].title}</span>
+              <span className={styles.label}>{p.label}</span>
             </button>
           </li>
         ))}
@@ -111,7 +131,7 @@ function StepApples() {
         onAnimationEnd={(e) => e.currentTarget.classList.remove(styles.pop)}
         aria-live="polite"
       >
-        {count}/{c.lesson.steps.length}
+        {count}/{points.length}
       </span>
     </nav>
   )

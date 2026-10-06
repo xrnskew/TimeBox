@@ -45,11 +45,6 @@
   overflow: hidden;
   border-radius: 8px;
   background: #141414;
-  transition: box-shadow 0.15s;
-}
-
-.screen[data-focused='true'] {
-  box-shadow: 0 0 0 2px rgba(91, 227, 125, 0.55);
 }
 
 .iframe {
@@ -133,7 +128,8 @@
   width: min(86%, 300px);
   padding: 16px 16px 12px;
   border-radius: 16px;
-  background: rgba(24, 28, 37, 0.95);
+  /* непрозрачно: карточка проигрыша закрывает надпись «Игра окончена» с холста */
+  background: #181c25;
   color: var(--scr-ink);
   text-align: center;
   box-shadow: 0 0 0 1px rgba(255, 255, 255, 0.1);

@@ -17,7 +17,7 @@ import { BASKET_TASK, SPEEDUP_TASK, TEN_POINTS_TASK } from './tasks.ts'
 // В тексте `код` — инлайн-код, [[Ctrl]] — клавиша.
 
 export const GUIDE_INTRO: GuideIntro = {
-  title: 'Собери игру за три шага',
+  title: 'Лови яблоки',
   lead: 'Вставь код шага, нажми «Запустить» и выполни задание — тогда откроется следующий шаг.',
   tips: ['[[Ctrl]] + [[Enter]] — запустить', '[[Ctrl]] + [[Z]] — отменить правку', 'Клик по экрану, потом [[←]] [[→]]'],
 }

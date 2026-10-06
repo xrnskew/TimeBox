@@ -32,7 +32,7 @@ export function LockScreen({ onUnlock }: { onUnlock: () => void }) {
           </span>
         </span>
         <h1>Готовая игра под паролем</h1>
-        <p>Её откроет учитель. Свою игру ты собираешь в учебной версии.</p>
+        <p>Свою игру ты собираешь в учебной версии.</p>
         <label htmlFor="lock-password" className="visually-hidden">
           Пароль
         </label>

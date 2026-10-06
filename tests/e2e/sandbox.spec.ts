@@ -3,7 +3,6 @@ import {
   APP,
   buildGame,
   completeBasket,
-  completeSpeedUp,
   game,
   insertStep,
   open,
@@ -24,6 +23,11 @@ test('1. игра уже крутится, вкладки шагов пусты�
   expect(await game(page, 'typeof loop')).toBe('function')
   expect(await game(page, 'lives')).toBe(3)
   expect(await game(page, 'typeof playSound')).toBe('undefined')
+  // сверху — название конструктора, в гайде — название игры
+  await expect(page.getByRole('banner')).toContainText('TimeBox')
+  await expect(page.getByRole('heading', { level: 1, name: 'Лови яблоки' })).toBeVisible()
+  await expect(page.getByRole('navigation', { name: 'Прогресс' }).getByRole('button')).toHaveCount(5)
+  await expect(page.getByRole('navigation', { name: 'Прогресс' })).toContainText('0/5')
   expect(errors).toEqual([])
 })
 
@@ -46,6 +50,17 @@ test('2. шаг 1: корзина ездит стрелками, страниц�
   await page.waitForTimeout(300)
   await page.keyboard.up('ArrowRight')
   expect(await game<number>(page, 'playerX')).toBeGreaterThan(x0 + 30)
+  // стрелки на корпусе не забирают фокус: «Кликни, чтобы играть» не всплывает
+  const right = page.getByRole('button', { name: 'Вправо' })
+  const box = (await right.boundingBox())!
+  const x1 = await game<number>(page, 'playerX')
+  await page.mouse.move(box.x + box.width / 2, box.y + box.height / 2)
+  await page.mouse.down()
+  await page.waitForTimeout(300)
+  await expect(page.getByText('Кликни, чтобы играть')).toHaveCount(0)
+  await page.mouse.up()
+  expect(await game<number>(page, 'playerX')).toBeGreaterThan(x1 + 30)
+  await expect(page.getByText('Играем: жми')).toBeVisible()
   expect(await page.evaluate(() => document.scrollingElement!.scrollTop)).toBe(0)
   await expect(page.getByRole('tab', { name: 'Герой' })).toHaveAccessibleName(/шаг сделан/)
 })
@@ -68,21 +83,47 @@ test('шаги открываются по очереди: сначала зад
   await expect(page.locator('#guide-step-1')).toHaveAttribute('data-state', 'done')
   await expect(step2).toHaveAttribute('data-state', 'active')
   await expect(page.locator('#guide-step-3')).toHaveAttribute('data-state', 'locked')
-  await expect(page.getByRole('navigation', { name: 'Прогресс по шагам' })).toContainText('1/3')
+  await expect(page.getByRole('navigation', { name: 'Прогресс' })).toContainText('1/5')
 })
 
-test('«Всё быстрее»: функция собирается кнопками по частям и работает', async ({ page }) => {
+test('«Всё быстрее»: части функции всплывают в коде «Яблок» и добавляются по очереди', async ({ page }) => {
   await open(page)
   await insertStep(page, 1)
   await completeBasket(page)
   await insertStep(page, 2)
+  // в гайде кнопок нет — только какие части на месте и переход во вкладку
   await tab(page, 'Гайд')
-  const pieces = page.locator('#guide-step-2').getByRole('button', { name: /^Добавить:/ })
-  await expect(pieces).toHaveCount(4)
-  await expect(pieces.nth(0)).toBeEnabled()
-  for (const i of [1, 2, 3]) await expect(pieces.nth(i)).toBeDisabled()
+  const guideTask = page.locator('#guide-step-2')
+  await expect(guideTask.getByRole('button', { name: /^Добавить:/ })).toHaveCount(0)
+  await expect(guideTask.getByRole('list', { name: 'Части функции' }).getByRole('listitem')).toHaveCount(4)
 
-  await completeSpeedUp(page)
+  await guideTask.getByRole('button', { name: 'Открыть «Яблоки»' }).click()
+  const add = page.locator('.cm-editor').getByRole('button', { name: /^Добавить:/ })
+  const titles = [
+    'Пустая функция speedUp',
+    'Раз в 15 секунд, пока скорость меньше 8',
+    'Прибавить скорость',
+    'Вызывать каждый кадр в moveItems',
+  ]
+  for (const t of titles) {
+    // всплывает ровно одна часть — следующая по порядку
+    await expect(add).toHaveCount(1)
+    await expect(add).toHaveAccessibleName(`Добавить: ${t}`)
+    if (t === titles[3]) {
+      // кусок стоит под строкой «frame = frame + 1;», и номера строк ниже не съехали
+      const off = await page.evaluate(() => {
+        const g = [...document.querySelectorAll('.cm-lineNumbers .cm-gutterElement')].find(
+          (e) => e.textContent === '5',
+        )!
+        const l = document.querySelectorAll('.cm-line')[4]
+        return Math.abs(g.getBoundingClientRect().top - l.getBoundingClientRect().top)
+      })
+      expect(off).toBeLessThan(1)
+    }
+    await add.click()
+  }
+  await expect(add).toHaveCount(0)
+  await expect(page.getByRole('status')).toContainText('Функция собрана')
   const apples = (await savedCodes(page))[2]
   expect(apples).toContain('  frame = frame + 1;\n  speedUp();')
   expect(apples).toContain(
@@ -100,8 +141,8 @@ test('«Всё быстрее»: функция собирается кнопк�
 test('3. вся игра: яблоки падают и ловятся по 10 очков, жизни кончаются', async ({ page }) => {
   await open(page)
   await buildGame(page)
-  await expect(page.getByRole('button', { name: /Шаг 3, «Поимка»: сделан$/ })).toBeVisible()
-  await expect(page.getByRole('navigation', { name: 'Прогресс по шагам' })).toContainText('3/3')
+  await expect(page.getByRole('button', { name: /Шаг 3, «Поимка»: сделано$/ })).toBeVisible()
+  await expect(page.getByRole('navigation', { name: 'Прогресс' })).toContainText('3/5')
   await run(page)
   await page.waitForFunction(() => {
     const w = document.querySelector('iframe')!.contentWindow as Window & { items?: unknown[] }
@@ -111,8 +152,14 @@ test('3. вся игра: яблоки падают и ловятся по 10 о
   expect(await game(page, 'score')).toBe(10)
   await game(page, 'lives = 1; items = [{ x: 0, y: 600 }]; playerX = 300; checkCatch()')
   expect(await game(page, 'lives')).toBe(0)
-  await expect(page.getByRole('button', { name: 'Сыграть ещё' })).toBeVisible()
+  // «Начать заново» — посередине экрана приставки
+  const restart = page.getByRole('button', { name: 'Начать заново' })
+  await expect(restart).toBeVisible()
   await expect(page.getByText('Рекорд:')).toBeVisible()
+  const screen = (await page.locator('iframe').boundingBox())!
+  const btn = (await restart.boundingBox())!
+  const mid = (b: { y: number; height: number }) => b.y + b.height / 2
+  expect(Math.abs(mid(btn) - mid(screen))).toBeLessThan(screen.height * 0.15)
 })
 
 test('4. сломанная скобка и ошибка выполнения: верная вкладка и строка', async ({ page }) => {
@@ -240,8 +287,9 @@ test('8. бомба и звезда: закрыты до сборки игры, 
   await star.getByRole('button', { name: code }).click()
   await tab(page, 'Гайд')
   await expect(star).toHaveAttribute('data-done', 'true')
-  // уровни не сломались: ускорение и 10 очков на месте
-  await expect(page.getByRole('navigation', { name: 'Прогресс по шагам' })).toContainText('3/3')
+  // уровни не сломались: ускорение и 10 очков на месте; все пять чек-поинтов пройдены
+  await expect(page.getByRole('navigation', { name: 'Прогресс' })).toContainText('5/5')
+  await expect(page.getByRole('button', { name: 'Дополнительно: «Звезда»: сделано' })).toBeVisible()
 
   await run(page)
   await game(page, 'items = [{ x: playerX, y: playerY, kind: "bomb" }]; checkCatch()')

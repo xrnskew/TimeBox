@@ -18,7 +18,8 @@ export const editorTheme = EditorView.theme(
       fontVariantLigatures: 'none',
       fontFeatureSettings: '"liga" 0, "calt" 0',
     },
-    '.cm-content': { caretColor: 'var(--sun)', padding: '12px 0 48px' },
+    // снизу запас под уведомление: последнюю строку можно прокрутить выше него
+    '.cm-content': { caretColor: 'var(--sun)', padding: '12px 0 88px' },
     '.cm-line': { padding: '0 16px 0 8px' },
     '.cm-cursor, .cm-dropCursor': { borderLeftColor: 'var(--sun)', borderLeftWidth: '2px' },
     '&.cm-focused > .cm-scroller > .cm-selectionLayer .cm-selectionBackground, .cm-selectionBackground, .cm-content ::selection':

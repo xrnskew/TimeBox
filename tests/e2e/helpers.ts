@@ -72,16 +72,16 @@ export async function completeBasket(page: Page, emoji = '🐱') {
   await page.keyboard.type(emoji)
 }
 
-/** Задание шага 2: собрать speedUp четырьмя кнопками. */
+/** Задание шага 2: собрать speedUp — кнопки «Добавить» всплывают прямо в коде «Яблок». */
 export async function completeSpeedUp(page: Page) {
-  for (let i = 0; i < 4; i++) {
-    await tab(page, 'Гайд')
+  await tab(page, 'Гайд')
+  await page.locator('#guide-step-2').getByRole('button', { name: 'Открыть «Яблоки»' }).click()
+  for (let i = 0; i < 4; i++)
     await page
-      .locator('#guide-step-2')
+      .locator('.cm-editor')
       .getByRole('button', { name: /^Добавить:/ })
-      .nth(i)
       .click()
-  }
+  await expect(page.locator('.cm-editor').getByRole('button', { name: /^Добавить:/ })).toHaveCount(0)
 }
 
 /** Задание шага 3: десять очков — кнопка выделяет «1», печатаем «10». */

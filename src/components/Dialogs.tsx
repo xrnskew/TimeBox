@@ -153,7 +153,7 @@ function ResetAllDialog() {
   )
 }
 
-/** Готовая игра под паролем: пароль знает учитель. */
+/** Готовая игра под паролем. */
 function UnlockDialog() {
   const c = useController()
   const [password, setPassword] = useState('')
@@ -174,7 +174,6 @@ function UnlockDialog() {
           }
         }}
       >
-        <p>Пароль знает учитель.</p>
         <label className={styles.label} htmlFor="finished-password">
           Пароль
         </label>

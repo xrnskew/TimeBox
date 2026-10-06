@@ -5,6 +5,7 @@ import { checkFinishedPassword } from '@/core/lock.ts'
 import { hasContent, stepDone } from '@/core/progress.ts'
 import { findSyntaxError, firstSyntaxError, type SyntaxIssue } from '@/core/syntax.ts'
 import { createTabEditors, type TabEditors } from '@/editor/createTabEditors.ts'
+import type { SlotSource } from '@/editor/slots.ts'
 import { editTarget } from '@/lessons/catch/tasks.ts'
 import type { Lesson, LessonVariant } from '@/lessons/types.ts'
 import { runner } from '@/sandbox/harness.ts'
@@ -349,11 +350,54 @@ export function createController(lesson: Lesson, variant: LessonVariant) {
   /** Задание «поправь сам»: открыть вкладку и выделить то, что надо поменять. */
   function openTask(stepIndex: number) {
     const task = lesson.steps[stepIndex].task
-    if (task.kind !== 'edit' || !editors) return
+    if (!editors) return
     selectView(task.tab)
+    if (task.kind === 'build') {
+      // куски всплывают прямо в коде — прокручиваем к следующему
+      const next = nextPiece(stepIndex, editors.getCode(task.tab))
+      if (next) editors.gotoLine(next.plan.after)
+      else editors.focus()
+      return
+    }
     const at = editTarget(editors.getCode(task.tab), task.target)
     if (at) editors.select(at.line, at.from, at.to)
     else editors.focus()
+  }
+
+  /** Какую часть задания «собери по частям» добавлять сейчас: первая несделанная, если для неё есть место. */
+  function nextPiece(stepIndex: number, code: string) {
+    const task = lesson.steps[stepIndex].task
+    if (task.kind !== 'build') return null
+    const index = task.pieces.findIndex((p) => !p.isDone(code))
+    if (index < 0) return null
+    const plan = task.pieces[index].plan(code)
+    return plan ? { index, plan } : null
+  }
+
+  /** Источник кусков для редактора: во вкладке задания, когда код шага уже вставлен, а задание не собрано. */
+  function slotSources(): (SlotSource | null)[] {
+    return variant.tabs.map((_, tab) => {
+      if (!variant.hasGuide) return null
+      const stepIndex = lesson.steps.findIndex((s) => s.task.kind === 'build' && s.task.tab === tab)
+      if (stepIndex < 0) return null
+      const step = lesson.steps[stepIndex]
+      const task = step.task
+      if (task.kind !== 'build') return null
+      return (code: string) => {
+        if (!stepDone(code, step.fns)) return null
+        const next = nextPiece(stepIndex, code)
+        if (!next) return null
+        const piece = task.pieces[next.index]
+        return {
+          after: next.plan.after,
+          code: next.plan.text.replace(/^\n+/, ''),
+          n: next.index + 1,
+          total: task.pieces.length,
+          title: piece.title,
+          onAdd: () => insertPiece(stepIndex, next.index),
+        }
+      }
+    })
   }
 
   /** Задание «собери по частям»: добавить кусок функции. */
@@ -374,12 +418,15 @@ export function createController(lesson: Lesson, variant: LessonVariant) {
     }
     const line = editors.insertLine(task.tab, plan.after, plan.text)
     editors.gotoLine(line)
+    // следующая часть может всплыть далеко от этой (вызов — в moveItems): прокручиваем к ней
+    const next = nextPiece(stepIndex, editors.getCode(task.tab))
+    if (next) editors.reveal(next.plan.after)
     const ed = editors
-    const last = pieceIndex === task.pieces.length - 1
+    const done = task.pieces.every((p) => p.isDone(ed.getCode(task.tab)))
     toast(
-      last
+      done
         ? `Функция собрана! Нажми «Запустить» — через 15 секунд яблоки полетят быстрее.`
-        : `Часть ${pieceIndex + 1} — во вкладке «${title(task.tab)}». Жми следующую.`,
+        : `Часть ${pieceIndex + 1} из ${task.pieces.length} на месте. Жми «Добавить» у следующей.`,
       () => ed.undo(task.tab),
     )
   }
@@ -512,6 +559,7 @@ export function createController(lesson: Lesson, variant: LessonVariant) {
         lint: checkSyntax,
         onChange,
         onRun: run,
+        slots: slotSources(),
       })
       editors.setVisible(view !== 'guide')
       const err = store.get().error
@@ -590,4 +638,14 @@ export function tabBadges(c: Controller, s: Pick<AppState, 'codes' | 'syntax' | 
 /** Пройден ли уровень: шаг и задание после него. */
 export function levelsDone(c: Controller, codes: string[]): boolean[] {
   return levelStates(c.lesson.steps, codes).map((l) => l.done)
+}
+
+/** Бомба и звезда: добавлены ли (и переменная, и код). */
+export function extrasDone(c: Controller, codes: string[]): boolean[] {
+  const levels = levelStates(c.lesson.steps, codes)
+  return extraStates(
+    c.lesson.extras,
+    levels.every((l) => l.done),
+    codes,
+  ).map((x) => x.done)
 }

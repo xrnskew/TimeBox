@@ -66,9 +66,7 @@ export interface EditTask {
 /** Кусок функции, который добавляется кнопкой. */
 export interface BuildPiece {
   title: string
-  /** Что вставится — показывается рядом с кнопкой. */
-  code: string
-  /** Куда вставить; null — пока нельзя (нет предыдущей части). */
+  /** Куда и что вставить (вставка всплывает в коде призраком); null — пока нельзя (нет предыдущей части). */
   plan: (code: string) => InsertPlan | null
   isDone: (code: string) => boolean
 }

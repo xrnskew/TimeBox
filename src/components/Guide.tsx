@@ -73,7 +73,7 @@ export function Guide() {
           <LockIcon size={16} />
           Открыть готовую игру
         </button>
-        <span>Под паролем — его знает учитель.</span>
+        <span>Под паролем.</span>
       </footer>
     </article>
   )
@@ -273,38 +273,39 @@ function EditTaskBody({ stepIndex, task, done }: { stepIndex: number; task: Edit
   )
 }
 
+/** Кнопки «Добавить» всплывают в самом коде вкладки; здесь — только какие части уже на месте. */
 function BuildTaskBody({ stepIndex, task, code }: { stepIndex: number; task: BuildTask; code: string }) {
   const c = useController()
   const done = task.pieces.map((p) => p.isDone(code))
+  const all = done.every(Boolean)
+  const next = done.indexOf(false)
   return (
-    <ol className={styles.pieces}>
-      {task.pieces.map((piece, j) => {
-        const ready = done.slice(0, j).every(Boolean)
-        const state = done[j] ? 'done' : ready ? 'next' : 'wait'
-        return (
-          <li key={j} className={styles.piece} data-state={state}>
-            <span className={styles.partNode} aria-hidden="true">
-              {done[j] ? <CheckIcon size={14} /> : j + 1}
-            </span>
-            <div className={styles.pieceMain}>
+    <>
+      <ol className={styles.pieces} aria-label="Части функции">
+        {task.pieces.map((piece, j) => {
+          const state = done[j] ? 'done' : j === next ? 'next' : 'wait'
+          return (
+            <li key={j} className={styles.piece} data-state={state}>
+              <span className={styles.partNode} aria-hidden="true">
+                {done[j] ? <CheckIcon size={13} /> : j + 1}
+              </span>
               <span className={styles.partTitle}>{piece.title}</span>
-              <pre className={styles.snippet}>
-                <code>{piece.code}</code>
-              </pre>
-            </div>
-            <button
-              type="button"
-              className={state === 'next' ? 'key key--apple' : 'key'}
-              disabled={state !== 'next'}
-              aria-label={`Добавить: ${piece.title}`}
-              onClick={() => c.insertPiece(stepIndex, j)}
-            >
-              {done[j] ? 'Готово' : 'Добавить'}
-            </button>
-          </li>
-        )
-      })}
-    </ol>
+              <span className="visually-hidden">{done[j] ? ' — на месте' : ' — ещё нет'}</span>
+            </li>
+          )
+        })}
+      </ol>
+      <div className={styles.actions}>
+        <button
+          type="button"
+          className={all ? 'key key--l' : 'key key--sun key--l'}
+          onClick={() => c.openTask(stepIndex)}
+        >
+          <TargetIcon size={15} />
+          Открыть «{c.variant.tabs[task.tab].title}»
+        </button>
+      </div>
+    </>
   )
 }
 
