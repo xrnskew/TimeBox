@@ -1,6 +1,6 @@
 import { expect, test } from '@playwright/test'
 import {
-  APP,
+  app,
   buildGame,
   completeBasket,
   completeItem,
@@ -353,14 +353,20 @@ test('10. ширина 375px: нет горизонтальной прокрут
 })
 
 test('11. без сети: запросов наружу нет, шрифты загружены', async ({ page, context }) => {
+  // свой сервер (сборка для Pages) — можно, всё остальное — «наружу»
+  const own = new URL(app())
   const external: string[] = []
+  const failed: string[] = []
   await context.route('**/*', (route) => {
-    const url = route.request().url()
-    if (!/^(file|data|about|blob):/.test(url)) {
-      external.push(url)
+    const url = new URL(route.request().url())
+    if (!/^(file|data|about|blob):$/.test(url.protocol) && url.origin !== own.origin) {
+      external.push(url.href)
       return route.abort()
     }
     return route.continue()
+  })
+  page.on('response', (r) => {
+    if (r.status() >= 400) failed.push(`${r.status()} ${r.url()}`)
   })
   await open(page)
   await insertStep(page, 1)
@@ -371,6 +377,35 @@ test('11. без сети: запросов наружу нет, шрифты з
     ),
   ).toBeGreaterThan(0)
   expect(external).toEqual([])
+  expect(failed).toEqual([])
+})
+
+test('шрифты и скрипты берутся по правильному адресу (base)', async ({ page }) => {
+  const loaded: string[] = []
+  const failed: string[] = []
+  page.on('requestfinished', (r) => loaded.push(r.url()))
+  page.on('requestfailed', (r) => failed.push(r.url()))
+  page.on('response', (r) => {
+    if (r.status() >= 400) failed.push(`${r.status()} ${r.url()}`)
+  })
+  await open(page)
+  const fonts = await page.evaluate(async () => {
+    await document.fonts.ready
+    const fams = ['Onest', 'JetBrains Mono', 'Unbounded']
+    return fams.map((f) => [...document.fonts].some((x) => x.family.replace(/"/g, '') === f && x.status === 'loaded'))
+  })
+  expect(fonts).toEqual([true, true, true])
+  expect(failed).toEqual([])
+  const base = new URL(app())
+  if (base.protocol === 'file:') {
+    // одиночный файл: всё внутри, кроме самой страницы ничего не грузится
+    expect(loaded.filter((u) => !u.startsWith('data:') && !u.startsWith(base.href))).toEqual([])
+  } else {
+    // сайт в подпапке: скрипт, стили и шрифты — из /TimeBox/assets/
+    const assets = loaded.filter((u) => /\.(js|css|woff2)$/.test(u))
+    expect(assets.length).toBeGreaterThan(3)
+    for (const u of assets) expect(u.startsWith(`${base.origin}/TimeBox/assets/`)).toBe(true)
+  }
 })
 
 test('живая проверка синтаксиса: значок и подчёркивание до запуска', async ({ page }) => {
@@ -454,7 +489,7 @@ test('готовая игра под паролем: из гайда и по п�
 
   // по прямой ссылке без пароля — экран блокировки
   const direct = await (await page.context().browser()!.newContext()).newPage()
-  await direct.goto(`${APP}?finished`)
+  await direct.goto(`${app()}?finished`)
   await expect(direct.getByRole('heading', { name: 'Готовая игра под паролем' })).toBeVisible()
   await expect(direct.locator('iframe')).toHaveCount(0)
   await direct.getByLabel('Пароль').fill('000110')
@@ -497,4 +532,55 @@ test('телефон: экранные стрелки двигают корзи�
   await page.waitForTimeout(200)
   expect(await game<number>(page, 'playerX')).toBe(x1)
   await ctx.close()
+})
+
+test('основные сценарии подряд — без единой ошибки в консоли', async ({ page, context }) => {
+  // слушаем все страницы и кадры: и песочницу, и игру в iframe, и окно готовой игры
+  const errors: string[] = []
+  const watch = (p: typeof page) => {
+    p.on('pageerror', (e) => errors.push(`pageerror: ${e.message}`))
+    p.on('console', (m) => {
+      if (m.type() === 'error') errors.push(`console: ${m.text()}`)
+    })
+  }
+  watch(page)
+  context.on('page', watch)
+
+  await open(page)
+  await buildGame(page)
+  await run(page)
+  await game(page, 'items = [{ x: playerX, y: playerY }]; checkCatch()')
+  expect(await game(page, 'score')).toBe(10)
+  await game(page, 'lives = 0')
+  await page.getByRole('button', { name: 'Начать заново' }).click()
+  await waitGame(page)
+
+  const setting = 'Добавить переменную в «Движок»'
+  const code = 'Вставить код в «Яблоки» и «Поимка»'
+  for (const n of [4, 5]) {
+    await tab(page, 'Гайд')
+    await page.locator(`#guide-task-${n}`).getByRole('button', { name: setting }).click()
+    await tab(page, 'Гайд')
+    await page.locator(`#guide-task-${n}`).getByRole('button', { name: code }).click()
+  }
+  await run(page)
+  await game(page, 'items = [{ x: playerX, y: playerY, kind: "gold" }]; checkCatch()')
+  expect(await game(page, 'lives')).toBe(4)
+
+  // приборы, консоль, границы
+  await page.getByRole('tab', { name: 'Консоль' }).click()
+  await page.getByRole('tab', { name: 'Приборы' }).click()
+  await page.getByRole('switch', { name: 'Границы' }).click()
+
+  // готовая игра по паролю
+  await tab(page, 'Гайд')
+  await page.getByRole('button', { name: 'Открыть готовую игру' }).click()
+  await page.getByRole('dialog').getByLabel('Пароль').fill('000110')
+  const popup = context.waitForEvent('page')
+  await page.getByRole('dialog').getByRole('button', { name: 'Открыть' }).click()
+  const finished = await popup
+  await waitGame(finished)
+  await page.waitForTimeout(500)
+
+  expect(errors).toEqual([])
 })

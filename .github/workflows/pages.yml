@@ -1,0 +1,63 @@
+# Запасной адрес сайта без Vercel: https://<владелец>.github.io/<репозиторий>/
+# Собирает сайт при пуше в основную ветку и выкладывает на GitHub Pages.
+# Рядом с сайтом кладёт hitbox.html — версию одним файлом для работы без интернета.
+name: GitHub Pages
+
+on:
+  push:
+    # main — на будущее; сейчас основная ветка репозитория — claude/magical-carson-tegs5x
+    branches: [main, claude/magical-carson-tegs5x]
+  workflow_dispatch:
+
+permissions:
+  contents: read
+  pages: write
+  id-token: write
+
+# одна выкладка за раз; новая отменяет недоделанную
+concurrency:
+  group: pages
+  cancel-in-progress: true
+
+jobs:
+  build:
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v5
+
+      - uses: actions/setup-node@v5
+        with:
+          node-version: 22
+          cache: npm
+
+      - run: npm ci
+
+      - name: Сайт для Pages (живёт в подпапке /<репозиторий>/)
+        run: npm run build
+        env:
+          BASE_PATH: /${{ github.event.repository.name }}/
+
+      - name: Версия одним файлом
+        run: |
+          npm run build:single
+          cp dist-single/hitbox.html dist/hitbox.html
+
+      - uses: actions/upload-pages-artifact@v4
+        with:
+          path: dist
+
+      # тот же файл — для скачивания со страницы запуска в Actions
+      - uses: actions/upload-artifact@v4
+        with:
+          name: hitbox
+          path: dist-single/hitbox.html
+
+  deploy:
+    needs: build
+    runs-on: ubuntu-latest
+    environment:
+      name: github-pages
+      url: ${{ steps.deployment.outputs.page_url }}
+    steps:
+      - id: deployment
+        uses: actions/deploy-pages@v4
