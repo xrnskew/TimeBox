@@ -1,38 +1,45 @@
-/* Токены. Идея: стол, на котором лежит красная карманная приставка с игрой и стоит
-   тёмный монитор с кодом. Гайд — белая бумага. Кнопки — объёмные клавиши.
+/* Токены. Тёмная тема: чёрный стол, на нём красная карманная приставка с игрой и одно окно
+   с вкладками, гайдом и кодом. Кнопки — объёмные клавиши.
    Контраст текста проверен: не ниже 4.5:1 на своём фоне. */
 :root {
-  color-scheme: light;
+  color-scheme: dark;
 
-  /* Стол и бумага */
-  --desk: #e3e8ef;
-  --paper: #ffffff;
-  --paper-2: #f2f4f8;
-  --rule: #d2d8e1;
-  --rule-2: #b9c1cd;
+  /* Стол и окна */
+  --desk: #0f1116;
+  --paper: #181b22;
+  --paper-2: #21252e;
+  --rule: #2a2f3a;
+  --rule-2: #3a404d;
 
-  --ink: #151a23;
-  --ink-2: #4f5867;
+  --ink: #eceef2;
+  --ink-2: #a3aab7;
   /* только для декора: 3.8:1 */
-  --ink-3: #7b8494;
+  --ink-3: #6e7685;
+
+  /* Клавиши */
+  --keycap: #262b35;
+  --keycap-hover: #2e3440;
+  --keycap-line: #383e4a;
+  --keycap-edge: #07080b;
 
   /* Яблоко: приставка и главная кнопка */
   --apple: #d42c24;
   --apple-hi: #ea4a3c;
   --apple-deep: #a11d17;
-  --leaf: #1a7343;
+  --leaf: #6fd08f;
   --leaf-fill: #2b9a59;
-  --leaf-soft: #e2f3e9;
+  --leaf-soft: #15301f;
   --sun: #ffc83a;
-  --sun-deep: #d99a00;
-  --sun-soft: #fff4cc;
-  --danger: #c4262e;
-  --danger-soft: #fdebec;
+  --sun-deep: #c48a00;
+  --sun-soft: #2c2512;
+  --danger: #d93a42;
+  --danger-text: #ff9aa0;
+  --danger-soft: #2d1c22;
 
-  /* Экран: монитор с кодом и экран приставки */
-  --scr: #181c25;
-  --scr-2: #1f2430;
-  --scr-3: #272d3b;
+  /* Экран: код и экран приставки */
+  --scr: #12151b;
+  --scr-2: #1a1e26;
+  --scr-3: #252a34;
   --scr-line: #2c3241;
   --scr-ink: #e4e7ed;
   --scr-dim: #9ba3b1;
@@ -43,7 +50,7 @@
   --scr-selection: rgba(110, 176, 245, 0.24);
   --scr-active-line: rgba(255, 255, 255, 0.035);
 
-  /* Подсветка кода на тёмном экране */
+  /* Подсветка кода */
   --tok-comment: #7db365;
   --tok-string: #e0a07e;
   --tok-number: #b5cea8;
@@ -67,5 +74,5 @@
 
   --radius-key: 12px;
   --radius-card: 22px;
-  --shadow-pop: 0 18px 40px rgba(21, 26, 35, 0.18), 0 2px 6px rgba(21, 26, 35, 0.08);
+  --shadow-pop: 0 18px 40px rgba(0, 0, 0, 0.55), 0 2px 6px rgba(0, 0, 0, 0.35);
 }

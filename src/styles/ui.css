@@ -2,10 +2,11 @@
    клавиша проседает. Переключатель в положении «включено» тоже остаётся нажатым. */
 
 .key {
-  --key-bg: var(--paper);
-  --key-bg-hover: var(--paper-2);
+  --key-bg: var(--keycap);
+  --key-bg-hover: var(--keycap-hover);
   --key-ink: var(--ink);
-  --key-edge: var(--rule-2);
+  --key-line: var(--keycap-line);
+  --key-edge: var(--keycap-edge);
   --key-depth: 3px;
   position: relative;
   display: inline-flex;
@@ -15,7 +16,7 @@
   min-height: 38px;
   margin-bottom: var(--key-depth);
   padding: 0 16px;
-  border: 1px solid var(--key-edge);
+  border: 1px solid var(--key-line);
   border-radius: var(--radius-key);
   background: var(--key-bg);
   color: var(--key-ink);
@@ -42,49 +43,46 @@
 }
 
 .key:disabled {
-  opacity: 0.45;
+  opacity: 0.4;
 }
 
 .key--apple {
   --key-bg: var(--apple);
   --key-bg-hover: #c9271f;
   --key-ink: #fff;
-  --key-edge: var(--apple-deep);
-}
-
-.key--ink {
-  --key-bg: var(--ink);
-  --key-bg-hover: #222936;
-  --key-ink: #fff;
-  --key-edge: #05070a;
+  --key-line: var(--apple-deep);
+  --key-edge: #5e0f0b;
 }
 
 .key--sun {
   --key-bg: var(--sun);
   --key-bg-hover: #ffd259;
-  --key-ink: var(--ink);
-  --key-edge: var(--sun-deep);
+  --key-ink: #151a23;
+  --key-line: var(--sun-deep);
+  --key-edge: #6b4b00;
+}
+
+.key--light {
+  --key-bg: var(--ink);
+  --key-bg-hover: #fff;
+  --key-ink: #0f1116;
+  --key-line: #c9ced8;
+  --key-edge: #7c8494;
 }
 
 .key--danger {
   --key-bg: var(--danger);
-  --key-bg-hover: #b0222a;
+  --key-bg-hover: #c8323a;
   --key-ink: #fff;
-  --key-edge: #7f141a;
-}
-
-/* клавиша на тёмном экране */
-.key--dark {
-  --key-bg: var(--scr-3);
-  --key-bg-hover: #303748;
-  --key-ink: var(--scr-ink);
-  --key-edge: #0c0f15;
+  --key-line: #9b1f26;
+  --key-edge: #4d0d11;
 }
 
 .key--ghost {
   --key-bg: transparent;
-  --key-bg-hover: rgba(21, 26, 35, 0.06);
+  --key-bg-hover: rgba(255, 255, 255, 0.06);
   --key-ink: var(--ink-2);
+  --key-line: transparent;
   --key-edge: transparent;
   --key-depth: 0px;
 }
@@ -121,15 +119,15 @@ kbd {
   min-width: 1.75em;
   margin: 0 0.08em;
   padding: 0.12em 0.45em;
-  border: 1px solid var(--rule-2);
+  border: 1px solid var(--keycap-line);
   border-radius: 6px;
-  background: var(--paper);
+  background: var(--keycap);
   color: var(--ink);
   font-family: var(--font-mono);
   font-size: 0.8em;
   line-height: 1.3;
   white-space: nowrap;
-  box-shadow: 0 2px 0 var(--rule-2);
+  box-shadow: 0 2px 0 var(--keycap-edge);
   vertical-align: 0.08em;
 }
 
@@ -158,7 +156,7 @@ kbd {
 .inline-code {
   padding: 0.08em 0.38em;
   border-radius: 5px;
-  background: #eceff5;
+  background: var(--paper-2);
   color: var(--ink);
   font-family: var(--font-mono);
   font-size: 0.86em;

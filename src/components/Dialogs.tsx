@@ -87,7 +87,7 @@ function ResetDialog({ tab }: { tab: number }) {
         <button
           ref={confirm}
           type="button"
-          className={engine ? 'key key--sun' : 'key key--ink'}
+          className={engine ? 'key key--sun' : 'key key--light'}
           onClick={() => {
             c.confirmReset(tab)
             close()
@@ -153,9 +153,68 @@ function ResetAllDialog() {
   )
 }
 
+/** Готовая игра под паролем: пароль знает учитель. */
+function UnlockDialog() {
+  const c = useController()
+  const [password, setPassword] = useState('')
+  const [wrong, setWrong] = useState(false)
+  const input = useRef<HTMLInputElement>(null)
+  const { ref, close } = useDialog()
+
+  return (
+    <Modal title="Готовая игра под паролем" dialogRef={ref} initialFocus={input}>
+      <form
+        method="dialog"
+        onSubmit={(e) => {
+          e.preventDefault()
+          if (c.unlockFinished(password)) close()
+          else {
+            setWrong(true)
+            input.current?.select()
+          }
+        }}
+      >
+        <p>Пароль знает учитель.</p>
+        <label className={styles.label} htmlFor="finished-password">
+          Пароль
+        </label>
+        <input
+          ref={input}
+          id="finished-password"
+          className={styles.input}
+          type="password"
+          inputMode="numeric"
+          autoComplete="off"
+          value={password}
+          aria-invalid={wrong}
+          aria-describedby={wrong ? 'finished-password-error' : undefined}
+          onChange={(e) => {
+            setPassword(e.target.value)
+            setWrong(false)
+          }}
+        />
+        {wrong && (
+          <p id="finished-password-error" className={styles.error} role="alert">
+            Пароль не подошёл. Проверь цифры и попробуй ещё раз.
+          </p>
+        )}
+        <div className={styles.buttons}>
+          <button type="button" className="key" onClick={close}>
+            Отмена
+          </button>
+          <button type="submit" className="key key--apple" disabled={!password.trim()}>
+            Открыть
+          </button>
+        </div>
+      </form>
+    </Modal>
+  )
+}
+
 export function Dialogs() {
   const dialog = useApp((s) => s.dialog)
   if (!dialog) return null
   if (dialog.kind === 'reset') return <ResetDialog key={`reset-${dialog.tab}`} tab={dialog.tab} />
+  if (dialog.kind === 'unlock') return <UnlockDialog />
   return <ResetAllDialog />
 }

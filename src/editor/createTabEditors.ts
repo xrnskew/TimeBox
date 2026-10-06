@@ -76,6 +76,8 @@ export interface TabEditors {
   clearErrors(): void
   /** Перейти к строке: курсор, прокрутка, фокус. Вкладка должна быть открыта. */
   gotoLine(line: number): void
+  /** Выделить кусок строки (столбцы с 0) и прокрутить к нему. Вкладка должна быть открыта. */
+  select(line: number, from: number, to: number): void
   focus(): void
   destroy(): void
 }
@@ -212,6 +214,14 @@ export function createTabEditors(o: TabEditorsOptions): TabEditors {
         selection: { anchor: l.from + (/^\s*/.exec(l.text)?.[0].length ?? 0) },
         effects: EditorView.scrollIntoView(l.from, { y: 'center' }),
       })
+      view.focus()
+    },
+    select(line, from, to) {
+      const doc = view.state.doc
+      const l = doc.line(Math.min(Math.max(line, 1), doc.lines))
+      const a = Math.min(l.from + from, l.to)
+      const b = Math.min(l.from + to, l.to)
+      view.dispatch({ selection: { anchor: a, head: b }, effects: EditorView.scrollIntoView(a, { y: 'center' }) })
       view.focus()
     },
     focus() {

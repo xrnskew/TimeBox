@@ -42,14 +42,14 @@ const GLOBALS: Hint[] = [
     name: 'makeItem',
     kind: 'function',
     detail: '()',
-    text: 'Задания 4–5: создаёт новый предмет — яблоко, бомбу или звезду.',
+    text: 'Бомба и звезда: создаёт новый предмет — яблоко, бомбу или звезду.',
   },
   { name: 'loop', kind: 'function', detail: '()', text: 'Главный цикл движка. Перерисовывает поле 60 раз в секунду.' },
   {
-    name: 'playSound',
+    name: 'speedUp',
     kind: 'function',
-    detail: '(name)',
-    text: 'Проиграть звук: "catch", "miss", "bomb", "star" или "over".',
+    detail: '()',
+    text: 'Задание шага 2: каждые 15 секунд игра становится быстрее.',
   },
   {
     name: 'requestAnimationFrame',

@@ -21,7 +21,7 @@ describe('синтаксис', () => {
     ...TUTORIAL_CODES,
     ...FINISHED_CODES,
     ...GUIDE_STEPS.map((s) => s.code),
-    ...GUIDE_EXTRAS.flatMap((x) => x.parts.map((p) => (p.mode === 'replace' ? p.code : p.line))),
+    ...GUIDE_EXTRAS.flatMap((x) => [x.setting.line, ...x.codes.map((c) => c.code)]),
   ]
 
   it('весь готовый код без ошибок', () => {
@@ -161,11 +161,9 @@ describe('прогресс', () => {
     expect(stepDone(TUTORIAL_ENGINE, ['movePlayer'])).toBe(false)
   })
 
-  it('части бомбы и звезды узнаются в своём коде', () => {
+  it('код бомбы и звезды узнаётся по своим признакам', () => {
     for (const extra of GUIDE_EXTRAS) {
-      for (const part of extra.parts) {
-        if (part.mode === 'replace') expect(partDone(part.code, part.marks)).toBe(true)
-      }
+      for (const c of extra.codes) expect(partDone(c.code, c.marks)).toBe(true)
     }
     expect(partDone(STEP_CATCH, [/["']bomb["']/])).toBe(false)
   })

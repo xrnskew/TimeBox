@@ -1,6 +1,6 @@
 import { useEffect, useMemo, useRef } from 'react'
 import { useApp, useController } from '@/app/context.ts'
-import { stepsDone } from '@/app/controller.ts'
+import { levelsDone } from '@/app/controller.ts'
 import { AppleIcon, LogoApple, PlayIcon, ResetIcon } from './icons.tsx'
 import styles from './Header.module.css'
 
@@ -46,17 +46,17 @@ export function Header() {
   )
 }
 
-/** Три яблока — три шага: сделанный шаг зеленеет. Учитель видит прогресс издалека. */
+/** Три яблока — три шага: шаг вместе с заданием пройден — яблоко зеленеет. Учитель видит прогресс издалека. */
 function StepApples() {
   const c = useController()
   const codes = useApp((s) => s.codes)
-  const done = useMemo(() => stepsDone(c, codes), [c, codes])
+  const done = useMemo(() => levelsDone(c, codes), [c, codes])
   const count = done.filter(Boolean).length
   const prev = useRef<boolean[] | null>(null)
   const apples = useRef<(HTMLSpanElement | null)[]>([])
   const counter = useRef<HTMLSpanElement | null>(null)
 
-  // Единственная анимация без действия ученика: шаг засчитан — яблоко подпрыгивает и зеленеет.
+  // Единственная анимация без действия ученика: шаг с заданием пройден — яблоко подпрыгивает и зеленеет.
   useEffect(() => {
     const before = prev.current
     prev.current = done

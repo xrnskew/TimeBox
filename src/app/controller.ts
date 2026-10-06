@@ -1,11 +1,22 @@
 import { explainRuntimeError, formatError, isSyntaxMessage } from '@/core/errors.ts'
 import { planSettingInsert } from '@/core/insert.ts'
+import { extraStates, levelStates } from '@/core/levels.ts'
+import { checkFinishedPassword } from '@/core/lock.ts'
 import { hasContent, stepDone } from '@/core/progress.ts'
 import { findSyntaxError, firstSyntaxError, type SyntaxIssue } from '@/core/syntax.ts'
 import { createTabEditors, type TabEditors } from '@/editor/createTabEditors.ts'
+import { editTarget } from '@/lessons/catch/tasks.ts'
 import type { Lesson, LessonVariant } from '@/lessons/types.ts'
 import { runner } from '@/sandbox/harness.ts'
-import { loadActive, loadBest, loadCodes, saveActive, saveBest, saveCodes } from '@/sandbox/storage.ts'
+import {
+  loadActive,
+  loadBest,
+  loadCodes,
+  rememberFinishedUnlocked,
+  saveActive,
+  saveBest,
+  saveCodes,
+} from '@/sandbox/storage.ts'
 import { createStore, type Store } from './store.ts'
 
 export type View = 'guide' | number
@@ -26,7 +37,7 @@ export interface Toast {
   ms: number
 }
 
-export type Dialog = null | { kind: 'reset'; tab: number } | { kind: 'resetAll' }
+export type Dialog = null | { kind: 'reset'; tab: number } | { kind: 'resetAll' } | { kind: 'unlock' }
 
 export interface AppState {
   view: View
@@ -335,27 +346,103 @@ export function createController(lesson: Lesson, variant: LessonVariant) {
     replaceTab(step.tab, step.code, `Код шага ${step.step} — во вкладке «${title(step.tab)}».`)
   }
 
-  function insertPart(extraIndex: number, partIndex: number) {
-    const part = lesson.extras[extraIndex].parts[partIndex]
-    if (!editors) return
-    if (part.mode === 'replace') {
-      replaceTab(part.tab, part.code, `«${part.title}» — во вкладке «${title(part.tab)}».`)
+  /** Задание «поправь сам»: открыть вкладку и выделить то, что надо поменять. */
+  function openTask(stepIndex: number) {
+    const task = lesson.steps[stepIndex].task
+    if (task.kind !== 'edit' || !editors) return
+    selectView(task.tab)
+    const at = editTarget(editors.getCode(task.tab), task.target)
+    if (at) editors.select(at.line, at.from, at.to)
+    else editors.focus()
+  }
+
+  /** Задание «собери по частям»: добавить кусок функции. */
+  function insertPiece(stepIndex: number, pieceIndex: number) {
+    const task = lesson.steps[stepIndex].task
+    if (task.kind !== 'build' || !editors) return
+    const piece = task.pieces[pieceIndex]
+    const code = editors.getCode(task.tab)
+    selectView(task.tab)
+    if (piece.isDone(code)) {
+      toast(`«${piece.title}» уже есть во вкладке «${title(task.tab)}».`)
       return
     }
-    // В «Движок» никогда не вставляем целиком — только одну строку.
-    const plan = planSettingInsert(editors.getCode(part.tab), part.name, part.line)
-    selectView(part.tab)
-    if (plan.kind === 'exists') {
-      editors.gotoLine(plan.line)
-      toast(`${part.name} уже есть в «${title(part.tab)}», строка ${plan.line}. Ничего не добавил.`)
+    const plan = piece.plan(code)
+    if (!plan) {
+      toast('Сначала добавь предыдущую часть.')
       return
     }
-    const line = editors.insertLine(part.tab, plan.after, plan.text)
+    const line = editors.insertLine(task.tab, plan.after, plan.text)
     editors.gotoLine(line)
     const ed = editors
-    toast(`Добавил в «${title(part.tab)}» строку ${line} с ${part.name}. Остальные настройки на месте.`, () =>
-      ed.undo(part.tab),
+    const last = pieceIndex === task.pieces.length - 1
+    toast(
+      last
+        ? `Функция собрана! Нажми «Запустить» — через 15 секунд яблоки полетят быстрее.`
+        : `Часть ${pieceIndex + 1} — во вкладке «${title(task.tab)}». Жми следующую.`,
+      () => ed.undo(task.tab),
     )
+  }
+
+  /** Бомбу и звезду можно добавить, только когда основная игра собрана: три шага с заданиями. */
+  function extraLocked(extraIndex: number): boolean {
+    const codes = codesNow()
+    const allDone = levelStates(lesson.steps, codes).every((l) => l.done)
+    const state = extraStates(lesson.extras, allDone, codes)[extraIndex]
+    if (state.unlocked) return false
+    toast(
+      allDone
+        ? `Сначала добавь «${lesson.extras[extraIndex - 1].title}».`
+        : 'Сначала собери игру: пройди три шага вместе с заданиями.',
+    )
+    return true
+  }
+
+  /** Бомба и звезда, кнопка 1: одна строка в «Движок». Целиком «Движок» не заменяем. */
+  function insertExtraSetting(extraIndex: number) {
+    const { setting } = lesson.extras[extraIndex]
+    if (!editors || extraLocked(extraIndex)) return
+    const plan = planSettingInsert(editors.getCode(setting.tab), setting.name, setting.line)
+    selectView(setting.tab)
+    if (plan.kind === 'exists') {
+      editors.gotoLine(plan.line)
+      toast(`${setting.name} уже есть в «${title(setting.tab)}», строка ${plan.line}. Ничего не добавил.`)
+      return
+    }
+    const line = editors.insertLine(setting.tab, plan.after, plan.text)
+    editors.gotoLine(line)
+    const ed = editors
+    toast(`Добавил в «${title(setting.tab)}» строку ${line} с ${setting.name}. Остальные настройки на месте.`, () =>
+      ed.undo(setting.tab),
+    )
+  }
+
+  /** Бомба и звезда, кнопка 2: код сразу в несколько вкладок — одной правкой в каждой. */
+  function insertExtraCode(extraIndex: number) {
+    const extra = lesson.extras[extraIndex]
+    if (!editors || extraLocked(extraIndex)) return
+    const ed = editors
+    const changed = extra.codes.filter((c) => ed.getCode(c.tab) !== c.code)
+    selectView(extra.codes[0].tab)
+    const where = extra.codes.map((c) => `«${title(c.tab)}»`).join(' и ')
+    if (!changed.length) {
+      toast(`Этот код уже во вкладках ${where}. Нажми «Запустить».`)
+      return
+    }
+    for (const c of changed) ed.replace(c.tab, c.code)
+    toast(`${extra.emoji} ${extra.title} — во вкладках ${where}. Теперь нажми «Запустить».`, () => {
+      for (const c of changed) ed.undo(c.tab)
+    })
+  }
+
+  /** Готовая игра под паролем: true — пароль подошёл. */
+  function unlockFinished(password: string): boolean {
+    if (!checkFinishedPassword(password)) return false
+    rememberFinishedUnlocked()
+    saveNow()
+    const opened = window.open('?finished', '_blank')
+    if (!opened) location.assign('?finished')
+    return true
   }
 
   // ===== Сбросы =====
@@ -464,7 +551,11 @@ export function createController(lesson: Lesson, variant: LessonVariant) {
     },
 
     insertStep,
-    insertPart,
+    openTask,
+    insertPiece,
+    insertExtraSetting,
+    insertExtraCode,
+    unlockFinished,
 
     toast,
     dismissToast,
@@ -496,6 +587,7 @@ export function tabBadges(c: Controller, s: Pick<AppState, 'codes' | 'syntax' | 
   })
 }
 
-export function stepsDone(c: Controller, codes: string[]): boolean[] {
-  return c.lesson.steps.map((st) => stepDone(codes[st.tab], st.fns))
+/** Пройден ли уровень: шаг и задание после него. */
+export function levelsDone(c: Controller, codes: string[]): boolean[] {
+  return levelStates(c.lesson.steps, codes).map((l) => l.done)
 }

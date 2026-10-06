@@ -1,9 +1,9 @@
-/* Вкладки — ряд клавиш. Открытая вкладка — нажатая клавиша. */
+/* Вкладки — ряд клавиш вверху окна. Открытая вкладка — светлая нажатая клавиша. */
 .bar {
   display: flex;
   align-items: flex-end;
   gap: 8px;
-  padding: 4px 2px 0;
+  padding: 12px 12px 8px;
   overflow-x: auto;
   scrollbar-width: none;
 }
@@ -13,7 +13,7 @@
 }
 
 .tab {
-  --icon-bg: var(--paper);
+  --icon-bg: var(--keycap);
   flex-shrink: 0;
   min-height: 40px;
   padding: 0 14px;
@@ -24,9 +24,10 @@
 .tab[aria-selected='true'] {
   --key-bg: var(--ink);
   --key-bg-hover: var(--ink);
-  --key-edge: #05070a;
+  --key-line: var(--ink);
+  --key-edge: #7c8494;
   --icon-bg: var(--ink);
-  color: #fff;
+  color: #0f1116;
   box-shadow: 0 0 0 var(--key-edge);
   transform: translateY(var(--key-depth));
 }
@@ -49,11 +50,11 @@
 }
 
 .tab[aria-selected='true'] .num {
-  background: rgba(255, 255, 255, 0.14);
-  color: #fff;
+  background: rgba(15, 17, 22, 0.1);
+  color: #0f1116;
 }
 
-/* значок на плашке, чтобы читался и на светлой, и на тёмной клавише */
+/* значок на кружке, чтобы читался и на тёмной, и на светлой клавише */
 .badge {
   display: inline-grid;
   place-items: center;

@@ -79,7 +79,7 @@ describe('бомба и звезда', () => {
 
     sim.peek('items = [{ x: playerX, y: playerY, kind: "apple" }]')
     sim.tick()
-    expect(sim.peek('score')).toBe(1)
+    expect(sim.peek('score')).toBe(10)
 
     sim.peek('items = [{ x: 10, y: 100, kind: "bomb" }]')
     sim.tick()

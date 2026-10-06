@@ -55,3 +55,22 @@ export function loadBest(key: string): number {
 export function saveBest(key: string, best: number) {
   write(`${key}:best`, String(best))
 }
+
+// Готовая игра открыта паролем — помним до закрытия вкладки (sessionStorage).
+const UNLOCK_KEY = 'catch-sandbox-finished-unlocked'
+
+export function isFinishedUnlocked(): boolean {
+  try {
+    return sessionStorage.getItem(UNLOCK_KEY) === '1'
+  } catch {
+    return false
+  }
+}
+
+export function rememberFinishedUnlocked() {
+  try {
+    sessionStorage.setItem(UNLOCK_KEY, '1')
+  } catch {
+    // нет хранилища — пароль спросят ещё раз
+  }
+}

@@ -6,27 +6,27 @@ import { CloseIcon, ResetIcon, WarnIcon } from './icons.tsx'
 import { TabBar } from './TabBar.tsx'
 import styles from './Workspace.module.css'
 
-/** Левая колонка: вкладки и карточка — белый лист гайда или тёмный монитор с кодом. */
+/** Левая колонка — одно окно: сверху вкладки, под ними гайд или код. */
 export function Workspace() {
   const c = useController()
   const view = useApp((s) => s.view)
 
   return (
-    <section className={styles.workspace} aria-label="Код">
-      <TabBar />
-      <div className={styles.card} data-view={view === 'guide' ? 'guide' : 'code'}>
+    <section className={styles.workspace} aria-label="Код" data-view={view === 'guide' ? 'guide' : 'code'}>
+      <div className={styles.strip}>
+        <TabBar />
         {view !== 'guide' && <NoteBar tab={view} />}
-        <div className={styles.work}>
-          <EditorHost />
-          {c.variant.hasGuide && (
-            <div className={styles.guide} hidden={view !== 'guide'}>
-              <Guide />
-            </div>
-          )}
-          <ToastView />
-        </div>
-        <ErrorBar />
       </div>
+      <div className={styles.work}>
+        <EditorHost />
+        {c.variant.hasGuide && (
+          <div className={styles.guide} hidden={view !== 'guide'}>
+            <Guide />
+          </div>
+        )}
+        <ToastView />
+      </div>
+      <ErrorBar />
     </section>
   )
 }
@@ -40,7 +40,7 @@ function NoteBar({ tab }: { tab: number }) {
       <p>{def.note}</p>
       <button
         type="button"
-        className={engine ? 'key key--sun key--s' : 'key key--dark key--s'}
+        className={engine ? 'key key--sun key--s' : 'key key--s'}
         onClick={() => c.openDialog({ kind: 'reset', tab })}
       >
         <ResetIcon size={13} />
@@ -106,7 +106,7 @@ function ToastBody({ toast }: { toast: Toast }) {
       )}
       <button
         type="button"
-        className={`key key--dark key--s key--icon ${styles.close}`}
+        className={`key key--s key--icon ${styles.close}`}
         aria-label="Закрыть"
         onClick={c.dismissToast}
       >
@@ -130,7 +130,7 @@ function ErrorBar() {
       <WarnIcon className={styles.errorIcon} />
       <p>{error.text}</p>
       {error.tab !== null && (
-        <button type="button" className="key key--dark key--s" onClick={c.showError}>
+        <button type="button" className="key key--s" onClick={c.showError}>
           Показать
         </button>
       )}

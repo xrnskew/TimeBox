@@ -64,3 +64,40 @@ export async function insertStep(page: Page, n: number) {
     .getByRole('button', { name: `Вставить в «${tabTitle}»` })
     .click()
 }
+
+/** Задание шага 1: заменить корзину в «Движке» — кнопка выделяет смайлик, печатаем новый. */
+export async function completeBasket(page: Page, emoji = '🐱') {
+  await tab(page, 'Гайд')
+  await page.locator('#guide-step-1').getByRole('button', { name: 'Открыть «Движок»' }).click()
+  await page.keyboard.type(emoji)
+}
+
+/** Задание шага 2: собрать speedUp четырьмя кнопками. */
+export async function completeSpeedUp(page: Page) {
+  for (let i = 0; i < 4; i++) {
+    await tab(page, 'Гайд')
+    await page
+      .locator('#guide-step-2')
+      .getByRole('button', { name: /^Добавить:/ })
+      .nth(i)
+      .click()
+  }
+}
+
+/** Задание шага 3: десять очков — кнопка выделяет «1», печатаем «10». */
+export async function completeTenPoints(page: Page) {
+  await tab(page, 'Гайд')
+  await page.locator('#guide-step-3').getByRole('button', { name: 'Открыть «Поимка»' }).click()
+  await page.keyboard.type('10')
+}
+
+/** Вся основная игра: три шага и три задания. */
+export async function buildGame(page: Page) {
+  await insertStep(page, 1)
+  await completeBasket(page)
+  await insertStep(page, 2)
+  await completeSpeedUp(page)
+  await insertStep(page, 3)
+  await completeTenPoints(page)
+  await tab(page, 'Гайд')
+}

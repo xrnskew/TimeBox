@@ -41,39 +41,58 @@ export interface GuideStep {
   checks: Rich[]
   /** Функции, которые должны быть объявлены и не пустые. */
   fns: string[]
+  /** Задание после шага. Следующий шаг открывается, только когда оно выполнено. */
+  task: StepTask
 }
 
-export interface GuideTask {
-  n: number
+/** Куда вставить кусок кода: после строки `after` (с 1). */
+export interface InsertPlan {
+  after: number
+  text: string
+}
+
+/** Задание «поправь сам»: кнопка открывает вкладку и выделяет, что менять. */
+export interface EditTask {
+  kind: 'edit'
   title: string
   text: Rich
+  tab: number
+  /** Что выделить в коде: первая группа регулярного выражения (флаг d). */
+  target: RegExp
   hint: Rich[]
+  isDone: (code: string) => boolean
 }
 
-export type GuidePart =
-  | {
-      mode: 'settings'
-      title: string
-      tab: number
-      /** Имя переменной и строка, которая добавляется в «Движок». */
-      name: string
-      line: string
-    }
-  | {
-      mode: 'replace'
-      title: string
-      tab: number
-      code: string
-      /** Признак «уже есть в коде» — проверяется по коду без комментариев. */
-      marks: RegExp[]
-    }
+/** Кусок функции, который добавляется кнопкой. */
+export interface BuildPiece {
+  title: string
+  /** Что вставится — показывается рядом с кнопкой. */
+  code: string
+  /** Куда вставить; null — пока нельзя (нет предыдущей части). */
+  plan: (code: string) => InsertPlan | null
+  isDone: (code: string) => boolean
+}
+
+/** Задание «собери по частям»: функция собирается кнопками кусок за куском. */
+export interface BuildTask {
+  kind: 'build'
+  title: string
+  text: Rich
+  tab: number
+  pieces: BuildPiece[]
+}
+
+export type StepTask = EditTask | BuildTask
 
 export interface GuideExtra {
   n: number
   emoji: string
   title: string
   text: Rich
-  parts: GuidePart[]
+  /** Одна строка в «Движок». */
+  setting: { tab: number; name: string; line: string }
+  /** Код для нескольких вкладок — вставляется одной кнопкой. */
+  codes: { tab: number; code: string; marks: RegExp[] }[]
 }
 
 export interface GuideIntro {
@@ -105,11 +124,8 @@ export interface Lesson {
   finished: LessonVariant
   intro: GuideIntro
   steps: GuideStep[]
-  tasks: GuideTask[]
   extras: GuideExtra[]
   /** Предупреждение под бомбой и звездой. */
   extrasNote: Rich
-  /** Задания после бомбы и звезды. */
-  moreTasks: GuideTask[]
   hints: HintSet
 }

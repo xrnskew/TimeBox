@@ -114,7 +114,31 @@ export const STEP_CATCH = `function checkCatch() {
   }
 }`
 
-// ===== Бомба и звезда (задания 4 и 5): основа — базовая версия, +1 очко, без ускорения =====
+// ===== Задание после шага 2: функция ускорения, её собирают кнопками по частям =====
+
+export const SPEEDUP_FN = `// каждые 15 секунд игра становится быстрее
+function speedUp() {
+  if (frame % 900 === 0 && fallSpeed < 8) {
+    fallSpeed = fallSpeed + 1;
+  }
+}`
+
+// ===== Бомба и звезда: основа — код после всех заданий (ускорение и 10 очков) =====
+
+const moveItemsWith = (spawn: string) => `function moveItems() {
+  frame = frame + 1;
+  speedUp();
+
+  // раз в spawnEvery кадров — новый предмет в случайном месте сверху
+  if (frame % spawnEvery === 0) {
+    items.push(${spawn});
+  }
+
+  // все предметы опускаются вниз
+  for (var i = 0; i < items.length; i++) {
+    items[i].y = items[i].y + fallSpeed;
+  }
+}`
 
 export const BOMB_APPLES = `// новый предмет: обычно яблоко, иногда бомба
 function makeItem() {
@@ -123,19 +147,7 @@ function makeItem() {
   return { x: Math.random() * 340, y: 0, kind: kind };
 }
 
-function moveItems() {
-  frame = frame + 1;
-
-  // раз в spawnEvery кадров — новый предмет в случайном месте сверху
-  if (frame % spawnEvery === 0) {
-    items.push(makeItem());
-  }
-
-  // все предметы опускаются вниз
-  for (var i = 0; i < items.length; i++) {
-    items[i].y = items[i].y + fallSpeed;
-  }
-}
+${moveItemsWith('makeItem()')}
 
 function drawItems() {
   ctx.font = "34px serif";
@@ -145,7 +157,9 @@ function drawItems() {
     if (items[i].kind === "bomb") emoji = bombEmoji;
     ctx.fillText(emoji, items[i].x, items[i].y);
   }
-}`
+}
+
+${SPEEDUP_FN}`
 
 export const BOMB_CATCH = `function checkCatch() {
   for (var i = items.length - 1; i >= 0; i--) {
@@ -156,8 +170,8 @@ export const BOMB_CATCH = `function checkCatch() {
         // поймал бомбу — минус жизнь
         lives = lives - 1;
       } else {
-        // поймал яблоко — плюс очко
-        score = score + 1;
+        // поймал яблоко — десять очков
+        score = score + 10;
       }
       items.splice(i, 1);
 
@@ -178,19 +192,7 @@ function makeItem() {
   return { x: Math.random() * 340, y: 0, kind: kind };
 }
 
-function moveItems() {
-  frame = frame + 1;
-
-  // раз в spawnEvery кадров — новый предмет в случайном месте сверху
-  if (frame % spawnEvery === 0) {
-    items.push(makeItem());
-  }
-
-  // все предметы опускаются вниз
-  for (var i = 0; i < items.length; i++) {
-    items[i].y = items[i].y + fallSpeed;
-  }
-}
+${moveItemsWith('makeItem()')}
 
 function drawItems() {
   ctx.font = "34px serif";
@@ -201,80 +203,11 @@ function drawItems() {
     if (items[i].kind === "gold") emoji = goldEmoji;
     ctx.fillText(emoji, items[i].x, items[i].y);
   }
-}`
+}
+
+${SPEEDUP_FN}`
 
 export const GOLD_CATCH = `function checkCatch() {
-  for (var i = items.length - 1; i >= 0; i--) {
-    var blizko = Math.abs(items[i].x - playerX) < 34;
-
-    if (blizko && items[i].y > playerY - 34) {
-      if (items[i].kind === "bomb") {
-        // поймал бомбу — минус жизнь
-        lives = lives - 1;
-      } else if (items[i].kind === "gold") {
-        // поймал звезду — плюс жизнь
-        lives = lives + 1;
-      } else {
-        // поймал яблоко — плюс очко
-        score = score + 1;
-      }
-      items.splice(i, 1);
-
-    } else if (items[i].y > 500) {
-      // уронил яблоко — минус жизнь, а бомбу и звезду упустить не страшно
-      if (items[i].kind === "apple") lives = lives - 1;
-      items.splice(i, 1);
-    }
-  }
-}`
-
-// ===== Готовая версия (?finished): бомба, звезда, +10 очков, ускорение каждые 15 секунд до 8 =====
-
-const FINISHED_ENGINE = TUTORIAL_ENGINE.replace(
-  'var itemEmoji   = "🍎";',
-  `var itemEmoji   = "🍎";\n${BOMB_LINE}\n${GOLD_LINE}`,
-)
-
-const FINISHED_APPLES = `// новый предмет: обычно яблоко, иногда бомба или звезда
-function makeItem() {
-  var r = Math.random();
-  var kind = "apple";
-  if (r < 0.18) kind = "bomb";
-  else if (r < 0.26) kind = "gold";
-  return { x: Math.random() * 340, y: 0, kind: kind };
-}
-
-function moveItems() {
-  frame = frame + 1;
-
-  // раз в spawnEvery кадров — новый предмет в случайном месте сверху
-  if (frame % spawnEvery === 0) {
-    items.push(makeItem());
-  }
-
-  // каждые 15 секунд (900 кадров) всё падает быстрее, но не быстрее 8
-  if (frame % 900 === 0 && fallSpeed < 8) {
-    fallSpeed = fallSpeed + 1;
-  }
-
-  // все предметы опускаются вниз
-  for (var i = 0; i < items.length; i++) {
-    items[i].y = items[i].y + fallSpeed;
-  }
-}
-
-function drawItems() {
-  ctx.font = "34px serif";
-
-  for (var i = 0; i < items.length; i++) {
-    var emoji = itemEmoji;
-    if (items[i].kind === "bomb") emoji = bombEmoji;
-    if (items[i].kind === "gold") emoji = goldEmoji;
-    ctx.fillText(emoji, items[i].x, items[i].y);
-  }
-}`
-
-const FINISHED_CATCH = `function checkCatch() {
   for (var i = items.length - 1; i >= 0; i--) {
     var blizko = Math.abs(items[i].x - playerX) < 34;
 
@@ -298,6 +231,13 @@ const FINISHED_CATCH = `function checkCatch() {
     }
   }
 }`
+
+// ===== Готовая версия (?finished): бомба, звезда, +10 очков, ускорение каждые 15 секунд до 8 =====
+
+const FINISHED_ENGINE = TUTORIAL_ENGINE.replace(
+  'var itemEmoji   = "🍎";',
+  `var itemEmoji   = "🍎";\n${BOMB_LINE}\n${GOLD_LINE}`,
+)
 
 // ===== Вкладки =====
 
@@ -329,7 +269,7 @@ export const FINISHED_TABS: TabDef[] = [
   { id: 'catch', title: 'Поимка', note: 'Яблоко — 10 очков, бомба — минус жизнь, звезда — плюс жизнь.' },
 ]
 
-export const FINISHED_CODES: string[] = [FINISHED_ENGINE, STEP_HERO, FINISHED_APPLES, FINISHED_CATCH]
+export const FINISHED_CODES: string[] = [FINISHED_ENGINE, STEP_HERO, GOLD_APPLES, GOLD_CATCH]
 
 export const TUTORIAL: LessonVariant = {
   id: 'tutorial',

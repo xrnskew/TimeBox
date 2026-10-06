@@ -1,4 +1,4 @@
-import type { GuideExtra, GuideIntro, GuideStep, GuideTask, Rich } from '../types.ts'
+import type { GuideExtra, GuideIntro, GuideStep, Rich } from '../types.ts'
 import {
   BOMB_APPLES,
   BOMB_CATCH,
@@ -10,6 +10,7 @@ import {
   STEP_CATCH,
   STEP_HERO,
 } from './tabs.ts'
+import { BASKET_TASK, SPEEDUP_TASK, TEN_POINTS_TASK } from './tasks.ts'
 
 // Тон: для подростка, который программирует впервые. Коротко, на «ты».
 // Подробности спрятаны за кнопкой «Как это работает».
@@ -17,7 +18,7 @@ import {
 
 export const GUIDE_INTRO: GuideIntro = {
   title: 'Собери игру за три шага',
-  lead: 'Вставь код шага, нажми «Запустить» — и лови яблоки на приставке.',
+  lead: 'Вставь код шага, нажми «Запустить» и выполни задание — тогда откроется следующий шаг.',
   tips: ['[[Ctrl]] + [[Enter]] — запустить', '[[Ctrl]] + [[Z]] — отменить правку', 'Клик по экрану, потом [[←]] [[→]]'],
 }
 
@@ -35,6 +36,7 @@ export const GUIDE_STEPS: GuideStep[] = [
     code: STEP_HERO,
     checks: ['Корзина ездит от [[←]] и [[→]]', 'И не уезжает за край'],
     fns: ['movePlayer', 'drawPlayer'],
+    task: BASKET_TASK,
   },
   {
     step: 2,
@@ -49,6 +51,7 @@ export const GUIDE_STEPS: GuideStep[] = [
     code: STEP_APPLES,
     checks: ['Яблоки падают', 'В «Приборах» растёт `items`'],
     fns: ['moveItems', 'drawItems'],
+    task: SPEEDUP_TASK,
   },
   {
     step: 3,
@@ -56,34 +59,14 @@ export const GUIDE_STEPS: GuideStep[] = [
     title: 'Поймал или уронил',
     lead: 'Поймал — очко, уронил — минус жизнь.',
     how: [
-      'Яблоко рядом с корзиной и опустилось до неё — поймано: `score` + 1.',
+      'Яблоко рядом с корзиной и опустилось до неё — поймано: `score` растёт.',
       'Улетело ниже поля (`y > 500`) — минус жизнь.',
       'Цикл идёт с конца: `items.splice` вырезает яблоко и сдвигает остальные.',
     ],
     code: STEP_CATCH,
     checks: ['Поймал — счёт растёт', 'Три промаха — «Игра окончена»'],
     fns: ['checkCatch'],
-  },
-]
-
-export const GUIDE_TASKS: GuideTask[] = [
-  {
-    n: 1,
-    title: 'Своя игра',
-    text: 'Поменяй эмодзи и скорости: пусть кот 🐱 ловит рыбок 🐟.',
-    hint: ['Всё в начале «Движка»: `playerEmoji`, `itemEmoji`, `playerSpeed`, `fallSpeed`, `spawnEvery`.'],
-  },
-  {
-    n: 2,
-    title: 'Десять очков',
-    text: 'Пусть каждое яблоко даёт 10 очков.',
-    hint: ['Найди в «Поимке» строку, где растёт `score`.'],
-  },
-  {
-    n: 3,
-    title: 'Всё быстрее',
-    text: 'Каждые 15 секунд — быстрее, но не быстрее 8.',
-    hint: ['15 секунд — это 900 кадров: `frame % 900 === 0`.', 'Условие `fallSpeed < 8` не даст разогнаться выше.'],
+    task: TEN_POINTS_TASK,
   },
 ]
 
@@ -93,48 +76,24 @@ export const GUIDE_EXTRAS: GuideExtra[] = [
     emoji: '💣',
     title: 'Бомба',
     text: 'Поймал бомбу — минус жизнь. Упустить не страшно.',
-    parts: [
-      { mode: 'settings', title: 'Эмодзи бомбы', tab: 0, name: 'bombEmoji', line: BOMB_LINE },
-      {
-        mode: 'replace',
-        title: 'Яблоко или бомба',
-        tab: 2,
-        code: BOMB_APPLES,
-        marks: [/\bfunction\s+makeItem\b/, /\bbombEmoji\b/],
-      },
-      { mode: 'replace', title: 'Поймал бомбу', tab: 3, code: BOMB_CATCH, marks: [/["']bomb["']/] },
+    setting: { tab: 0, name: 'bombEmoji', line: BOMB_LINE },
+    codes: [
+      { tab: 2, code: BOMB_APPLES, marks: [/\bfunction\s+makeItem\b/, /\bbombEmoji\b/] },
+      { tab: 3, code: BOMB_CATCH, marks: [/["']bomb["']/] },
     ],
   },
   {
     n: 5,
     emoji: '🌟',
     title: 'Звезда',
-    text: 'Поймал звезду — плюс жизнь. Делается после бомбы.',
-    parts: [
-      { mode: 'settings', title: 'Эмодзи звезды', tab: 0, name: 'goldEmoji', line: GOLD_LINE },
-      {
-        mode: 'replace',
-        title: 'Яблоко, бомба или звезда',
-        tab: 2,
-        code: GOLD_APPLES,
-        marks: [/\bgoldEmoji\b/, /["']gold["']/],
-      },
-      { mode: 'replace', title: 'Поймал звезду', tab: 3, code: GOLD_CATCH, marks: [/["']gold["']/] },
+    text: 'Поймал звезду — плюс жизнь. Откроется после бомбы.',
+    setting: { tab: 0, name: 'goldEmoji', line: GOLD_LINE },
+    codes: [
+      { tab: 2, code: GOLD_APPLES, marks: [/\bgoldEmoji\b/, /["']gold["']/] },
+      { tab: 3, code: GOLD_CATCH, marks: [/["']gold["']/] },
     ],
   },
 ]
 
 export const GUIDE_EXTRAS_NOTE: Rich =
-  '«Вставить» заменяет вкладку целиком. Делал «Десять очков» или «Всё быстрее»? [[Ctrl]] + [[Z]] вернёт как было.'
-
-export const GUIDE_MORE_TASKS: GuideTask[] = [
-  {
-    n: 6,
-    title: 'Со звуком',
-    text: 'Пищи, когда ловишь, и гуди, когда роняешь.',
-    hint: [
-      'Готовая функция: `playSound("catch")`. Звуки: `"catch"`, `"miss"`, `"bomb"`, `"star"`, `"over"`.',
-      'Вызови её в `checkCatch` рядом с `score` и `lives`.',
-    ],
-  },
-]
+  'Вторая кнопка заменяет «Яблоки» и «Поимку» целиком — ускорение и 10 очков в новом коде уже есть. Передумал? [[Ctrl]] + [[Z]] в каждой вкладке.'

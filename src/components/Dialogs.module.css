@@ -2,7 +2,7 @@
   width: min(460px, calc(100vw - 32px));
   max-height: calc(100dvh - 48px);
   padding: 0;
-  border: 0;
+  border: 1px solid var(--rule-2);
   border-radius: var(--radius-card);
   background: var(--paper);
   color: var(--ink);
@@ -10,7 +10,7 @@
 }
 
 .dialog::backdrop {
-  background: rgba(21, 26, 35, 0.45);
+  background: rgba(0, 0, 0, 0.6);
 }
 
 .dialog[open] {
@@ -67,7 +67,7 @@
 
 .danger {
   background: var(--danger-soft);
-  color: #7f141a;
+  color: var(--danger-text);
 }
 
 .dangerIcon {
@@ -90,13 +90,13 @@
   padding: 0 14px;
   border: 1px solid var(--rule-2);
   border-radius: 12px;
-  background: var(--paper);
+  background: var(--paper-2);
   color: var(--ink);
   font-size: var(--text-l);
 }
 
 .input:focus {
-  border-color: var(--ink);
+  border-color: var(--sun);
   outline: none;
   box-shadow: 0 0 0 3px var(--sun);
 }
@@ -107,4 +107,11 @@
   justify-content: flex-end;
   gap: 10px;
   margin-top: 8px;
+}
+
+.error {
+  margin-top: -4px !important;
+  color: var(--danger-text);
+  font-size: var(--text-s) !important;
+  font-weight: 600;
 }
