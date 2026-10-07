@@ -41,6 +41,10 @@ npm run test:e2e   # playwright: hitbox.html через file:// и сайт в /
 
 ## Деплой
 
+Основная ветка репозитория — `claude/magical-carson-tegs5x` (ветки `main` нет). Готовые изменения
+после всех проверок вливать в неё сразу, без отдельного вопроса (просьба пользователя): fast-forward
+`git push origin HEAD:claude/magical-carson-tegs5x`, если основная ветка не ушла вперёд.
+
 Vercel-проект `timebox` подключается к репозиторию GitHub и собирает основную ветку при
 каждом пуше; настройки сборки — в `vercel.json`. Запасной адрес — GitHub Pages
 (`.github/workflows/pages.yml`, base `/<репозиторий>/` через `BASE_PATH`); туда же кладётся
