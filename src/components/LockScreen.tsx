@@ -1,11 +1,12 @@
 import { useRef, useState } from 'react'
+import { gameHref } from '@/app/routes.ts'
 import { checkFinishedPassword } from '@/core/lock.ts'
 import { rememberFinishedUnlocked } from '@/sandbox/storage.ts'
 import { LockIcon, LogoCube } from './icons.tsx'
 import styles from './LockScreen.module.css'
 
 /** Экран перед готовой игрой: без пароля она не откроется, даже по прямой ссылке. */
-export function LockScreen({ onUnlock }: { onUnlock: () => void }) {
+export function LockScreen({ gameId, onUnlock }: { gameId: string; onUnlock: () => void }) {
   const [password, setPassword] = useState('')
   const [wrong, setWrong] = useState(false)
   const input = useRef<HTMLInputElement>(null)
@@ -60,7 +61,7 @@ export function LockScreen({ onUnlock }: { onUnlock: () => void }) {
         <button type="submit" className="key key--apple key--l" disabled={!password.trim()}>
           Открыть
         </button>
-        <a className={styles.back} href={location.pathname}>
+        <a className={styles.back} href={gameHref(gameId)}>
           Вернуться к учебной версии
         </a>
       </form>

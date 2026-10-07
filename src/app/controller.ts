@@ -19,6 +19,7 @@ import {
   saveBest,
   saveCodes,
 } from '@/sandbox/storage.ts'
+import { finishedHref } from './routes.ts'
 import { createStore, type Store } from './store.ts'
 
 export type View = 'guide' | number
@@ -579,8 +580,9 @@ export function createController(lesson: Lesson, variant: LessonVariant) {
     if (!checkFinishedPassword(password)) return false
     rememberFinishedUnlocked()
     saveNow()
-    const opened = window.open('?finished', '_blank')
-    if (!opened) location.assign('?finished')
+    const href = finishedHref(lesson.id)
+    const opened = window.open(href, '_blank')
+    if (!opened) location.assign(href)
     return true
   }
 

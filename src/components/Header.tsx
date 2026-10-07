@@ -1,6 +1,7 @@
 import { useEffect, useMemo, useRef } from 'react'
 import { useApp, useController } from '@/app/context.ts'
 import { extrasDone, levelsDone, runQuestNow } from '@/app/controller.ts'
+import { gameHref, homeHref } from '@/app/routes.ts'
 import { CheckIcon, LogoCube, PlayIcon, ResetIcon } from './icons.tsx'
 import styles from './Header.module.css'
 
@@ -11,8 +12,10 @@ export function Header() {
   return (
     <header className={styles.header}>
       <div className={styles.brand}>
-        <LogoCube className={styles.logo} />
-        <span className={styles.name}>TimeBox</span>
+        <a className={styles.home} href={homeHref()} title="В главное меню" aria-label="TimeBox — в главное меню">
+          <LogoCube className={styles.logo} />
+          <span className={styles.name}>TimeBox</span>
+        </a>
         {tutorial ? (
           <span className={styles.tagline}>конструктор игр</span>
         ) : (
@@ -23,7 +26,7 @@ export function Header() {
       {tutorial ? (
         <Checkpoints />
       ) : (
-        <a className={`key key--s ${styles.back}`} href={location.pathname}>
+        <a className={`key key--s ${styles.back}`} href={gameHref(c.lesson.id)}>
           Учебная версия
         </a>
       )}

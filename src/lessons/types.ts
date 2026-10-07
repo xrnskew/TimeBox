@@ -135,7 +135,22 @@ export interface HintSet {
 }
 
 export interface Lesson {
+  /** Адрес игры: `?game=<id>`. */
+  id: string
   title: string
+  /** Карточка в главном меню. */
+  card: {
+    /** Сложность: подпись и сколько делений из четырёх. */
+    level: string
+    levelBars: number
+    blurb: string
+    /** Смайлики на экране карточки, если ученик ещё не выбрал своих. */
+    hero: string
+    item: string
+    /** Переменные со смайликами ученика: если он их поменял, карточка показывает его героя. */
+    heroVar: string
+    itemVar: string
+  }
   tutorial: LessonVariant
   finished: LessonVariant
   intro: GuideIntro

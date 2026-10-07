@@ -1,0 +1,19 @@
+// Адреса внутри сайта. Только параметры запроса: так одинаково работает и сайт в подпапке,
+// и один файл hitbox.html, открытый через file://.
+
+/** Главное меню — выбор игры. */
+export const homeHref = () => location.pathname
+
+/** Учебная версия игры. */
+export const gameHref = (id: string) => `?game=${encodeURIComponent(id)}`
+
+/** Готовая версия игры (под паролем). */
+export const finishedHref = (id: string) => `${gameHref(id)}&finished`
+
+/** Что открыть по адресу: меню или игру; `?finished` без игры — готовая Catch, как раньше. */
+export function readRoute(fallbackGame: string): { kind: 'home' } | { kind: 'game'; id: string; finished: boolean } {
+  const q = new URLSearchParams(location.search)
+  const finished = q.has('finished')
+  const id = q.get('game') ?? (finished ? fallbackGame : null)
+  return id ? { kind: 'game', id, finished } : { kind: 'home' }
+}

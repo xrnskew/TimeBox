@@ -4,7 +4,18 @@ import { CATCH_HINTS } from './hints.ts'
 import { FINISHED, TUTORIAL } from './tabs.ts'
 
 export const CATCH_LESSON: Lesson = {
+  id: 'catch',
   title: 'Catch',
+  card: {
+    level: 'Очень легко',
+    levelBars: 1,
+    blurb:
+      'Сверху падают яблоки, а твой герой их ловит. Собери игру по кусочкам: героя, яблоки, поимку — а потом добавь бомбу и звезду.',
+    hero: '🧺',
+    item: '🍎',
+    heroVar: 'playerEmoji',
+    itemVar: 'itemEmoji',
+  },
   tutorial: TUTORIAL,
   finished: FINISHED,
   intro: GUIDE_INTRO,
