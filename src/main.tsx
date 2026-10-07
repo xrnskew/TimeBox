@@ -12,7 +12,8 @@ import App from '@/App.tsx'
 // ?finished — готовая игра: своё сохранение, гайда нет, открывается только по паролю.
 const finished = new URLSearchParams(location.search).has('finished')
 const lesson = CATCH_LESSON
-document.title = finished ? `${lesson.title} — готовая игра` : `${lesson.title} — песочница`
+// Название сайта — TimeBox, игра урока упоминается только у готовой версии.
+document.title = finished ? `TimeBox — готовая игра ${lesson.title}` : 'TimeBox — конструктор игр'
 
 const root = createRoot(document.getElementById('root')!)
 

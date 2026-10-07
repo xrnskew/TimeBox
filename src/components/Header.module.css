@@ -24,6 +24,22 @@
   letter-spacing: -0.01em;
 }
 
+.tagline {
+  padding-left: 12px;
+  border-left: 1px solid var(--rule-2);
+  color: var(--ink-2);
+  font-size: var(--text-s);
+  font-weight: 500;
+  white-space: nowrap;
+}
+
+/* на узких экранах подпись не помещается рядом с чек-поинтами */
+@media (max-width: 1180px) {
+  .tagline {
+    display: none;
+  }
+}
+
 .tag {
   padding: 3px 10px;
   border-radius: 999px;

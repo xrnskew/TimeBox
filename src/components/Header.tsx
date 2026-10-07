@@ -13,7 +13,11 @@ export function Header() {
       <div className={styles.brand}>
         <LogoCube className={styles.logo} />
         <span className={styles.name}>TimeBox</span>
-        {!tutorial && <span className={styles.tag}>готовая игра</span>}
+        {tutorial ? (
+          <span className={styles.tagline}>конструктор игр</span>
+        ) : (
+          <span className={styles.tag}>готовая игра</span>
+        )}
       </div>
 
       {tutorial ? (

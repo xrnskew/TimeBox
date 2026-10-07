@@ -30,8 +30,10 @@ test('1. игра уже крутится, вкладки шагов пусты�
   expect(await game(page, 'typeof loop')).toBe('function')
   expect(await game(page, 'lives')).toBe(3)
   expect(await game(page, 'typeof playSound')).toBe('undefined')
-  // сверху — название конструктора, в гайде — название игры
+  // сверху и во вкладке браузера — название конструктора, в гайде — название игры
+  await expect(page).toHaveTitle('TimeBox — конструктор игр')
   await expect(page.getByRole('banner')).toContainText('TimeBox')
+  await expect(page.getByRole('banner')).toContainText('конструктор игр')
   await expect(page.getByRole('heading', { level: 1, name: 'Catch' })).toBeVisible()
   await expect(runButton(page)).toBeVisible()
   await expect(runButton(page)).toHaveAttribute('data-dirty', 'false')
@@ -230,14 +232,18 @@ test('«Всё быстрее»: части функции всплывают в
     await expect(add).toHaveAccessibleName(`Добавить: ${t}`)
     if (t === titles[3]) {
       // кусок стоит под строкой «frame = frame + 1;» (5-я), и номера строк ниже не съехали
-      const off = await page.evaluate(() => {
-        const g = [...document.querySelectorAll('.cm-lineNumbers .cm-gutterElement')].find(
-          (e) => e.textContent === '6',
-        )!
-        const l = document.querySelectorAll('.cm-line')[5]
-        return Math.abs(g.getBoundingClientRect().top - l.getBoundingClientRect().top)
-      })
-      expect(off).toBeLessThan(1)
+      // (ждём, пока CodeMirror перемерит строки после появления куска)
+      await expect
+        .poll(() =>
+          page.evaluate(() => {
+            const g = [...document.querySelectorAll('.cm-lineNumbers .cm-gutterElement')].find(
+              (e) => e.textContent === '6',
+            )!
+            const l = document.querySelectorAll('.cm-line')[5]
+            return Math.abs(g.getBoundingClientRect().top - l.getBoundingClientRect().top)
+          }),
+        )
+        .toBeLessThan(1)
     }
     await add.click()
   }
@@ -598,6 +604,7 @@ test('готовая игра под паролем: из гайда и по п�
   await dialog.getByRole('button', { name: 'Открыть' }).click()
   const finished = await popup
   await expect(finished.getByRole('heading', { name: 'Что тут есть' })).toBeVisible()
+  await expect(finished).toHaveTitle('TimeBox — готовая игра Catch')
   await expect(finished.getByRole('tab', { name: 'Гайд' })).toHaveCount(0)
 
   // по прямой ссылке без пароля — экран блокировки
