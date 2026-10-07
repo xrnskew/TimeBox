@@ -351,6 +351,161 @@
   }
 }
 
+/* Космос: тёмно-синее небо и звёзды, как в игре; луна справа сверху. Цикл 6 с: пришельцы входят сверху
+   по одному, лесенкой (каждый следующий — через 2 с), корабль подъезжает под каждого, пуля летит вверх,
+   и пришелец лопается. Звёзды — два слоя точек, которые медленно едут вниз с разной скоростью. */
+.screen[data-scene='space'] {
+  background:
+    radial-gradient(circle, #8b93b8 0.6px, transparent 1.2px) 0 0 / 37px 41px,
+    radial-gradient(circle, rgba(139, 147, 184, 0.6) 0.6px, transparent 1.2px) 19px 13px / 53px 59px,
+    #0b0d1a;
+  animation: stars 12s linear infinite;
+}
+
+.pad[data-pad='3'] span:last-child {
+  width: 46px;
+  margin-left: 4px;
+}
+
+.moon {
+  position: absolute;
+  top: 5%;
+  right: 6%;
+  font-size: 34px;
+  opacity: 0.5;
+}
+
+.alien,
+.boom,
+.shot,
+.ship {
+  position: absolute;
+  translate: -50% 0;
+}
+
+.alien,
+.boom,
+.shot {
+  left: var(--x);
+  opacity: 0;
+  /* по отдельности: сокращение без имени анимации сборка заменяет на none */
+  animation-duration: 6s;
+  animation-timing-function: linear;
+  animation-iteration-count: infinite;
+  animation-delay: calc(var(--i) * 2s);
+}
+
+.alien {
+  top: -18%;
+  animation-name: invade;
+}
+
+.boom {
+  top: 36%;
+  animation-name: pop;
+}
+
+.shot {
+  top: 80%;
+  width: 3px;
+  height: 9%;
+  border-radius: 1px;
+  background: #ffd54a;
+  box-shadow: 0 0 6px rgba(255, 213, 74, 0.7);
+  animation-name: fire;
+}
+
+.ship {
+  bottom: 5%;
+  left: 78%;
+  animation: hunt 6s ease-in-out infinite;
+}
+
+@keyframes stars {
+  to {
+    background-position:
+      0 82px,
+      19px 72px;
+  }
+}
+
+@keyframes invade {
+  0% {
+    top: -18%;
+    opacity: 1;
+  }
+  26.6% {
+    top: 36%;
+    opacity: 1;
+  }
+  27%,
+  100% {
+    top: 36%;
+    opacity: 0;
+  }
+}
+
+@keyframes fire {
+  0%,
+  17.9% {
+    top: 80%;
+    opacity: 0;
+  }
+  18% {
+    top: 80%;
+    opacity: 1;
+  }
+  26.6% {
+    top: 42%;
+    opacity: 1;
+  }
+  27%,
+  100% {
+    top: 42%;
+    opacity: 0;
+  }
+}
+
+@keyframes pop {
+  0%,
+  26.6% {
+    opacity: 0;
+    scale: 0.6;
+  }
+  27% {
+    opacity: 1;
+    scale: 0.6;
+  }
+  31% {
+    opacity: 1;
+    scale: 1.25;
+  }
+  37%,
+  100% {
+    opacity: 0;
+    scale: 1.4;
+  }
+}
+
+/* под каждого пришельца корабль приезжает раньше, чем вылетит пуля (18 %, 51 %, 85 % цикла) */
+@keyframes hunt {
+  0%,
+  100% {
+    left: 78%;
+  }
+  12%,
+  19% {
+    left: 22%;
+  }
+  45%,
+  52% {
+    left: 50%;
+  }
+  78% {
+    left: 78%;
+  }
+}
+
 /* ===== Скоро ===== */
 .soon {
   display: grid;
@@ -364,6 +519,11 @@
   border-radius: var(--radius-card);
   color: var(--ink-3);
   text-align: center;
+}
+
+/* игр нечётное число — место для новой встаёт рядом с последней карточкой, а не под ней */
+.soon:nth-child(even) {
+  grid-column: auto;
 }
 
 .soon p {
@@ -386,7 +546,9 @@
     grid-template-columns: minmax(0, 1fr);
   }
 
-  .soon {
+  .soon,
+  .soon:nth-child(even) {
+    grid-column: 1 / -1;
     min-height: 120px;
   }
 }
@@ -420,8 +582,22 @@
   .item,
   .hero,
   .pipe,
-  .bird {
+  .bird,
+  .screen[data-scene='space'],
+  .alien,
+  .shot,
+  .boom,
+  .ship {
     animation: none;
+  }
+
+  .alien {
+    top: calc(36% - var(--i) * 14%);
+    opacity: 1;
+  }
+
+  .ship {
+    left: 22%;
   }
 
   .pipe {

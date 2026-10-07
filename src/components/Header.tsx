@@ -1,4 +1,4 @@
-import { useEffect, useMemo, useRef } from 'react'
+import { type RefObject, useEffect, useLayoutEffect, useMemo, useRef, useState } from 'react'
 import { useApp, useController } from '@/app/context.ts'
 import { extrasDone, levelsDone, runQuestNow } from '@/app/controller.ts'
 import { gameHref, homeHref } from '@/app/routes.ts'
@@ -8,9 +8,11 @@ import styles from './Header.module.css'
 export function Header() {
   const c = useController()
   const tutorial = c.variant.hasGuide
+  const header = useRef<HTMLElement>(null)
+  const squeeze = useSqueeze(header)
 
   return (
-    <header className={styles.header}>
+    <header ref={header} className={styles.header} data-squeeze={squeeze}>
       <div className={styles.brand}>
         <a className={styles.home} href={homeHref()} title="В главное меню" aria-label="TimeBox — в главное меню">
           <LogoCube className={styles.logo} />
@@ -32,7 +34,13 @@ export function Header() {
       )}
 
       <div className={styles.actions}>
-        <button type="button" className="key key--ghost key--s" onClick={() => c.openDialog({ kind: 'resetAll' })}>
+        <button
+          type="button"
+          className="key key--ghost key--s"
+          onClick={() => c.openDialog({ kind: 'resetAll' })}
+          aria-label="Сбросить всё"
+          title="Сбросить всё"
+        >
           <ResetIcon size={13} />
           <span className={styles.wideOnly}>Сбросить всё</span>
         </button>
@@ -40,6 +48,42 @@ export function Header() {
       </div>
     </header>
   )
+}
+
+/**
+ * Шапка не помещается в окно — сжимаем её по шагам: 1 — прячем подписи чек-поинтов (остаются кружки),
+ * 2 — ещё и текст «Сбросить всё» (остаётся значок), 3 — две строки, как на телефоне. Подписи у игр разной
+ * длины, поэтому меряем, а не угадываем ширину экрана. Ширину, которая была нужна до сжатия, запоминаем:
+ * окно стало шире — разжимаем обратно. Меряем и после загрузки шрифтов: с ними подписи шире.
+ */
+function useSqueeze(ref: RefObject<HTMLElement | null>): number {
+  const [level, setLevel] = useState(0)
+  const need = useRef<number[]>([])
+
+  useLayoutEffect(() => {
+    const el = ref.current
+    if (!el || typeof ResizeObserver === 'undefined') return
+    const check = () => {
+      if (level < 3 && el.scrollWidth > el.clientWidth + 1) {
+        need.current[level] = el.scrollWidth
+        setLevel(level + 1)
+      } else if (level > 0 && el.clientWidth >= need.current[level - 1]) {
+        setLevel(level - 1)
+      }
+    }
+    check()
+    const ro = new ResizeObserver(check)
+    ro.observe(el)
+    for (const child of el.children) ro.observe(child)
+    let alive = true
+    document.fonts?.ready.then(() => alive && check())
+    return () => {
+      alive = false
+      ro.disconnect()
+    }
+  }, [ref, level])
+
+  return level
 }
 
 /**

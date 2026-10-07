@@ -134,6 +134,21 @@
   color: var(--sun);
 }
 
+/* подпись в одну строку: иначе длинная («Волна за волной») сжимается в столбик по слову */
+.label {
+  white-space: nowrap;
+}
+
+/* шапка не помещается — сначала без подписей чек-поинтов, потом и без текста «Сбросить всё» */
+.header:not([data-squeeze='0']) .label,
+.header[data-squeeze='2'] .wideOnly {
+  display: none;
+}
+
+.header:not([data-squeeze='0']) .point {
+  padding: 5px;
+}
+
 .mark {
   display: grid;
   place-items: center;
@@ -371,6 +386,30 @@
   .point {
     padding: 5px;
   }
+}
+
+/* Третья ступень сжатия — две строки, как на телефоне (ниже): не влезло даже без подписей. */
+.header[data-squeeze='3'] {
+  flex-wrap: wrap;
+  row-gap: 10px;
+}
+
+.header[data-squeeze='3'] .actions {
+  display: contents;
+}
+
+.header[data-squeeze='3'] .runWrap {
+  order: 1;
+  margin-left: auto;
+}
+
+.header[data-squeeze='3'] .progress {
+  order: 2;
+}
+
+.header[data-squeeze='3'] .actions > :first-child {
+  order: 3;
+  margin-left: auto;
 }
 
 /* Телефон: в первой строке название и «Собрать», во второй — чек-поинты и сброс. */

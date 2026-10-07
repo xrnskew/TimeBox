@@ -1,5 +1,7 @@
 .app {
   display: grid;
+  /* колонка — ровно ширина окна: иначе широкая шапка раздвигает страницу вбок */
+  grid-template-columns: minmax(0, 1fr);
   grid-template-rows: auto minmax(0, 1fr);
   height: 100dvh;
 }

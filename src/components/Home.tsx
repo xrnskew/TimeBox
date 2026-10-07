@@ -89,6 +89,8 @@ function GameCard({ lesson }: { lesson: Lesson }) {
     <article className={styles.card} aria-labelledby={id}>
       {lesson.card.scene === 'bird' ? (
         <BirdAttract color={lesson.consoleColor} bird={p.hero} />
+      ) : lesson.card.scene === 'space' ? (
+        <SpaceAttract color={lesson.consoleColor} ship={p.hero} alien={p.item ?? '👾'} />
       ) : (
         <Attract color={lesson.consoleColor} hero={p.hero} item={p.item ?? '🍎'} />
       )}
@@ -176,6 +178,26 @@ function BirdAttract({ color, bird }: { color: string; bird: string }) {
         </span>
       ))}
       <span className={styles.bird}>{bird}</span>
+    </Mini>
+  )
+}
+
+/**
+ * Космос: волна лесенкой — пришельцы входят сверху по одному, корабль подъезжает под каждого,
+ * пуля летит вверх, и пришелец лопается.
+ */
+function SpaceAttract({ color, ship, alien }: { color: string; ship: string; alien: string }) {
+  return (
+    <Mini color={color} scene="space" pad={3}>
+      <span className={styles.moon}>🌙</span>
+      {[22, 50, 78].map((x, i) => (
+        <span key={i} style={{ '--x': `${x}%`, '--i': i } as CSSProperties}>
+          <span className={styles.shot} />
+          <span className={styles.alien}>{alien}</span>
+          <span className={styles.boom}>💥</span>
+        </span>
+      ))}
+      <span className={styles.ship}>{ship}</span>
     </Mini>
   )
 }

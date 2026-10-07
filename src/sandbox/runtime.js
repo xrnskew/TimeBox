@@ -52,6 +52,7 @@
     post({ type: 'focus', on: true })
   })
   window.addEventListener('blur', function () {
+    releaseKeys()
     post({ type: 'focus', on: false })
   })
 
@@ -66,9 +67,29 @@
     Home: 1,
     End: 1,
   }
+  // Зажатые клавиши. Игра потеряла фокус (клик мимо, другое окно) — keyup до неё уже не дойдёт,
+  // и движок думал бы, что пробел или стрелка зажаты навсегда: корабль стрелял бы и летел сам.
+  // Поэтому на blur отпускаем их сами.
+  var held = {}
+  function releaseKeys() {
+    var keys = Object.keys(held)
+    held = {}
+    for (var i = 0; i < keys.length; i++) {
+      document.dispatchEvent(new KeyboardEvent('keyup', { key: keys[i], bubbles: true }))
+    }
+  }
+  window.addEventListener(
+    'keyup',
+    function (e) {
+      delete held[e.key]
+    },
+    true,
+  )
+
   window.addEventListener(
     'keydown',
     function (e) {
+      held[e.key] = 1
       if ((e.ctrlKey || e.metaKey) && e.key === 'Enter') {
         e.preventDefault()
         post({ type: 'run' })
@@ -235,7 +256,60 @@
     c.restore()
   }
 
-  var HITBOXES = { catch: drawCatchHitboxes, bird: drawBirdHitboxes }
+  // Космос: рамки пришельцев (как в popal), пули, корабль и линия прорыва — то, что проверяет checkHits.
+  function drawSpaceHitboxes() {
+    var c = window.ctx
+    var sx = window.shipX
+    var sy = window.shipY
+    if (!c || typeof sx !== 'number' || typeof sy !== 'number') return
+    c.save()
+    c.lineWidth = 1.5
+    c.setLineDash([5, 4])
+    c.strokeStyle = 'rgba(79, 195, 247, 1)'
+    c.beginPath()
+    c.moveTo(0, sy - 10)
+    c.lineTo(380, sy - 10)
+    c.stroke()
+    c.font = 'bold 12px sans-serif'
+    c.fillStyle = 'rgba(79, 195, 247, 1)'
+    c.fillText('прорыв: y > ' + (sy - 10), 262, sy - 16)
+    var list = window.enemies
+    if (list && list.length) {
+      c.fillStyle = 'rgba(242, 139, 130, 0.18)'
+      c.strokeStyle = 'rgba(242, 139, 130, 0.95)'
+      for (var i = 0; i < list.length; i++) {
+        var a = list[i]
+        if (!a || typeof a.x !== 'number' || typeof a.y !== 'number') continue
+        c.fillRect(a.x, a.y - 30, 34, 30)
+        c.strokeRect(a.x, a.y - 30, 34, 30)
+      }
+      c.setLineDash([])
+      c.fillStyle = '#f28b82'
+      for (var k = 0; k < list.length; k++) {
+        var p = list[k]
+        if (!p || typeof p.x !== 'number' || typeof p.y !== 'number') continue
+        c.beginPath()
+        c.arc(p.x, p.y, 3, 0, Math.PI * 2)
+        c.fill()
+      }
+    }
+    c.setLineDash([])
+    var shots = window.bullets
+    if (shots && shots.length) {
+      c.strokeStyle = '#ffffff'
+      for (var j = 0; j < shots.length; j++) {
+        var b = shots[j]
+        if (!b || typeof b.x !== 'number' || typeof b.y !== 'number') continue
+        c.strokeRect(b.x - 1, b.y - 1, 6, 16)
+      }
+    }
+    c.lineWidth = 2
+    c.strokeStyle = '#ffc83a'
+    c.strokeRect(sx, sy - 30, 34, 34)
+    c.restore()
+  }
+
+  var HITBOXES = { catch: drawCatchHitboxes, bird: drawBirdHitboxes, space: drawSpaceHitboxes }
 
   // ===== Консоль: console.log попадает в панель под игрой =====
   var logBuf = []
