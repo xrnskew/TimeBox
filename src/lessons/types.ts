@@ -164,8 +164,11 @@ export interface Lesson {
     scene: 'catch' | 'bird'
   }
   controls: LessonControls
-  /** Цвет корпуса приставки — и в игре, и на карточке в меню. У каждой игры свой. */
-  consoleColor: 'red' | 'green' | 'yellow'
+  /**
+   * Цвет корпуса приставки — и в игре, и на карточке в меню. Он же — цвет сложности на карточке:
+   * «очень легко» — белый, «легко» — зелёный.
+   */
+  consoleColor: 'white' | 'green' | 'yellow' | 'red'
   tutorial: LessonVariant
   finished: LessonVariant
   intro: GuideIntro

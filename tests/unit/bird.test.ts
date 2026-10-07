@@ -178,12 +178,12 @@ describe('Птичка: квесты идут по порядку', () => {
 })
 
 describe('Птичка: игра', () => {
-  it('фон чёрный, земля белая; трубы рисует drawPipe цветом pipeColor — с шапкой', () => {
+  it('фон чёрный, земли нет; трубы рисует drawPipe цветом pipeColor — с шапкой', () => {
     const sim = boot(fullGame(engineWith(0, 0, 0, '#ec407a')))
     sim.peek('pipes = [{ x: 200, top: 120, passed: false }]')
     sim.tick()
     expect(sim.fills[0]).toBe('#141414')
-    expect(sim.fills).toContain('#ffffff')
+    expect(sim.fills).not.toContain('#ffffff')
     // две трубы, у каждой — тело и шапка своим цветом
     expect(sim.fills.filter((f) => f === '#ec407a')).toHaveLength(4)
   })
@@ -205,7 +205,7 @@ describe('Птичка: игра', () => {
     expect(sim.drawn).toContain('🦉')
   })
 
-  it('гравитация прибавляется к скорости, скорость — к высоте; на земле птица останавливается', () => {
+  it('гравитация прибавляется к скорости, скорость — к высоте; внизу экрана птица останавливается', () => {
     const sim = boot([engineWith(0.5), STEP_BIRD, ...TUTORIAL_CODES.slice(2)])
     sim.key(' ', true)
     sim.tick()
@@ -259,7 +259,7 @@ describe('Птичка: игра', () => {
     expect(sim.peek<number>('pipes[0].x')).toBeLessThan(378)
   })
 
-  it('упала на землю — игра окончена, всё останавливается', () => {
+  it('ударилась о низ экрана — игра окончена, всё останавливается', () => {
     const sim = boot(fullGame())
     sim.key(' ', true)
     sim.peek('birdY = 455; speedY = 10')

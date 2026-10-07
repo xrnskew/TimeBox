@@ -90,7 +90,7 @@
   align-items: center;
   gap: 10px;
   margin: 10px 0 0;
-  color: var(--leaf);
+  color: var(--shell-text);
   font-size: 14px;
   font-weight: 600;
 }
@@ -109,7 +109,7 @@
 }
 
 .bars span[data-on='true'] {
-  background: var(--leaf-fill);
+  background: var(--shell);
 }
 
 .blurb {
@@ -267,7 +267,7 @@
   }
 }
 
-/* Птичка: чёрное небо и белая земля, как в игре; трубы едут справа налево (цикл 4 с, вторая — со сдвигом
+/* Птичка: чёрное небо без земли, как в игре; трубы едут справа налево (цикл 4 с, вторая — со сдвигом
    в полцикла), птица подпрыгивает раз в секунду: быстро вверх, плавно вниз — как от пробела и гравитации. */
 .pad[data-pad='1'] span {
   width: 60px;
@@ -277,7 +277,7 @@
   --pipe: linear-gradient(90deg, #3f8f25, #9be77a 22%, #5ec639 42%, #4aa82e 70%, #2f6e1b);
   position: absolute;
   top: 0;
-  bottom: 4%;
+  bottom: 0;
   left: 100%;
   width: 15%;
   animation: scroll 4s linear infinite;
@@ -321,15 +321,6 @@
 
 .pipeBottom::after {
   top: 0;
-}
-
-.ground {
-  position: absolute;
-  right: 0;
-  bottom: 0;
-  left: 0;
-  height: 4%;
-  background: #fff;
 }
 
 .bird {

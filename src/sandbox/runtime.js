@@ -192,7 +192,7 @@
     c.restore()
   }
 
-  // Птичка: рамка птицы, трубы и земля — то, что проверяет checkHit.
+  // Птичка: рамка птицы, трубы и низ экрана — то, что проверяет checkHit.
   function drawBirdHitboxes() {
     var c = window.ctx
     var bx = window.birdX
@@ -223,7 +223,7 @@
     c.stroke()
     c.font = 'bold 12px sans-serif'
     c.fillStyle = 'rgba(79, 195, 247, 1)'
-    c.fillText('земля: y = 460', 280, 454)
+    c.fillText('низ: y = 460', 300, 454)
     c.setLineDash([])
     c.lineWidth = 2
     c.strokeStyle = '#ffc83a'

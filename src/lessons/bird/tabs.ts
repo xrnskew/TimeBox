@@ -81,10 +81,6 @@ function loop() {
   drawPipes();
   drawBird();
 
-  // земля
-  ctx.fillStyle = "#ffffff";
-  ctx.fillRect(0, 460, 380, 10);
-
   ctx.fillStyle = "#ffffff";
   ctx.font = "bold 17px sans-serif";
   ctx.fillText("Счёт: " + score, 12, 26);
@@ -124,7 +120,7 @@ function moveBird() {
   // скорость двигает птицу
   birdY = birdY + speedY;
 
-  // не даём птице провалиться под землю и улететь выше неба
+  // не даём птице упасть ниже экрана и улететь выше неба
   if (birdY > 460) {
     birdY = 460;
     speedY = 0;
@@ -164,7 +160,7 @@ const DRAW_PIPES = (coin = '') => `function drawPipes() {
     var p = pipes[i];
     // верхняя труба — до дырки, нижняя — после неё
     drawPipe(p.x, 0, p.top);
-    drawPipe(p.x, p.top + pipeGap, 460);${coin}
+    drawPipe(p.x, p.top + pipeGap, 470);${coin}
   }
 }`
 
@@ -173,7 +169,7 @@ export const STEP_PIPES = `${MOVE_PIPES('{ x: 380, top: 60 + Math.random() * 200
 ${DRAW_PIPES()}`
 
 const CHECK_HIT = (coin = '') => `function checkHit() {
-  // упал на землю — конец игры
+  // ударился о низ экрана — конец игры
   if (birdY >= 460) gameOver = true;
 
   for (var i = 0; i < pipes.length; i++) {
@@ -299,7 +295,7 @@ export const FINISHED: LessonVariant = {
   hasGuide: false,
   features: [
     'Пробел, стрелка вверх или клик по экрану — взмах.',
-    'Пролетел трубу — 1 очко. Врезался в трубу или упал на землю — конец игры.',
+    'Пролетел трубу — 1 очко. Врезался в трубу или ударился о низ экрана — конец игры.',
     '🪙 Монетка в дырке — плюс 5 очков.',
     'Каждые 10 секунд трубы едут быстрее, но не быстрее maxSpeed.',
     'Гравитацию, силу взмаха, ширину дырки, цвет труб и смайлики можно менять в «Движке» и «Птице».',

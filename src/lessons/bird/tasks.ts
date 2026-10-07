@@ -105,10 +105,10 @@ export const BIRD_FALL_TASK: BuildTask = {
       isDone: (code) => has(code, SPEED_STEP),
     },
     {
-      title: 'Не проваливаться под землю и не улетать выше неба',
+      title: 'Не падать ниже экрана и не улетать выше неба',
       plan: into(
         'moveBird',
-        '\n  // не даём птице провалиться под землю и улететь выше неба\n  if (birdY > 460) {\n    birdY = 460;\n    speedY = 0;\n  }\n  if (birdY < 30) {\n    birdY = 30;\n    speedY = 0;\n  }',
+        '\n  // не даём птице упасть ниже экрана и улететь выше неба\n  if (birdY > 460) {\n    birdY = 460;\n    speedY = 0;\n  }\n  if (birdY < 30) {\n    birdY = 30;\n    speedY = 0;\n  }',
       ),
       isDone: (code) => has(code, /\bif\s*\(\s*birdY\s*>\s*460\s*\)/) && has(code, /\bif\s*\(\s*birdY\s*<\s*30\s*\)/),
     },
@@ -225,8 +225,8 @@ export const PIPES_DRAW_TASK: BuildTask = {
       isDone: (code) => has(code, TOP_PIPE),
     },
     {
-      title: 'Нижняя труба — от дырки до земли',
-      plan: (code) => after(code, TOP_PIPE, '    drawPipe(p.x, p.top + pipeGap, 460);'),
+      title: 'Нижняя труба — от дырки до низа экрана',
+      plan: (code) => after(code, TOP_PIPE, '    drawPipe(p.x, p.top + pipeGap, 470);'),
       isDone: (code) => has(code, /\bdrawPipe\s*\([^)]*pipeGap/),
     },
   ],
@@ -270,13 +270,13 @@ const RYADOM = /\bvar\s+ryadom\s*=/
 export const HIT_TASK: BuildTask = {
   kind: 'build',
   title: 'Врезался — конец игры',
-  text: 'Собери `checkHit()` в «Ударе»: упала на землю или задела трубу — `gameOver = true`, и движок останавливает игру.',
+  text: 'Собери `checkHit()` в «Ударе»: ударилась о низ экрана или задела трубу — `gameOver = true`, и движок останавливает игру.',
   tab: 4,
   pieces: [
     shell('checkHit'),
     {
-      title: 'Упала на землю — конец игры',
-      plan: into('checkHit', '  // упал на землю — конец игры\n  if (birdY >= 460) gameOver = true;'),
+      title: 'Ударилась о низ — конец игры',
+      plan: into('checkHit', '  // ударился о низ экрана — конец игры\n  if (birdY >= 460) gameOver = true;'),
       isDone: (code) => has(code, /\bif\s*\(\s*birdY\s*>=\s*460\s*\)/),
     },
     {

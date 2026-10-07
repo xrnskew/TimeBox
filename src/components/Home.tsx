@@ -94,7 +94,7 @@ function GameCard({ lesson }: { lesson: Lesson }) {
       )}
       <div className={styles.info}>
         <h2 id={id}>{lesson.title}</h2>
-        <p className={styles.level}>
+        <p className={styles.level} data-shell={lesson.consoleColor}>
           <span className={styles.bars} aria-hidden="true">
             {[0, 1, 2, 3].map((i) => (
               <span key={i} data-on={i < lesson.card.levelBars} />
@@ -175,7 +175,6 @@ function BirdAttract({ color, bird }: { color: string; bird: string }) {
           <span className={styles.pipeBottom} />
         </span>
       ))}
-      <span className={styles.ground} />
       <span className={styles.bird}>{bird}</span>
     </Mini>
   )

@@ -25,7 +25,7 @@ const GLOBALS: Hint[] = [
   { name: 'coinEmoji', kind: 'variable', text: 'Эмодзи монетки (дополнительное задание).' },
   { name: 'maxSpeed', kind: 'variable', text: 'Быстрее этой скорости трубы не поедут (дополнительное задание).' },
   { name: 'birdX', kind: 'variable', text: 'Где птица по горизонтали. Не меняется: это трубы едут навстречу.' },
-  { name: 'birdY', kind: 'variable', text: 'Где птица по вертикали: 30 — у неба, 460 — на земле.' },
+  { name: 'birdY', kind: 'variable', text: 'Где птица по вертикали: 30 — у неба, 460 — у самого низа: ниже — удар.' },
   {
     name: 'speedY',
     kind: 'variable',

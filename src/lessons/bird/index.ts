@@ -15,11 +15,11 @@ export const BIRD_LESSON: Lesson = {
     heroVar: 'birdEmoji',
     scene: 'bird',
   },
-  consoleColor: 'yellow',
+  consoleColor: 'green',
   controls: {
     buttons: [{ key: ' ', label: 'Взмах', icon: 'up', wide: true }],
     keysHint: 'пробел',
-    hitboxes: 'Показать рамку птицы, трубы и землю — то, что проверяет checkHit',
+    hitboxes: 'Показать рамку птицы, трубы и низ экрана — то, что проверяет checkHit',
   },
   tutorial: TUTORIAL,
   finished: FINISHED,

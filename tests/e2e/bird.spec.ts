@@ -85,7 +85,7 @@ test('Птичка: вся игра по квестам, взмах, удар и
   expect(await game<number>(page, 'speedY')).toBeLessThan(0)
   expect(await game(page, '[pipeSpeed, pipeColor]')).toEqual([2, '#ec407a'])
 
-  // пролетела трубу — очко; упала на землю — «Игра окончена»
+  // пролетела трубу — очко; ударилась о низ экрана — «Игра окончена»
   expect(await game(page, 'pipes = [{ x: 20, top: 100, passed: false }]; birdY = 200; checkHit(); score')).toBe(1)
   await game(page, 'birdY = 460; checkHit()')
   const over = page.getByRole('button', { name: 'Начать заново' })

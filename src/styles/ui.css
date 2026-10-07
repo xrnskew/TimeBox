@@ -166,7 +166,18 @@ kbd {
 }
 
 /* ===== Корпус приставки: у каждой игры свой цвет (Lesson.consoleColor) ===== */
-/* --shell-ink — подписи прямо на корпусе, --shell-accent — включённый тумблер. */
+/* --shell-ink — подписи прямо на корпусе, --shell-accent — включённый тумблер,
+   --shell-text — подпись сложности на карточке меню (на тёмном фоне). */
+[data-shell='white'] {
+  --shell-hi: #ffffff;
+  --shell: #eceef2;
+  --shell-lo: #c9ced8;
+  --shell-glow: rgba(255, 255, 255, 0.16);
+  --shell-ink: #1b1f27;
+  --shell-accent: #23a447;
+  --shell-text: #f4f5f8;
+}
+
 [data-shell='red'] {
   --shell-hi: var(--apple-hi);
   --shell: var(--apple);
@@ -174,6 +185,7 @@ kbd {
   --shell-glow: rgba(161, 29, 23, 0.55);
   --shell-ink: #fff;
   --shell-accent: var(--sun);
+  --shell-text: #ff7a6e;
 }
 
 [data-shell='green'] {
@@ -183,6 +195,7 @@ kbd {
   --shell-glow: rgba(22, 112, 48, 0.55);
   --shell-ink: #0c2a15;
   --shell-accent: var(--sun);
+  --shell-text: #5fd67a;
 }
 
 [data-shell='yellow'] {
@@ -192,4 +205,5 @@ kbd {
   --shell-glow: rgba(190, 128, 6, 0.5);
   --shell-ink: #2b1d00;
   --shell-accent: #23a447;
+  --shell-text: var(--sun);
 }
