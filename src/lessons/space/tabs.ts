@@ -1,0 +1,338 @@
+import type { LessonVariant, TabDef } from '../types.ts'
+
+// Космос. Новое по сравнению с Корзинкой и Птичкой: два массива сразу (пули и пришельцы), вложенный цикл
+// «каждый пришелец × каждая пуля» и перезарядка — счётчик, который каждый кадр уменьшается до нуля.
+// Скорости и перезарядка в учебном движке — 0: их ученик ставит сам в квестах. Строк boomEmoji и maxSpeed
+// нет: их ученик добавляет в дополнительных заданиях.
+//
+// Все массивы — только в «Движке», даже booms из задания «Взрывы». Движок зовёт loop() в своей последней
+// строке, до того как выполнятся другие вкладки: функции из них уже есть, а их var — ещё нет. Массив,
+// объявленный во вкладке ученика, в первом кадре был бы undefined, и игра упала бы на .length.
+
+/** Цвет пуль, с которого начинают. Квест «Цвет пуль» — выбрать свой. */
+export const BULLET_COLOR = '#ffd54a'
+/** Смайлик пришельца в «Движке». Квест «Свой пришелец» — поменять его. */
+export const ENEMY_EMOJI = '👾'
+
+export const TUTORIAL_ENGINE = `// ===== НАСТРОЙКИ =====
+var shipSpeed   = 0;
+var bulletSpeed = 0;
+var reloadTime  = 0;
+var enemySpeed  = 0;
+var waveSize    = 5;
+var enemyEmoji  = "${ENEMY_EMOJI}";
+var bulletColor = "${BULLET_COLOR}";
+
+// ===== СОСТОЯНИЕ ИГРЫ =====
+var shipX = 170;
+var shipY = 450;
+var bullets = [];
+var enemies = [];
+var booms = [];
+var reload = 0;
+var score = 0;
+var lives = 3;
+var wave = 0;
+var frame = 0;
+var keys = {};
+
+// ===== КЛАВИШИ =====
+// ← → — лететь, пробел — стрелять (можно держать)
+document.addEventListener("keydown", function (e) { keys[e.key] = true; });
+document.addEventListener("keyup",   function (e) { keys[e.key] = false; });
+
+// ===== ЗАГОТОВКИ =====
+// Пока пустые. Твои функции из других вкладок их заменят.
+function drawShip()    {}
+function moveShip()    {}
+function shoot()       {}
+function moveBullets() {}
+function drawBullets() {}
+function moveEnemies() {}
+function drawEnemies() {}
+function checkHits()   {}
+
+// ===== КОСМОС =====
+// Готовый фон: звёзды и луна. Звёзды медленно летят вниз — кажется, что корабль летит вперёд.
+var stars = [];
+for (var n = 0; n < 40; n++) {
+  stars.push({ x: Math.random() * 380, y: Math.random() * 470 });
+}
+
+function drawSpace() {
+  ctx.fillStyle = "#8b93b8";
+  for (var n = 0; n < stars.length; n++) {
+    stars[n].y = stars[n].y + 0.5;
+    if (stars[n].y > 470) stars[n].y = 0;
+    ctx.fillRect(stars[n].x, stars[n].y, 2, 2);
+  }
+
+  // save и restore: полупрозрачная только луна, смайлики после неё — яркие
+  ctx.save();
+  ctx.globalAlpha = 0.5;
+  ctx.font = "90px serif";
+  ctx.fillText("🌙", 260, 150);
+  ctx.restore();
+}
+
+// ===== ГЛАВНЫЙ ЦИКЛ =====
+function loop() {
+  ctx.fillStyle = "#0b0d1a";
+  ctx.fillRect(0, 0, 380, 470);
+  drawSpace();
+
+  if (lives > 0) {
+    frame = frame + 1;
+    moveShip();
+    shoot();
+    moveBullets();
+    moveEnemies();
+    checkHits();
+  }
+  drawBullets();
+  drawEnemies();
+  drawShip();
+
+  ctx.fillStyle = "#ffffff";
+  ctx.font = "bold 17px sans-serif";
+  ctx.fillText("Счёт: " + score, 12, 26);
+  ctx.fillText("Жизни: " + Math.max(0, lives), 12, 48);
+  ctx.fillText("Волна: " + wave, 12, 70);
+
+  if (lives <= 0) {
+    ctx.font = "bold 26px sans-serif";
+    ctx.fillText("Игра окончена", 78, 240);
+  }
+  requestAnimationFrame(loop);
+}
+loop();`
+
+export const BOOM_LINE = 'var boomEmoji   = "💥";'
+export const MAX_SPEED_LINE = 'var maxSpeed    = 2;'
+
+// ===== Код шагов гайда — базовая версия: без взрывов, скорость пришельцев постоянная =====
+// Каждый шаг собирается кнопками по кусочкам (tasks.ts) и в итоге совпадает с этим кодом.
+
+/** Смайлик корабля, с которого начинают. Квест «Выбери корабль» — поменять его на свой. */
+export const SHIP_EMOJI = '🚀'
+
+export const STEP_SHIP = `// корабль — любой смайлик
+var shipEmoji = "${SHIP_EMOJI}";
+
+function drawShip() {
+  ctx.font = "34px serif";
+  ctx.fillText(shipEmoji, shipX, shipY);
+}
+
+function moveShip() {
+  if (keys["ArrowLeft"])  shipX = shipX - shipSpeed;
+  if (keys["ArrowRight"]) shipX = shipX + shipSpeed;
+
+  // не даём кораблю улететь за край
+  if (shipX < 0)   shipX = 0;
+  if (shipX > 340) shipX = 340;
+}`
+
+export const STEP_BULLETS = `function shoot() {
+  // перезарядка: пока счётчик не дошёл до нуля — не стреляем
+  if (reload > 0) {
+    reload = reload - 1;
+    return;
+  }
+
+  // пробел — новая пуля из носа корабля
+  if (keys[" "]) {
+    bullets.push({ x: shipX + 15, y: shipY - 34 });
+    reload = reloadTime;
+  }
+}
+
+function moveBullets() {
+  // все пули летят вверх
+  for (var i = 0; i < bullets.length; i++) {
+    bullets[i].y = bullets[i].y - bulletSpeed;
+  }
+
+  // пуля улетела за верхний край — убираем её
+  if (bullets.length > 0 && bullets[0].y < -20) {
+    bullets.shift();
+  }
+}
+
+function drawBullets() {
+  ctx.fillStyle = bulletColor;
+  for (var i = 0; i < bullets.length; i++) {
+    ctx.fillRect(bullets[i].x, bullets[i].y, 4, 14);
+  }
+}`
+
+const ENEMIES = (fast = '', boom = '') => `function moveEnemies() {
+  // пришельцев не осталось — летит новая волна
+  if (enemies.length === 0) {
+    wave = wave + 1;${fast}
+    for (var k = 0; k < waveSize; k++) {
+      // лесенкой: каждый следующий правее и выше
+      enemies.push({ x: 20 + k * 70, y: 120 - k * 45 });
+    }
+  }
+
+  // все пришельцы спускаются вниз
+  for (var i = 0; i < enemies.length; i++) {
+    enemies[i].y = enemies[i].y + enemySpeed;
+  }
+}
+
+function drawEnemies() {
+  ctx.font = "34px serif";
+  for (var i = 0; i < enemies.length; i++) {
+    ctx.fillText(enemyEmoji, enemies[i].x, enemies[i].y);
+  }${boom}
+}`
+
+export const STEP_ENEMIES = ENEMIES()
+
+const HITS = (boom = '') => `function checkHits() {
+  // каждый пришелец × каждая пуля
+  for (var i = enemies.length - 1; i >= 0; i--) {
+    var a = enemies[i];
+
+    for (var j = bullets.length - 1; j >= 0; j--) {
+      var b = bullets[j];
+      // пуля внутри рамки пришельца?
+      var popal = b.x + 4 > a.x && b.x < a.x + 34 && b.y < a.y && b.y + 14 > a.y - 30;
+
+      if (popal) {
+        // сбил — убираем и пришельца, и пулю
+        enemies.splice(i, 1);
+        bullets.splice(j, 1);
+        // плюс очко
+        score = score + 1;${boom}
+        // этого пришельца больше нет — другие пули его уже не проверяют
+        break;
+      }
+    }
+  }
+
+  // пришелец долетел до корабля — минус жизнь
+  for (var i = enemies.length - 1; i >= 0; i--) {
+    if (enemies[i].y > shipY - 10) {
+      lives = lives - 1;
+      enemies.splice(i, 1);
+    }
+  }
+}`
+
+export const STEP_HITS = HITS()
+
+// ===== Взрывы и «Волна за волной»: основа — код после всех шагов =====
+
+const BOOM_DRAW = `
+
+  // взрывы горят 20 кадров и гаснут
+  for (var i = booms.length - 1; i >= 0; i--) {
+    ctx.fillText(boomEmoji, booms[i].x, booms[i].y);
+    booms[i].t = booms[i].t - 1;
+    if (booms[i].t <= 0) booms.splice(i, 1);
+  }`
+
+const BOOM_PUSH = `
+        // на месте пришельца — взрыв
+        booms.push({ x: a.x, y: a.y, t: 20 });`
+
+const FAST = `
+
+    // каждая новая волна быстрее, но не быстрее maxSpeed
+    if (wave > 1 && enemySpeed < maxSpeed) {
+      enemySpeed = enemySpeed + 0.25;
+    }
+`
+
+export const BOOM_ENEMIES = ENEMIES('', BOOM_DRAW)
+export const BOOM_HITS = HITS(BOOM_PUSH)
+export const FAST_ENEMIES = ENEMIES(FAST, BOOM_DRAW)
+
+// ===== Готовая версия (?finished): взрывы, волны всё быстрее, всё настроено =====
+
+const FINISHED_ENGINE = TUTORIAL_ENGINE.replace('var shipSpeed   = 0;', 'var shipSpeed   = 6;')
+  .replace('var bulletSpeed = 0;', 'var bulletSpeed = 9;')
+  .replace('var reloadTime  = 0;', 'var reloadTime  = 12;')
+  .replace('var enemySpeed  = 0;', 'var enemySpeed  = 0.5;')
+  .replace(
+    `var enemyEmoji  = "${ENEMY_EMOJI}";`,
+    `var enemyEmoji  = "${ENEMY_EMOJI}";\n${BOOM_LINE}\n${MAX_SPEED_LINE}`,
+  )
+
+// ===== Вкладки =====
+
+const placeholder = (step: number, what: string) =>
+  `// Шаг ${step}. ${what}\n// Не знаешь, с чего начать? Открой вкладку «Гайд».`
+
+export const TUTORIAL_TABS: TabDef[] = [
+  {
+    id: 'engine',
+    title: 'Движок',
+    note: 'Готовый движок: настройки, состояние игры, космос и главный цикл. Настройки сверху можно менять.',
+  },
+  { id: 'ship', title: 'Корабль', step: 1, note: 'Шаг 1: корабль — смайлик внизу, летает стрелками ← →.' },
+  {
+    id: 'bullets',
+    title: 'Пули',
+    step: 2,
+    note: 'Шаг 2: пробел — выстрел. Пули — второй массив, между выстрелами перезарядка.',
+  },
+  { id: 'enemies', title: 'Пришельцы', step: 3, note: 'Шаг 3: пришельцы летят сверху волнами.' },
+  {
+    id: 'hits',
+    title: 'Попадание',
+    step: 4,
+    note: 'Шаг 4: каждая пуля × каждый пришелец — сбил или нет. Долетел до корабля — минус жизнь.',
+  },
+]
+
+export const TUTORIAL_CODES: string[] = [
+  TUTORIAL_ENGINE,
+  placeholder(1, 'Здесь будет твой корабль: смайлик, drawShip и moveShip.'),
+  placeholder(2, 'Здесь будут функции shoot, moveBullets и drawBullets.'),
+  placeholder(3, 'Здесь будут функции moveEnemies и drawEnemies.'),
+  placeholder(4, 'Здесь будет функция checkHits.'),
+]
+
+export const FINISHED_TABS: TabDef[] = [
+  {
+    id: 'engine',
+    title: 'Движок',
+    note: 'Настройки, состояние игры, космос и главный цикл. Числа, цвет и смайлики можно менять.',
+  },
+  { id: 'ship', title: 'Корабль', note: 'Корабль: смайлик, отрисовка и полёт стрелками.' },
+  { id: 'bullets', title: 'Пули', note: 'Пробел — выстрел, между выстрелами перезарядка reloadTime кадров.' },
+  { id: 'enemies', title: 'Пришельцы', note: 'Волны пришельцев — каждая быстрее прошлой. Взрывы горят 20 кадров.' },
+  {
+    id: 'hits',
+    title: 'Попадание',
+    note: 'Каждая пуля × каждый пришелец: сбил — очко и взрыв. Долетел — минус жизнь.',
+  },
+]
+
+export const FINISHED_CODES: string[] = [FINISHED_ENGINE, STEP_SHIP, STEP_BULLETS, FAST_ENEMIES, BOOM_HITS]
+
+export const TUTORIAL: LessonVariant = {
+  id: 'tutorial',
+  storageKey: 'space-sandbox-v1',
+  tabs: TUTORIAL_TABS,
+  initial: TUTORIAL_CODES,
+  hasGuide: true,
+}
+
+export const FINISHED: LessonVariant = {
+  id: 'finished',
+  storageKey: 'space-sandbox-finished-v1',
+  tabs: FINISHED_TABS,
+  initial: FINISHED_CODES,
+  hasGuide: false,
+  features: [
+    'Стрелки ← → — лететь, пробел — стрелять. Пробел можно держать: корабль стреляет сам, с перезарядкой.',
+    'Сбил пришельца — 1 очко и 💥 взрыв. Пришелец долетел до корабля — минус жизнь, жизней три.',
+    'Пришельцы летят волнами. Каждая новая волна быстрее прошлой, но не быстрее maxSpeed.',
+    'Скорости, перезарядку, размер волны, цвет пуль и смайлики можно менять в «Движке» и «Корабле».',
+  ],
+}

@@ -1,5 +1,5 @@
 // Запуск кода вкладок без браузера: заглушки document, ctx и requestAnimationFrame.
-// Так проверяется логика игры — ловля, жизни, бомба, звезда, ускорение, полёт птицы.
+// Так проверяется логика игры — ловля, жизни, бомба, звезда, ускорение, полёт птицы, пули и пришельцы.
 
 type Listener = (e: { key: string }) => void
 
@@ -14,6 +14,8 @@ export interface Sim {
   fills: string[]
   /** Цвет кисти у каждого fillText за последний кадр: полупрозрачная кисть затемняет смайлики. */
   textFills: string[]
+  /** Прозрачность (globalAlpha) у каждого fillText за последний кадр: луна Космоса полупрозрачная. */
+  textAlphas: number[]
 }
 
 export function boot(codes: string[]): Sim {
@@ -28,9 +30,11 @@ export function boot(codes: string[]): Sim {
   const drawn: string[] = []
   const fills: string[] = []
   const textFills: string[] = []
-  const saved: string[] = []
+  const textAlphas: number[] = []
+  const saved: { fillStyle: string; globalAlpha: number }[] = []
   const ctx = {
     fillStyle: '',
+    globalAlpha: 1,
     font: '',
     fillRect() {
       fills.push(ctx.fillStyle)
@@ -38,12 +42,14 @@ export function boot(codes: string[]): Sim {
     fillText(text: string) {
       drawn.push(text)
       textFills.push(ctx.fillStyle)
+      textAlphas.push(ctx.globalAlpha)
     },
     save() {
-      saved.push(ctx.fillStyle)
+      saved.push({ fillStyle: ctx.fillStyle, globalAlpha: ctx.globalAlpha })
     },
     restore() {
-      ctx.fillStyle = saved.pop() ?? ctx.fillStyle
+      const top = saved.pop()
+      if (top) Object.assign(ctx, top)
     },
   }
   let next: (() => void) | null = null
@@ -65,6 +71,7 @@ export function boot(codes: string[]): Sim {
         drawn.length = 0
         fills.length = 0
         textFills.length = 0
+        textAlphas.length = 0
         const cb = next
         next = null
         cb?.()
@@ -76,5 +83,6 @@ export function boot(codes: string[]): Sim {
     drawn,
     fills,
     textFills,
+    textAlphas,
   }
 }
