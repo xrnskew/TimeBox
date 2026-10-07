@@ -1,8 +1,8 @@
 import { type CSSProperties, type ReactNode, useMemo } from 'react'
-import { extraStates, levelStates } from '@/core/levels.ts'
-import { stripComments } from '@/core/progress.ts'
+import { lessonProgress } from '@/core/levels.ts'
 import { gameHref } from '@/app/routes.ts'
 import { LESSONS } from '@/lessons/index.ts'
+import { emojiOf } from '@/lessons/kit.ts'
 import type { Lesson } from '@/lessons/types.ts'
 import { loadCodes } from '@/sandbox/storage.ts'
 import { CheckIcon, LockIcon, LogoCube, PlayIcon } from './icons.tsx'
@@ -51,31 +51,25 @@ interface Progress {
   item: string | null
 }
 
-/** Смайлик из последнего объявления `var name = "…"` во всех вкладках (поздние вкладки побеждают). */
-function emojiOf(codes: string[], name: string): string | null {
-  const re = new RegExp(`^\\s*var\\s+${name}\\s*=\\s*(["'])(.*?)\\1`, 'gm')
-  let found: string | null = null
-  for (const code of codes) for (const m of stripComments(code).matchAll(re)) found = m[2].trim() || found
-  return found
-}
+/** Смайлик ученика из `var name = "…"`: в склеенном скрипте побеждает объявление из поздней вкладки. */
+const chosenEmoji = (codes: string[], name: string) =>
+  codes
+    .map((code) => emojiOf(name, code))
+    .filter(Boolean)
+    .at(-1) ?? null
 
 function progressOf(lesson: Lesson): Progress {
   const v = lesson.tutorial
   const codes = loadCodes(v.storageKey, v.tabs.length) ?? v.initial
-  const levels = levelStates(lesson.steps, codes)
-  const extras = extraStates(
-    lesson.extras,
-    levels.every((l) => l.done),
-    codes,
-  )
+  const { levels, extras } = lessonProgress(lesson, codes)
   return {
     started: codes.some((c, i) => c !== v.initial[i]),
     marks: [
       ...levels.map((l) => ({ kind: 'step' as const, done: l.done })),
       ...extras.map((x) => ({ kind: 'extra' as const, done: x.done })),
     ],
-    hero: emojiOf(codes, lesson.card.heroVar) ?? lesson.card.hero,
-    item: (lesson.card.itemVar && emojiOf(codes, lesson.card.itemVar)) ?? lesson.card.item ?? null,
+    hero: chosenEmoji(codes, lesson.card.heroVar) ?? lesson.card.hero,
+    item: (lesson.card.itemVar && chosenEmoji(codes, lesson.card.itemVar)) ?? lesson.card.item ?? null,
   }
 }
 

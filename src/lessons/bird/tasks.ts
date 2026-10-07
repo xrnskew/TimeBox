@@ -1,88 +1,60 @@
 import {
   after,
-  append,
-  emojiOf,
-  emojiTarget,
+  createEmojiQuest,
+  drawEmojiQuest,
   has,
   into,
-  numberAbove0,
-  numberTarget,
+  numberQuest,
+  pickColorQuest,
+  pickEmojiQuest,
+  runQuest,
   shell,
-  stringOf,
-  stringTarget,
 } from '../kit.ts'
-import type { BuildTask, EditTask, RunTask } from '../types.ts'
+import type { BuildTask } from '../types.ts'
 import { BIRD_EMOJI, PIPE_COLOR } from './tabs.ts'
 
 // Квесты Птички. Код шага собирается кнопками «Добавить» по кусочкам и в итоге совпадает с STEP_* из tabs.ts.
 
 // ===== Шаг 1. Птица: создать → выбрать → нарисовать → собрать → падение → гравитация =====
 
-const BIRD_VAR = /\bvar\s+birdEmoji\s*=/
-
-export const BIRD_CREATE_TASK: BuildTask = {
-  kind: 'build',
+export const BIRD_CREATE_TASK = createEmojiQuest({
   title: 'Создай птицу',
   text: 'Птица — это смайлик. Открой «Птица»: там всплывёт строчка с ним — жми «Добавить».',
   tab: 1,
-  pieces: [
-    {
-      title: 'Смайлик птицы',
-      plan: append(`// птица — любой смайлик\nvar birdEmoji = "${BIRD_EMOJI}";`),
-      isDone: (code) => has(code, BIRD_VAR),
-    },
-  ],
+  name: 'birdEmoji',
+  emoji: BIRD_EMOJI,
+  piece: 'Смайлик птицы',
+  comment: 'птица — любой смайлик',
   doneText: 'Птица создана! Теперь нажми «Сменить» рядом со смайликом и выбери, кто полетит.',
-}
+})
 
-export const BIRD_PICK_TASK: EditTask = {
-  kind: 'edit',
+export const BIRD_PICK_TASK = pickEmojiQuest({
   title: 'Выбери птицу',
   text: `Нажми «Сменить» рядом со смайликом ${BIRD_EMOJI} и выбери, кто полетит, — например, 🦉 или 🐝.`,
   tab: 1,
-  target: emojiTarget('birdEmoji'),
-  picker: 'emoji',
-  hint: [
-    `Это строка \`var birdEmoji = "${BIRD_EMOJI}";\` во вкладке «Птица». Кнопка «Сменить» — прямо рядом с ней. Можно и напечатать смайлик между кавычками самому.`,
-  ],
-  isDone(code) {
-    const emoji = emojiOf('birdEmoji', code)
-    return !!emoji && emoji !== BIRD_EMOJI
-  },
-}
+  name: 'birdEmoji',
+  emoji: BIRD_EMOJI,
+  hint: `Это строка \`var birdEmoji = "${BIRD_EMOJI}";\` во вкладке «Птица». Кнопка «Сменить» — прямо рядом с ней. Можно и напечатать смайлик между кавычками самому.`,
+})
 
-const BIRD_TEXT = /\bctx\.fillText\s*\(\s*birdEmoji\s*,\s*birdX\s*,\s*birdY\s*\)/
-
-export const BIRD_DRAW_TASK: BuildTask = {
-  kind: 'build',
+export const BIRD_DRAW_TASK = drawEmojiQuest({
   title: 'Нарисуй птицу',
   text: 'Движок 60 раз в секунду зовёт `drawBird()`. Собери её по кусочкам — кнопки «Добавить» всплывут в «Птице».',
   tab: 1,
-  pieces: [
-    shell('drawBird'),
-    {
-      title: 'Размер смайлика',
-      plan: into('drawBird', '  ctx.font = "34px serif";'),
-      isDone: (code) => has(code, /\bctx\.font\s*=/),
-    },
-    {
-      title: 'Нарисовать смайлик в точке birdX, birdY',
-      plan: into('drawBird', '  ctx.fillText(birdEmoji, birdX, birdY);'),
-      isDone: (code) => has(code, BIRD_TEXT),
-    },
-  ],
+  fn: 'drawBird',
+  emoji: 'birdEmoji',
+  x: 'birdX',
+  y: 'birdY',
   doneText: 'Все кусочки птицы на месте!',
-}
+})
 
-export const BIRD_RUN_TASK: RunTask = {
-  kind: 'run',
+export const BIRD_RUN_TASK = runQuest({
   title: 'Собери игру',
   text: 'Нажми «Собрать» или [[Ctrl]] + [[Enter]] — птица появится на экране.',
-  tab: 1,
   callout: 'Птица нарисована! Нажми «Собрать» — и она появится на экране.',
   doneText: 'Вот твоя птица!',
-  isDone: (ran) => BIRD_DRAW_TASK.pieces.every((p) => p.isDone(ran[1] ?? '')),
-}
+  after: [BIRD_DRAW_TASK],
+})
 
 const GRAVITY_STEP = /\bspeedY\s*(=\s*speedY\s*\+|\+=)\s*gravity\b/
 const SPEED_STEP = /\bbirdY\s*(=\s*birdY\s*\+|\+=)\s*speedY\b/
@@ -116,17 +88,13 @@ export const BIRD_FALL_TASK: BuildTask = {
   doneText: 'Падение готово! Но птица пока висит: в «Движке» гравитация gravity — 0. Следующий квест — в «Гайде».',
 }
 
-export const GRAVITY_TASK: EditTask = {
-  kind: 'edit',
+export const GRAVITY_TASK = numberQuest({
   title: 'Включи гравитацию',
   text: 'Птица висит, потому что в «Движке» `gravity` — 0. Поставь 0.4, нажми «Собрать», потом пробел — и птица полетит вниз.',
   tab: 0,
-  target: numberTarget('gravity'),
-  hint: [
-    'Это первая строка «Движка»: `var gravity   = 0;`. Дробные числа пишутся через точку: `0.4`. Каждый кадр скорость падения растёт на это число — птица падает всё быстрее, как настоящий камень.',
-  ],
-  isDone: numberAbove0('gravity'),
-}
+  name: 'gravity',
+  hint: 'Это первая строка «Движка»: `var gravity   = 0;`. Дробные числа пишутся через точку: `0.4`. Каждый кадр скорость падения растёт на это число — птица падает всё быстрее, как настоящий камень.',
+})
 
 // ===== Шаг 2. Взмах: собрать flap → сила взмаха =====
 
@@ -146,17 +114,13 @@ export const FLAP_TASK: BuildTask = {
   doneText: 'Взмах готов! Но птица не подлетает: в «Движке» сила взмаха flapPower — 0. Следующий квест — в «Гайде».',
 }
 
-export const FLAP_POWER_TASK: EditTask = {
-  kind: 'edit',
+export const FLAP_POWER_TASK = numberQuest({
   title: 'Сила взмаха',
   text: 'В «Движке» `flapPower` — 0, поэтому взмах ничего не делает. Поставь 7, нажми «Собрать» и держи птицу в воздухе пробелом.',
   tab: 0,
-  target: numberTarget('flapPower'),
-  hint: [
-    'Это вторая строка «Движка»: `var flapPower = 0;`. Чем больше число, тем выше подлетает птица: 5 — чуть-чуть, 10 — до самого неба.',
-  ],
-  isDone: numberAbove0('flapPower'),
-}
+  name: 'flapPower',
+  hint: 'Это вторая строка «Движка»: `var flapPower = 0;`. Чем больше число, тем выше подлетает птица: 5 — чуть-чуть, 10 — до самого неба.',
+})
 
 // ===== Шаг 3. Трубы: едут → рисуются → скорость → свой цвет =====
 
@@ -234,33 +198,22 @@ export const PIPES_DRAW_TASK: BuildTask = {
     'Трубы нарисованы! Но они стоят за правым краем: в «Движке» скорость pipeSpeed — 0. Следующий квест — в «Гайде».',
 }
 
-export const PIPE_SPEED_TASK: EditTask = {
-  kind: 'edit',
+export const PIPE_SPEED_TASK = numberQuest({
   title: 'Скорость труб',
   text: 'Трубы появляются за правым краем, но стоят: в «Движке» `pipeSpeed` — 0. Поставь 2, нажми «Собрать» — и они поедут навстречу.',
   tab: 0,
-  target: numberTarget('pipeSpeed'),
-  hint: [
-    'Это третья строка «Движка»: `var pipeSpeed = 0;`. Это сколько пикселей труба проезжает за кадр. 2 — в самый раз, 4 — очень трудно.',
-  ],
-  isDone: numberAbove0('pipeSpeed'),
-}
+  name: 'pipeSpeed',
+  hint: 'Это третья строка «Движка»: `var pipeSpeed = 0;`. Это сколько пикселей труба проезжает за кадр. 2 — в самый раз, 4 — очень трудно.',
+})
 
-export const PIPE_COLOR_TASK: EditTask = {
-  kind: 'edit',
+export const PIPE_COLOR_TASK = pickColorQuest({
   title: 'Цвет труб',
   text: 'Трубы зелёные, потому что так написано в «Движке»: `pipeColor`. Нажми «Сменить» рядом с цветом и выбери свой, потом «Собрать».',
   tab: 0,
-  target: stringTarget('pipeColor'),
-  picker: 'color',
-  hint: [
-    `Это строка \`var pipeColor = "${PIPE_COLOR}";\` в «Движке». Кнопка «Сменить» с квадратиком цвета — прямо рядом с ней. Можно напечатать и название цвета по-английски: "red", "gold", "pink".`,
-  ],
-  isDone(engine) {
-    const color = stringOf('pipeColor', engine)
-    return !!color && color.toLowerCase() !== PIPE_COLOR
-  },
-}
+  name: 'pipeColor',
+  color: PIPE_COLOR,
+  hint: `Это строка \`var pipeColor = "${PIPE_COLOR}";\` в «Движке». Кнопка «Сменить» с квадратиком цвета — прямо рядом с ней. Можно напечатать и название цвета по-английски: "red", "gold", "pink".`,
+})
 
 // ===== Шаг 4. Удар: собрать checkHit → очко за трубу =====
 

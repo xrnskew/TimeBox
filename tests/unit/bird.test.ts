@@ -1,5 +1,4 @@
 import { describe, expect, it } from 'vitest'
-import { applySettingInsert, planSettingInsert } from '@/core/insert.ts'
 import { currentQuest, extraStates, levelStates } from '@/core/levels.ts'
 import { findSyntaxError } from '@/core/syntax.ts'
 import { GUIDE_EXTRAS, GUIDE_STEPS } from '@/lessons/bird/guide.ts'
@@ -37,7 +36,7 @@ import {
 } from '@/lessons/bird/tasks.ts'
 import { editTarget } from '@/lessons/kit.ts'
 import { LESSONS, lessonById } from '@/lessons/index.ts'
-import { build } from './build.ts'
+import { build, withSetting } from './build.ts'
 import { boot } from './sim.ts'
 
 /** Движок со своими настройками: по умолчанию всё настроено, как в квестах. */
@@ -47,8 +46,6 @@ const engineWith = (gravity = 0.4, flap = 7, pipes = 2, color = '#e53935') =>
     .replace('var pipeSpeed = 0;', `var pipeSpeed = ${pipes};`)
     .replace(`var pipeColor = "${PIPE_COLOR}";`, `var pipeColor = "${color}";`)
 const birdWith = (emoji: string) => STEP_BIRD.replace(`"${BIRD_EMOJI}"`, `"${emoji}"`)
-const withSetting = (engine: string, name: string, line: string) =>
-  applySettingInsert(engine, planSettingInsert(engine, name, line))
 /** Вся игра без дополнительных заданий. */
 const fullGame = (engine = engineWith()) => [engine, birdWith('🦉'), STEP_FLAP, STEP_PIPES, STEP_HIT]
 

@@ -1,4 +1,4 @@
-import type { GuideExtra, GuideStep, StepTask } from '../lessons/types.ts'
+import type { GuideExtra, GuideStep, Lesson, StepTask } from '../lessons/types.ts'
 import { partDone, stepDone, varLine } from './progress.ts'
 
 // Уровни гайда: шаг — цепочка квестов (по одному, по порядку). Следующий шаг открывается,
@@ -64,4 +64,18 @@ export function extraStates(extras: GuideExtra[], levelsDone: boolean, codes: st
     out.push({ settingDone, codeDone, done, unlocked })
   })
   return out
+}
+
+export interface LessonProgress {
+  levels: LevelState[]
+  extras: ExtraState[]
+  /** Все шаги пройдены вместе с квестами — открываются дополнительные задания. */
+  allDone: boolean
+}
+
+/** Весь прогресс урока по коду: шаги с квестами и дополнительные задания. `ran` — код последнего запуска. */
+export function lessonProgress(lesson: Pick<Lesson, 'steps' | 'extras'>, codes: string[], ran = codes): LessonProgress {
+  const levels = levelStates(lesson.steps, codes, ran)
+  const allDone = levels.every((l) => l.done)
+  return { levels, extras: extraStates(lesson.extras, allDone, codes), allDone }
 }

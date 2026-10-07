@@ -1,18 +1,18 @@
 import {
   after,
-  append,
+  createEmojiQuest,
   decl,
-  emojiOf,
-  emojiTarget,
+  drawEmojiQuest,
   has,
   into,
   numberAbove0,
-  numberTarget,
+  numberQuest,
+  pickColorQuest,
+  pickEmojiQuest,
+  runQuest,
   shell,
-  stringOf,
-  stringTarget,
 } from '../kit.ts'
-import type { BuildTask, EditTask, RunTask } from '../types.ts'
+import type { BuildTask } from '../types.ts'
 import { BULLET_COLOR, ENEMY_EMOJI, SHIP_EMOJI } from './tabs.ts'
 
 // Квесты Космоса. Код шага собирается кнопками «Добавить» по кусочкам и в итоге совпадает с STEP_* из tabs.ts.
@@ -21,71 +21,44 @@ import { BULLET_COLOR, ENEMY_EMOJI, SHIP_EMOJI } from './tabs.ts'
 
 // ===== Шаг 1. Корабль: создать → выбрать → нарисовать → собрать → полёт → скорость =====
 
-const SHIP_VAR = /\bvar\s+shipEmoji\s*=/
-
-export const SHIP_CREATE_TASK: BuildTask = {
-  kind: 'build',
+export const SHIP_CREATE_TASK = createEmojiQuest({
   title: 'Создай корабль',
   text: 'Корабль — это смайлик. Открой «Корабль»: там всплывёт строчка с ним — жми «Добавить».',
   tab: 1,
-  pieces: [
-    {
-      title: 'Смайлик корабля',
-      plan: append(`// корабль — любой смайлик\nvar shipEmoji = "${SHIP_EMOJI}";`),
-      isDone: (code) => has(code, SHIP_VAR),
-    },
-  ],
+  name: 'shipEmoji',
+  emoji: SHIP_EMOJI,
+  piece: 'Смайлик корабля',
+  comment: 'корабль — любой смайлик',
   doneText: 'Корабль создан! Теперь нажми «Сменить» рядом со смайликом и выбери, кто полетит.',
-}
+})
 
-export const SHIP_PICK_TASK: EditTask = {
-  kind: 'edit',
+export const SHIP_PICK_TASK = pickEmojiQuest({
   title: 'Выбери корабль',
   text: `Нажми «Сменить» рядом со смайликом ${SHIP_EMOJI} и выбери свой корабль — например, 🛸 или 🐉.`,
   tab: 1,
-  target: emojiTarget('shipEmoji'),
-  picker: 'emoji',
-  hint: [
-    `Это строка \`var shipEmoji = "${SHIP_EMOJI}";\` во вкладке «Корабль». Кнопка «Сменить» — прямо рядом с ней. Можно и напечатать смайлик между кавычками самому.`,
-  ],
-  isDone(code) {
-    const emoji = emojiOf('shipEmoji', code)
-    return !!emoji && emoji !== SHIP_EMOJI
-  },
-}
+  name: 'shipEmoji',
+  emoji: SHIP_EMOJI,
+  hint: `Это строка \`var shipEmoji = "${SHIP_EMOJI}";\` во вкладке «Корабль». Кнопка «Сменить» — прямо рядом с ней. Можно и напечатать смайлик между кавычками самому.`,
+})
 
-const SHIP_TEXT = /\bctx\.fillText\s*\(\s*shipEmoji\s*,\s*shipX\s*,\s*shipY\s*\)/
-
-export const SHIP_DRAW_TASK: BuildTask = {
-  kind: 'build',
+export const SHIP_DRAW_TASK = drawEmojiQuest({
   title: 'Нарисуй корабль',
   text: 'Движок 60 раз в секунду зовёт `drawShip()`. Собери её по кусочкам — кнопки «Добавить» всплывут в «Корабле».',
   tab: 1,
-  pieces: [
-    shell('drawShip'),
-    {
-      title: 'Размер смайлика',
-      plan: into('drawShip', '  ctx.font = "34px serif";'),
-      isDone: (code) => has(code, /\bctx\.font\s*=/),
-    },
-    {
-      title: 'Нарисовать смайлик в точке shipX, shipY',
-      plan: into('drawShip', '  ctx.fillText(shipEmoji, shipX, shipY);'),
-      isDone: (code) => has(code, SHIP_TEXT),
-    },
-  ],
+  fn: 'drawShip',
+  emoji: 'shipEmoji',
+  x: 'shipX',
+  y: 'shipY',
   doneText: 'Все кусочки корабля на месте!',
-}
+})
 
-export const SHIP_RUN_TASK: RunTask = {
-  kind: 'run',
+export const SHIP_RUN_TASK = runQuest({
   title: 'Собери игру',
   text: 'Нажми «Собрать» или [[Ctrl]] + [[Enter]] — корабль появится внизу экрана.',
-  tab: 1,
   callout: 'Корабль нарисован! Нажми «Собрать» — и он появится на экране.',
   doneText: 'Вот твой корабль!',
-  isDone: (ran) => SHIP_DRAW_TASK.pieces.every((p) => p.isDone(ran[1] ?? '')),
-}
+  after: [SHIP_DRAW_TASK],
+})
 
 export const SHIP_MOVE_TASK: BuildTask = {
   kind: 'build',
@@ -116,17 +89,13 @@ export const SHIP_MOVE_TASK: BuildTask = {
   doneText: 'Полёт готов! Но корабль пока стоит: в «Движке» скорость shipSpeed — 0. Следующий квест — в «Гайде».',
 }
 
-export const SHIP_SPEED_TASK: EditTask = {
-  kind: 'edit',
+export const SHIP_SPEED_TASK = numberQuest({
   title: 'Скорость корабля',
   text: 'Корабль стоит, потому что в «Движке» `shipSpeed` — 0. Поставь 6, нажми «Собрать» и проверь стрелками.',
   tab: 0,
-  target: numberTarget('shipSpeed'),
-  hint: [
-    'Это первая строка «Движка»: `var shipSpeed   = 0;`. Это сколько пикселей корабль пролетает за кадр: 4 — спокойно, 8 — очень шустро.',
-  ],
-  isDone: numberAbove0('shipSpeed'),
-}
+  name: 'shipSpeed',
+  hint: 'Это первая строка «Движка»: `var shipSpeed   = 0;`. Это сколько пикселей корабль пролетает за кадр: 4 — спокойно, 8 — очень шустро.',
+})
 
 // ===== Шаг 2. Пули: выстрел → полёт → отрисовка → скорость → луч → перезарядка → её время → цвет =====
 
@@ -203,31 +172,23 @@ export const BULLETS_DRAW_TASK: BuildTask = {
     'Пули нарисованы! Но они висят у носа корабля: в «Движке» скорость bulletSpeed — 0. Следующий квест — в «Гайде».',
 }
 
-export const BULLET_SPEED_TASK: EditTask = {
-  kind: 'edit',
+export const BULLET_SPEED_TASK = numberQuest({
   title: 'Скорость пуль',
   text: 'Пули не летят: в «Движке» `bulletSpeed` — 0. Поставь 9 — пуля должна быть намного быстрее пришельцев.',
   tab: 0,
-  target: numberTarget('bulletSpeed'),
-  hint: [
-    'Это вторая строка «Движка»: `var bulletSpeed = 0;`. Это сколько пикселей пуля пролетает за кадр. 9 — в самый раз.',
-  ],
-  isDone: numberAbove0('bulletSpeed'),
-}
+  name: 'bulletSpeed',
+  hint: 'Это вторая строка «Движка»: `var bulletSpeed = 0;`. Это сколько пикселей пуля пролетает за кадр. 9 — в самый раз.',
+})
 
-/** Пули стреляют и летят, но перезарядки ещё нет — по этому коду засчитывается «Сплошной луч». */
-const BEAM_READY = [SHOOT_TASK, BULLETS_MOVE_TASK, BULLETS_DRAW_TASK]
-
-export const BEAM_RUN_TASK: RunTask = {
-  kind: 'run',
+/** Пули стреляют, летят и рисуются, но перезарядки ещё нет: в запуске видно сплошной луч. */
+export const BEAM_RUN_TASK = runQuest({
   title: 'Сплошной луч',
   text: 'Нажми «Собрать», кликни по экрану и зажми пробел. Посмотри, сколько пуль в `bullets` в «Приборах».',
-  tab: 2,
   callout: 'Пули готовы! Нажми «Собрать», потом зажми пробел.',
   doneText: 'Видишь сплошной луч? Пуля вылетает каждый кадр — 60 в секунду. Так нечестно: нужна перезарядка.',
-  isDone: (ran) =>
-    BEAM_READY.every((t) => t.pieces.every((p) => p.isDone(ran[2] ?? ''))) && numberAbove0('bulletSpeed')(ran[0] ?? ''),
-}
+  after: [SHOOT_TASK, BULLETS_MOVE_TASK, BULLETS_DRAW_TASK],
+  also: (ran) => numberAbove0('bulletSpeed')(ran[0] ?? ''),
+})
 
 export const RELOAD_TASK: BuildTask = {
   kind: 'build',
@@ -255,33 +216,22 @@ export const RELOAD_TASK: BuildTask = {
     'Перезарядка готова! Но луч остался: в «Движке» время перезарядки reloadTime — 0. Следующий квест — в «Гайде».',
 }
 
-export const RELOAD_TIME_TASK: EditTask = {
-  kind: 'edit',
+export const RELOAD_TIME_TASK = numberQuest({
   title: 'Время перезарядки',
   text: 'В «Движке» `reloadTime` — 0: счётчик сразу ноль, и корабль снова стреляет каждый кадр. Поставь 15 — луч станет очередью.',
   tab: 0,
-  target: numberTarget('reloadTime'),
-  hint: [
-    'Это третья строка «Движка»: `var reloadTime  = 0;`. Это сколько кадров ждать между выстрелами. 15 — четыре выстрела в секунду, 30 — два.',
-  ],
-  isDone: numberAbove0('reloadTime'),
-}
+  name: 'reloadTime',
+  hint: 'Это третья строка «Движка»: `var reloadTime  = 0;`. Это сколько кадров ждать между выстрелами. 15 — четыре выстрела в секунду, 30 — два.',
+})
 
-export const BULLET_COLOR_TASK: EditTask = {
-  kind: 'edit',
+export const BULLET_COLOR_TASK = pickColorQuest({
   title: 'Цвет пуль',
   text: 'Пули жёлтые, потому что так написано в «Движке»: `bulletColor`. Нажми «Сменить» рядом с цветом и выбери свой, потом «Собрать».',
   tab: 0,
-  target: stringTarget('bulletColor'),
-  picker: 'color',
-  hint: [
-    `Это строка \`var bulletColor = "${BULLET_COLOR}";\` в «Движке». Кнопка «Сменить» с квадратиком цвета — прямо рядом с ней. Можно напечатать и название цвета по-английски: "red", "cyan", "lime".`,
-  ],
-  isDone(engine) {
-    const color = stringOf('bulletColor', engine)
-    return !!color && color.toLowerCase() !== BULLET_COLOR
-  },
-}
+  name: 'bulletColor',
+  color: BULLET_COLOR,
+  hint: `Это строка \`var bulletColor = "${BULLET_COLOR}";\` в «Движке». Кнопка «Сменить» с квадратиком цвета — прямо рядом с ней. Можно напечатать и название цвета по-английски: "red", "cyan", "lime".`,
+})
 
 // ===== Шаг 3. Пришельцы: волна → отрисовка → скорость → зигзаг → свой пришелец =====
 
@@ -348,17 +298,13 @@ export const ENEMIES_DRAW_TASK: BuildTask = {
   doneText: 'Пришельцы нарисованы! Но они висят: в «Движке» скорость enemySpeed — 0. Следующий квест — в «Гайде».',
 }
 
-export const ENEMY_SPEED_TASK: EditTask = {
-  kind: 'edit',
+export const ENEMY_SPEED_TASK = numberQuest({
   title: 'Скорость пришельцев',
   text: 'Пришельцы висят: в «Движке» `enemySpeed` — 0. Поставь 1, нажми «Собрать» — и волна поползёт вниз.',
   tab: 0,
-  target: numberTarget('enemySpeed'),
-  hint: [
-    'Это четвёртая строка «Движка»: `var enemySpeed  = 0;`. Это сколько пикселей пришельцы спускаются за кадр: `0.5` — медленно (дробные числа — через точку), 1 — в самый раз, 2 — очень быстро.',
-  ],
-  isDone: numberAbove0('enemySpeed'),
-}
+  name: 'enemySpeed',
+  hint: 'Это четвёртая строка «Движка»: `var enemySpeed  = 0;`. Это сколько пикселей пришельцы спускаются за кадр: `0.5` — медленно (дробные числа — через точку), 1 — в самый раз, 2 — очень быстро.',
+})
 
 const A_DOWN = /\ba\.y\s*(=\s*a\.y\s*\+|\+=)\s*enemySpeed\b/
 
@@ -382,19 +328,14 @@ export const ZIGZAG_TASK: BuildTask = {
   doneText: 'Зигзаг готов! Нажми «Собрать» — теперь пришельцы мечутся, и целиться надо с упреждением.',
 }
 
-export const ENEMY_PICK_TASK: EditTask = {
-  kind: 'edit',
+export const ENEMY_PICK_TASK = pickEmojiQuest({
   title: 'Свой пришелец',
   text: `Пришелец ${ENEMY_EMOJI} записан в «Движке»: \`enemyEmoji\`. Нажми «Сменить» рядом с ним и выбери, кто нападает, — например, 👽 или 🐙.`,
   tab: 0,
-  target: emojiTarget('enemyEmoji'),
-  picker: 'emoji',
-  hint: [`Это строка \`var enemyEmoji  = "${ENEMY_EMOJI}";\` в «Движке». Кнопка «Сменить» — прямо рядом с ней.`],
-  isDone(engine) {
-    const emoji = emojiOf('enemyEmoji', engine)
-    return !!emoji && emoji !== ENEMY_EMOJI
-  },
-}
+  name: 'enemyEmoji',
+  emoji: ENEMY_EMOJI,
+  hint: `Это строка \`var enemyEmoji  = "${ENEMY_EMOJI}";\` в «Движке». Кнопка «Сменить» — прямо рядом с ней.`,
+})
 
 // ===== Шаг 4. Попадание: вложенный цикл → очко → прорыв =====
 

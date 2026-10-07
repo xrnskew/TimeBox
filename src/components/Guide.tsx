@@ -1,6 +1,6 @@
 import { memo, useMemo, useState } from 'react'
 import { useApp, useController } from '@/app/context.ts'
-import { type ExtraState, extraStates, type LevelState, levelStates } from '@/core/levels.ts'
+import { type ExtraState, type LevelState, lessonProgress } from '@/core/levels.ts'
 import { type FnState, stepStates } from '@/core/progress.ts'
 import type { BuildTask, EditTask, GuideExtra, GuideStep, RunTask, StepTask } from '@/lessons/types.ts'
 import { CodeBlock } from './CodeBlock.tsx'
@@ -27,9 +27,7 @@ export function Guide() {
   const codes = useApp((s) => s.codes)
   const ran = useApp((s) => s.ran)
   const { lesson } = c
-  const levels = useMemo(() => levelStates(lesson.steps, codes, ran), [lesson, codes, ran])
-  const allDone = levels.every((l) => l.done)
-  const extras = useMemo(() => extraStates(lesson.extras, allDone, codes), [lesson, allDone, codes])
+  const { levels, extras, allDone } = useMemo(() => lessonProgress(lesson, codes, ran), [lesson, codes, ran])
 
   return (
     <article className={styles.guide}>

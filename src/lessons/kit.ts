@@ -1,5 +1,5 @@
 import { functionLines, stripComments } from '../core/progress.ts'
-import type { BuildPiece, InsertPlan } from './types.ts'
+import type { BuildPiece, BuildTask, EditTask, InsertPlan, Rich, RunTask } from './types.ts'
 
 // Общие помощники для квестов любой игры. Чистые функции: проверяют код и говорят, куда вставить кусок.
 // Совпадения ищутся в коде без комментариев, а номера строк — те же, что в исходном.
@@ -43,18 +43,14 @@ export const shell = (name: string): BuildPiece => ({
   isDone: (code) => has(code, decl(name)),
 })
 
-/** Строка `var name = "смайлик"` — смайлик между кавычками. */
+/** Строка `var name = "…"` — что между кавычками: смайлик или цвет (`var pipeColor = "#5ec639"`). */
 export const emojiOf = (name: string, code: string): string | null => {
   const m = new RegExp(`^\\s*var\\s+${name}\\s*=\\s*(["'])(.*?)\\1`, 'm').exec(stripComments(code))
   return m ? m[2].trim() : null
 }
 
-/** Что выделить в строке `var name = "…"`: сам смайлик. */
+/** Что выделить в строке `var name = "…"`: то, что между кавычками. */
 export const emojiTarget = (name: string) => new RegExp(`var\\s+${name}\\s*=\\s*["'](?<emoji>[^"']*)["']`, 'd')
-
-/** То же для любой строки в кавычках — например, цвета `var pipeColor = "#5ec639"`. */
-export const stringOf = emojiOf
-export const stringTarget = emojiTarget
 
 /** Число в строке `var name = …;`: засчитано, когда оно больше 0. */
 export const numberAbove0 = (name: string) => (code: string) => {
@@ -74,4 +70,154 @@ export function editTarget(code: string, target: RegExp): { line: number; from: 
     if (span) return { line: i + 1, from: span[0], to: span[1] }
   }
   return null
+}
+
+// ===== Готовые квесты: одинаковые во всех играх, отличаются только именами и текстами =====
+
+/** «Создай героя»: строка `var name = "смайлик";` в конец вкладки. */
+export function createEmojiQuest(o: {
+  title: string
+  text: Rich
+  tab: number
+  /** Имя переменной и смайлик, с которого начинают. */
+  name: string
+  emoji: string
+  /** Подпись куска («Смайлик героя») и комментарий над строкой («герой — любой смайлик»). */
+  piece: string
+  comment: string
+  doneText: string
+}): BuildTask {
+  const declared = new RegExp(`\\bvar\\s+${o.name}\\s*=`)
+  return {
+    kind: 'build',
+    title: o.title,
+    text: o.text,
+    tab: o.tab,
+    pieces: [
+      {
+        title: o.piece,
+        plan: append(`// ${o.comment}\nvar ${o.name} = "${o.emoji}";`),
+        isDone: (code) => has(code, declared),
+      },
+    ],
+    doneText: o.doneText,
+  }
+}
+
+/** «Нарисуй героя»: пустая функция → размер смайлика → `ctx.fillText(смайлик, x, y)`. */
+export function drawEmojiQuest(o: {
+  title: string
+  text: Rich
+  tab: number
+  fn: string
+  /** Переменная со смайликом и координаты: `ctx.fillText(emoji, x, y)`. */
+  emoji: string
+  x: string
+  y: string
+  doneText: string
+}): BuildTask {
+  const drawn = new RegExp(`\\bctx\\.fillText\\s*\\(\\s*${o.emoji}\\s*,\\s*${o.x}\\s*,\\s*${o.y}\\s*\\)`)
+  return {
+    kind: 'build',
+    title: o.title,
+    text: o.text,
+    tab: o.tab,
+    pieces: [
+      shell(o.fn),
+      {
+        title: 'Размер смайлика',
+        plan: into(o.fn, '  ctx.font = "34px serif";'),
+        isDone: (code) => has(code, /\bctx\.font\s*=/),
+      },
+      {
+        title: `Нарисовать смайлик в точке ${o.x}, ${o.y}`,
+        plan: into(o.fn, `  ctx.fillText(${o.emoji}, ${o.x}, ${o.y});`),
+        isDone: (code) => has(code, drawn),
+      },
+    ],
+    doneText: o.doneText,
+  }
+}
+
+/** «Нажми «Собрать»»: засчитан, когда в последнем запуске были все куски квестов `after` (и выполнено `also`). */
+export function runQuest(o: {
+  title: string
+  text: Rich
+  callout: string
+  doneText: string
+  after: BuildTask[]
+  also?: (ran: string[]) => boolean
+}): RunTask {
+  const tab = o.after[0].tab
+  return {
+    kind: 'run',
+    title: o.title,
+    text: o.text,
+    tab,
+    callout: o.callout,
+    doneText: o.doneText,
+    isDone: (ran) => o.after.every((t) => t.pieces.every((p) => p.isDone(ran[t.tab] ?? ''))) && (o.also?.(ran) ?? true),
+  }
+}
+
+/** «Выбери героя»: кнопка открывает окно смайликов; засчитан любой смайлик, кроме исходного. */
+export function pickEmojiQuest(o: {
+  title: string
+  text: Rich
+  tab: number
+  name: string
+  /** Смайлик, с которого начинают: он не засчитывается. */
+  emoji: string
+  hint: Rich
+}): EditTask {
+  return {
+    kind: 'edit',
+    title: o.title,
+    text: o.text,
+    tab: o.tab,
+    target: emojiTarget(o.name),
+    picker: 'emoji',
+    hint: [o.hint],
+    isDone(code) {
+      const emoji = emojiOf(o.name, code)
+      return !!emoji && emoji !== o.emoji
+    },
+  }
+}
+
+/** «Выбери цвет»: кнопка открывает палитру; засчитан любой цвет, кроме исходного. */
+export function pickColorQuest(o: {
+  title: string
+  text: Rich
+  tab: number
+  name: string
+  color: string
+  hint: Rich
+}): EditTask {
+  return {
+    kind: 'edit',
+    title: o.title,
+    text: o.text,
+    tab: o.tab,
+    target: emojiTarget(o.name),
+    picker: 'color',
+    hint: [o.hint],
+    isDone(code) {
+      const color = emojiOf(o.name, code)
+      return !!color && color.toLowerCase() !== o.color.toLowerCase()
+    },
+  }
+}
+
+/** «Дай герою скорость»: в «Движке» стоит 0, засчитано любое число больше 0. Кнопка выделяет число. */
+export function numberQuest(o: { title: string; text: Rich; tab: number; name: string; hint: Rich }): EditTask {
+  return {
+    kind: 'edit',
+    title: o.title,
+    text: o.text,
+    tab: o.tab,
+    target: numberTarget(o.name),
+    hint: [o.hint],
+    isDone: numberAbove0(o.name),
+  }
 }

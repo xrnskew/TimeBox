@@ -1,5 +1,17 @@
-import { after, append, decl, emojiOf, emojiTarget, has, into, numberAbove0, numberTarget, shell } from '../kit.ts'
-import type { BuildTask, EditTask, RunTask } from '../types.ts'
+import {
+  after,
+  append,
+  createEmojiQuest,
+  decl,
+  drawEmojiQuest,
+  has,
+  into,
+  numberQuest,
+  pickEmojiQuest,
+  runQuest,
+  shell,
+} from '../kit.ts'
+import type { BuildTask, EditTask } from '../types.ts'
 import { HERO_EMOJI } from './tabs.ts'
 
 // Квесты шагов «Корзинки». Код шага собирается кнопками «Добавить» по кусочкам и в итоге совпадает с STEP_* из tabs.ts.
@@ -7,72 +19,44 @@ import { HERO_EMOJI } from './tabs.ts'
 
 // ===== Шаг 1. Герой: создать смайлик → выбрать → нарисовать → собрать → движение → скорость =====
 
-const HERO_VAR = /\bvar\s+playerEmoji\s*=/
-
-export const HERO_CREATE_TASK: BuildTask = {
-  kind: 'build',
+export const HERO_CREATE_TASK = createEmojiQuest({
   title: 'Создай героя',
   text: 'Герой — это смайлик. Открой «Герой»: там всплывёт строчка с ним — жми «Добавить».',
   tab: 1,
-  pieces: [
-    {
-      title: 'Смайлик героя',
-      plan: append(`// герой — любой смайлик\nvar playerEmoji = "${HERO_EMOJI}";`),
-      isDone: (code) => has(code, HERO_VAR),
-    },
-  ],
+  name: 'playerEmoji',
+  emoji: HERO_EMOJI,
+  piece: 'Смайлик героя',
+  comment: 'герой — любой смайлик',
   doneText: 'Герой создан! Теперь нажми «Сменить» рядом со смайликом и выбери, кем он будет.',
-}
+})
 
-export const HERO_PICK_TASK: EditTask = {
-  kind: 'edit',
+export const HERO_PICK_TASK = pickEmojiQuest({
   title: 'Выбери героя',
   text: `Нажми «Сменить» рядом со смайликом ${HERO_EMOJI} и выбери своего героя — например, 🐱 или 🛸.`,
   tab: 1,
-  target: emojiTarget('playerEmoji'),
-  picker: 'emoji',
-  hint: [
-    `Это строка \`var playerEmoji = "${HERO_EMOJI}";\` во вкладке «Герой». Кнопка «Сменить» — прямо рядом с ней. Можно и напечатать смайлик между кавычками самому.`,
-  ],
-  isDone(hero) {
-    const emoji = emojiOf('playerEmoji', hero)
-    return !!emoji && emoji !== HERO_EMOJI
-  },
-}
+  name: 'playerEmoji',
+  emoji: HERO_EMOJI,
+  hint: `Это строка \`var playerEmoji = "${HERO_EMOJI}";\` во вкладке «Герой». Кнопка «Сменить» — прямо рядом с ней. Можно и напечатать смайлик между кавычками самому.`,
+})
 
-const HERO_FONT = /\bctx\.font\s*=/
-const HERO_TEXT = /\bctx\.fillText\s*\(\s*playerEmoji\s*,\s*playerX\s*,\s*playerY\s*\)/
-
-export const HERO_DRAW_TASK: BuildTask = {
-  kind: 'build',
+export const HERO_DRAW_TASK = drawEmojiQuest({
   title: 'Нарисуй героя',
   text: 'Движок 60 раз в секунду зовёт `drawPlayer()`. Собери её по кусочкам — кнопки «Добавить» всплывут в «Герое».',
   tab: 1,
-  pieces: [
-    shell('drawPlayer'),
-    {
-      title: 'Размер смайлика',
-      plan: into('drawPlayer', '  ctx.font = "34px serif";'),
-      isDone: (code) => has(code, HERO_FONT),
-    },
-    {
-      title: 'Нарисовать смайлик в точке playerX, playerY',
-      plan: into('drawPlayer', '  ctx.fillText(playerEmoji, playerX, playerY);'),
-      isDone: (code) => has(code, HERO_TEXT),
-    },
-  ],
+  fn: 'drawPlayer',
+  emoji: 'playerEmoji',
+  x: 'playerX',
+  y: 'playerY',
   doneText: 'Все кусочки героя на месте!',
-}
+})
 
-export const HERO_RUN_TASK: RunTask = {
-  kind: 'run',
+export const HERO_RUN_TASK = runQuest({
   title: 'Собери игру',
   text: 'Нажми «Собрать» или [[Ctrl]] + [[Enter]] — герой появится внизу экрана.',
-  tab: 1,
   callout: 'Герой нарисован! Нажми «Собрать» — и он появится на экране.',
   doneText: 'Вот твой герой!',
-  isDone: (ran) => HERO_DRAW_TASK.pieces.every((p) => p.isDone(ran[1] ?? '')),
-}
+  after: [HERO_DRAW_TASK],
+})
 
 export const HERO_MOVE_TASK: BuildTask = {
   kind: 'build',
@@ -104,17 +88,13 @@ export const HERO_MOVE_TASK: BuildTask = {
   doneText: 'Движение готово! Но герой пока стоит: в «Движке» скорость playerSpeed — 0. Следующий квест — в «Гайде».',
 }
 
-export const SPEED_TASK: EditTask = {
-  kind: 'edit',
+export const SPEED_TASK = numberQuest({
   title: 'Дай герою скорость',
   text: 'Герой стоит, потому что в «Движке» `playerSpeed` — 0. Поставь число от 5 до 7, нажми «Собрать» и проверь стрелками.',
   tab: 0,
-  target: numberTarget('playerSpeed'),
-  hint: [
-    'Это первая строка «Движка»: `var playerSpeed = 0;`. Это сколько пикселей герой проезжает за кадр: 5 — спокойно, 7 — шустро. Попробуй разные!',
-  ],
-  isDone: numberAbove0('playerSpeed'),
-}
+  name: 'playerSpeed',
+  hint: 'Это первая строка «Движка»: `var playerSpeed = 0;`. Это сколько пикселей герой проезжает за кадр: 5 — спокойно, 7 — шустро. Попробуй разные!',
+})
 
 // ===== Шаг 2. Яблоки: падают → рисуются → скорость → «Всё быстрее» → «Не только яблоки» =====
 
@@ -177,17 +157,13 @@ export const ITEMS_DRAW_TASK: BuildTask = {
     'Яблоки нарисованы! Но они висят над экраном: в «Движке» скорость fallSpeed — 0. Следующий квест — в «Гайде».',
 }
 
-export const FALL_SPEED_TASK: EditTask = {
-  kind: 'edit',
+export const FALL_SPEED_TASK = numberQuest({
   title: 'Дай яблокам скорость',
   text: 'Яблоки появляются, но висят над экраном: в «Движке» `fallSpeed` — 0. Поставь 3, нажми «Собрать» — и они полетят вниз.',
   tab: 0,
-  target: numberTarget('fallSpeed'),
-  hint: [
-    'Это вторая строка «Движка»: `var fallSpeed   = 0;`. Это сколько пикселей яблоко пролетает за кадр. 3 — в самый раз, больше — ловить труднее.',
-  ],
-  isDone: numberAbove0('fallSpeed'),
-}
+  name: 'fallSpeed',
+  hint: 'Это вторая строка «Движка»: `var fallSpeed   = 0;`. Это сколько пикселей яблоко пролетает за кадр. 3 — в самый раз, больше — ловить труднее.',
+})
 
 const SPEEDUP_DECL = decl('speedUp')
 const SPEEDUP_IF = /\bif\s*\(\s*frame\s*%\s*900\s*===\s*0\s*&&\s*fallSpeed\s*<\s*8\s*\)\s*\{/
@@ -224,19 +200,14 @@ export const SPEEDUP_TASK: BuildTask = {
   doneText: 'Функция собрана! Через 15 секунд после запуска яблоки полетят быстрее.',
 }
 
-export const ITEM_TASK: EditTask = {
-  kind: 'edit',
+export const ITEM_TASK = pickEmojiQuest({
   title: 'Не только яблоки',
   text: 'Зайди в «Движок» и нажми «Сменить» рядом с 🍎 — пусть падает что-нибудь другое, например 🍩 или 🐟.',
   tab: 0,
-  target: emojiTarget('itemEmoji'),
-  picker: 'emoji',
-  hint: ['Это строка `var itemEmoji   = "🍎";` в самом начале «Движка». Кнопка «Сменить» — прямо рядом с ней.'],
-  isDone(engine) {
-    const emoji = emojiOf('itemEmoji', engine)
-    return !!emoji && emoji !== '🍎'
-  },
-}
+  name: 'itemEmoji',
+  emoji: '🍎',
+  hint: 'Это строка `var itemEmoji   = "🍎";` в самом начале «Движка». Кнопка «Сменить» — прямо рядом с ней.',
+})
 
 // ===== Шаг 3. Поимка: собрать checkCatch → десять очков =====
 

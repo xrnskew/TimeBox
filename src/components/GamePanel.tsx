@@ -4,7 +4,7 @@ import { useStore } from '@/app/store.ts'
 import { ResetIcon, TriangleIcon } from './icons.tsx'
 import styles from './GamePanel.module.css'
 
-/** Правая колонка: красная карманная приставка с игрой, под ней «Приборы» и консоль. */
+/** Правая колонка: карманная приставка с игрой (корпус своего цвета у каждой игры), под ней «Приборы» и консоль. */
 export function GamePanel() {
   const c = useController()
 
@@ -113,7 +113,7 @@ function FocusLed() {
   )
 }
 
-/** Кнопки на корпусе — у каждой игры свои (Корзинка: ← →, Птичка: «Взмах»), и мышью, и пальцем; тумблер — «Границы». */
+/** Кнопки на корпусе — у каждой игры свои (Корзинка: ← →, Птичка: «Взмах», Космос: ← → и «Огонь»), и мышью, и пальцем; тумблер — «Границы». */
 function Controls() {
   const c = useController()
   const hitboxes = useApp((s) => s.hitboxes)

@@ -1,6 +1,6 @@
 import { explainRuntimeError, formatError, isSyntaxMessage } from '@/core/errors.ts'
 import { planSettingInsert } from '@/core/insert.ts'
-import { currentQuest, extraStates, type LevelState, levelStates } from '@/core/levels.ts'
+import { currentQuest, type LevelState, lessonProgress, levelStates } from '@/core/levels.ts'
 import { checkFinishedPassword } from '@/core/lock.ts'
 import { hasContent, stepDone } from '@/core/progress.ts'
 import { findSyntaxError, firstSyntaxError, type SyntaxIssue } from '@/core/syntax.ts'
@@ -357,7 +357,7 @@ export function createController(lesson: Lesson, variant: LessonVariant) {
       store.set({ best: score })
       saveBest(key, score)
     }
-    // конец игры: кончились жизни (Корзинка) или движок поднял флаг gameOver (Птичка)
+    // конец игры: кончились жизни (Корзинка, Космос) или движок поднял флаг gameOver (Птичка)
     const over = w.gameOver === true || (typeof lives === 'number' && lives <= 0)
     if (s.game === 'running' && over) store.set({ game: 'over', lastScore: score })
   }
@@ -527,12 +527,10 @@ export function createController(lesson: Lesson, variant: LessonVariant) {
     snapshot()
   }
 
-  /** Дополнительные задания (бомба и звезда…) открываются, только когда основная игра собрана: все шаги с квестами. */
+  /** Дополнительные задания открываются, только когда основная игра собрана: все шаги с квестами. */
   function extraLocked(extraIndex: number): boolean {
-    const codes = codesNow()
-    const allDone = levelsOf(codes).every((l) => l.done)
-    const state = extraStates(lesson.extras, allDone, codes)[extraIndex]
-    if (state.unlocked) return false
+    const { extras, allDone } = lessonProgress(lesson, codesNow(), store.get().ran)
+    if (extras[extraIndex].unlocked) return false
     toast(
       allDone
         ? `Сначала добавь «${lesson.extras[extraIndex - 1].title}».`
@@ -735,21 +733,6 @@ export function tabBadges(c: Controller, s: Pick<AppState, 'codes' | 'syntax' | 
     if (step && stepDone(s.codes[i], step.fns)) return 'done'
     return hasContent(s.codes[i]) ? 'code' : 'empty'
   })
-}
-
-/** Пройден ли уровень: шаг и все его квесты. */
-export function levelsDone(c: Controller, codes: string[], ran: string[]): boolean[] {
-  return levelStates(c.lesson.steps, codes, ran).map((l) => l.done)
-}
-
-/** Дополнительные задания: добавлены ли (и переменная, и код). */
-export function extrasDone(c: Controller, codes: string[], ran: string[]): boolean[] {
-  const levels = levelStates(c.lesson.steps, codes, ran)
-  return extraStates(
-    c.lesson.extras,
-    levels.every((l) => l.done),
-    codes,
-  ).map((x) => x.done)
 }
 
 /** Квест «нажми «Собрать»», если он сейчас текущий: тогда кнопка подсвечивается поверх затемнения. */

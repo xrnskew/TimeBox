@@ -1,5 +1,4 @@
 import { describe, expect, it } from 'vitest'
-import { applySettingInsert, planSettingInsert } from '@/core/insert.ts'
 import {
   BOMB_APPLES,
   BOMB_CATCH,
@@ -14,10 +13,8 @@ import {
   TUTORIAL_CODES,
   TUTORIAL_ENGINE,
 } from '@/lessons/catch/tabs.ts'
+import { withSetting } from './build.ts'
 import { boot } from './sim.ts'
-
-const withSetting = (engine: string, name: string, line: string) =>
-  applySettingInsert(engine, planSettingInsert(engine, name, line))
 
 describe('учебная версия', () => {
   it('движок без шагов запускается и рисует счёт и жизни', () => {

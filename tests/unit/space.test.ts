@@ -1,5 +1,4 @@
 import { describe, expect, it } from 'vitest'
-import { applySettingInsert, planSettingInsert } from '@/core/insert.ts'
 import { currentQuest, extraStates, levelStates } from '@/core/levels.ts'
 import { findSyntaxError } from '@/core/syntax.ts'
 import { LESSONS, lessonById } from '@/lessons/index.ts'
@@ -49,7 +48,7 @@ import {
   ZIGZAG_TASK,
 } from '@/lessons/space/tasks.ts'
 import type { BuildTask, EditTask } from '@/lessons/types.ts'
-import { apply, build } from './build.ts'
+import { apply, build, withSetting } from './build.ts'
 import { boot, type Sim } from './sim.ts'
 
 /** Движок со своими настройками: по умолчанию всё настроено, как в квестах. */
@@ -58,8 +57,6 @@ const engineWith = (ship = 6, bullet = 9, reload = 15, enemy = 1) =>
     .replace('var bulletSpeed = 0;', `var bulletSpeed = ${bullet};`)
     .replace('var reloadTime  = 0;', `var reloadTime  = ${reload};`)
     .replace('var enemySpeed  = 0;', `var enemySpeed  = ${enemy};`)
-const withSetting = (engine: string, name: string, line: string) =>
-  applySettingInsert(engine, planSettingInsert(engine, name, line))
 /** Вся игра без дополнительных заданий. */
 const fullGame = (engine = engineWith()) => [engine, STEP_SHIP, STEP_BULLETS, STEP_ENEMIES, STEP_HITS]
 /** Игра со взрывами — после задания 5. */

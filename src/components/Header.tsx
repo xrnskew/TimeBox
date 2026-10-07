@@ -1,6 +1,7 @@
 import { type RefObject, useEffect, useLayoutEffect, useMemo, useRef, useState } from 'react'
 import { useApp, useController } from '@/app/context.ts'
-import { extrasDone, levelsDone, runQuestNow } from '@/app/controller.ts'
+import { runQuestNow } from '@/app/controller.ts'
+import { lessonProgress } from '@/core/levels.ts'
 import { gameHref, homeHref } from '@/app/routes.ts'
 import { CheckIcon, LogoCube, PlayIcon, ResetIcon } from './icons.tsx'
 import styles from './Header.module.css'
@@ -143,13 +144,12 @@ function RunButton() {
   )
 }
 
-/** Чек-поинты: три шага (зелёные) и бомба со звездой (жёлтые) в одном ряду. Учитель видит прогресс издалека. */
+/** Чек-поинты: шаги игры (зелёные) и дополнительные задания (жёлтые) в одном ряду. Учитель видит прогресс издалека. */
 function Checkpoints() {
   const c = useController()
   const codes = useApp((s) => s.codes)
   const ran = useApp((s) => s.ran)
-  const levels = useMemo(() => levelsDone(c, codes, ran), [c, codes, ran])
-  const extras = useMemo(() => extrasDone(c, codes, ran), [c, codes, ran])
+  const progress = useMemo(() => lessonProgress(c.lesson, codes, ran), [c, codes, ran])
   const points = [
     ...c.lesson.steps.map((step, i) => ({
       key: `step-${step.step}`,
@@ -157,7 +157,7 @@ function Checkpoints() {
       label: c.variant.tabs[step.tab].title,
       aria: `Шаг ${step.step}, «${c.variant.tabs[step.tab].title}»`,
       target: `guide-step-${step.step}`,
-      done: levels[i],
+      done: progress.levels[i].done,
     })),
     ...c.lesson.extras.map((x, i) => ({
       key: `extra-${x.n}`,
@@ -165,7 +165,7 @@ function Checkpoints() {
       label: x.title,
       aria: `Дополнительно: «${x.title}»`,
       target: `guide-task-${x.n}`,
-      done: extras[i],
+      done: progress.extras[i].done,
     })),
   ]
   const done = points.map((p) => p.done)
