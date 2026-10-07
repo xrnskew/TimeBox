@@ -59,7 +59,7 @@ test('2. шаг 1: герой ездит стрелками, страница н
   await expect(page.getByText('Играем: жми')).toBeVisible()
   const x0 = await game<number>(page, 'playerX')
   await page.keyboard.down('ArrowRight')
-  await page.waitForTimeout(600)
+  await page.waitForTimeout(300)
   await page.keyboard.up('ArrowRight')
   expect(await game<number>(page, 'playerX')).toBeGreaterThan(x0 + 30)
   // стрелки на корпусе не забирают фокус: «Кликни, чтобы играть» не всплывает
@@ -68,7 +68,7 @@ test('2. шаг 1: герой ездит стрелками, страница н
   const x1 = await game<number>(page, 'playerX')
   await page.mouse.move(box.x + box.width / 2, box.y + box.height / 2)
   await page.mouse.down()
-  await page.waitForTimeout(600)
+  await page.waitForTimeout(300)
   await expect(page.getByText('Кликни, чтобы играть')).toHaveCount(0)
   await page.mouse.up()
   expect(await game<number>(page, 'playerX')).toBeGreaterThan(x1 + 30)
@@ -132,10 +132,11 @@ test('шаг 1 по квестам: смайлик из окна, подсвет
   await tab(page, 'Гайд')
   await expect(step2).toHaveAttribute('data-state', 'locked')
 
-  // 6. скорость: кнопка выделяет 0, печатаем 3
+  // 6. скорость: кнопка выделяет 0, печатаем 6 (советуем 5–7)
+  await expect(step1).toContainText('от 5 до 7')
   await openQuest(page, 1, 'Открыть «Движок»')
-  await page.keyboard.type('3')
-  expect((await savedCodes(page))[0]).toContain('var playerSpeed = 3;')
+  await page.keyboard.type('6')
+  expect((await savedCodes(page))[0]).toContain('var playerSpeed = 6;')
   await expect(page.getByRole('status')).toContainText('Шаг 2 открыт')
   await tab(page, 'Гайд')
   await expect(step1).toHaveAttribute('data-state', 'done')
@@ -145,6 +146,33 @@ test('шаг 1 по квестам: смайлик из окна, подсвет
   // подсветка была один раз: дальше «Собрать» только подпрыгивает
   await expect(runButton(page)).toHaveAttribute('data-dirty', 'true')
   await expect(runButton(page)).toHaveAttribute('data-spot', 'false')
+})
+
+test('кусок кода печатается на глазах, следующий всплывает после', async ({ page }) => {
+  await page.emulateMedia({ reducedMotion: 'no-preference' })
+  await open(page)
+  await openQuest(page, 1, 'Открыть «Герой»')
+  await addPieces(page, 1)
+  // код уже во вкладке целиком, но ещё «не напечатан»: прозрачный, с курсором
+  await expect(page.locator('.cm-typingCaret')).toHaveCount(1)
+  await expect(page.locator('.cm-typingHidden').first()).toBeAttached()
+  expect((await savedCodes(page))[1]).toContain('var playerEmoji = "🙂";')
+  await expect(page.locator('.cm-typingCaret')).toHaveCount(0, { timeout: 3000 })
+  await expect(page.locator('.cm-typingHidden')).toHaveCount(0)
+  // выбрали смайлик — следующий кусок; пока он печатается, кнопки «Добавить» нет
+  await page.locator('.cm-emojiPick').first().click()
+  await pick(page, '🐸')
+  const add = page.locator('.cm-editor').getByRole('button', { name: /^Добавить:/ })
+  await add.click()
+  await expect(add).toHaveCount(0)
+  await expect(page.locator('.cm-typingCaret')).toHaveCount(1)
+  await expect(add).toHaveCount(1, { timeout: 3000 })
+  await expect(page.locator('.cm-typingCaret')).toHaveCount(0)
+  // Ctrl+Z во время печати убирает кусок и курсор
+  await add.click()
+  await page.keyboard.press('ControlOrMeta+z')
+  await expect(page.locator('.cm-typingCaret')).toHaveCount(0)
+  expect((await savedCodes(page))[1]).not.toContain('ctx.font')
 })
 
 test('«Сменить» у смайлика в коде: окно закрывается по Escape и клику мимо', async ({ page }) => {
@@ -224,7 +252,7 @@ test('«Всё быстрее»: части функции всплывают в
   await tab(page, 'Гайд')
   const step2 = page.locator('#guide-step-2')
   await expect(step2).toHaveAttribute('data-state', 'active')
-  await expect(step2.getByRole('region', { name: 'Квест: Не только яблоки' })).toContainText('Квест 4 из 4')
+  await expect(step2.getByRole('region', { name: 'Квест: Не только яблоки' })).toContainText('Квест 5 из 5')
   await expect(page.locator('#guide-step-3')).toHaveAttribute('data-state', 'locked')
   await completeItem(page, '🐟')
   expect((await savedCodes(page))[0]).toContain('var itemEmoji   = "🐟";')
@@ -612,7 +640,7 @@ test('телефон: экранные стрелки двигают героя,
   await expect(right).toBeVisible()
   const x0 = await game<number>(page, 'playerX')
   await right.dispatchEvent('pointerdown')
-  await page.waitForTimeout(600)
+  await page.waitForTimeout(300)
   await right.dispatchEvent('pointerup')
   const x1 = await game<number>(page, 'playerX')
   expect(x1).toBeGreaterThan(x0 + 30)

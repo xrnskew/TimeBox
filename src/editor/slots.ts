@@ -2,6 +2,7 @@ import type { EditorState } from '@codemirror/state'
 import { StateEffect, StateField } from '@codemirror/state'
 import { Decoration, type DecorationSet, EditorView, WidgetType } from '@codemirror/view'
 import './slots.css'
+import { typingField } from './typing.ts'
 
 // Кусок кода, который добавляют кнопкой прямо в редакторе. Он «всплывает» призраком
 // под строкой, куда встанет, — ученик видит место вставки, а не ищет его по гайду.
@@ -83,6 +84,8 @@ class SlotWidget extends WidgetType {
 
 export function codeSlots(source: SlotSource) {
   const build = (state: EditorState): DecorationSet => {
+    // следующий кусок всплывает, когда предыдущий допечатан
+    if (state.field(typingField, false)) return Decoration.none
     const slot = source(state.doc.toString())
     if (!slot) return Decoration.none
     const line = state.doc.line(Math.min(Math.max(slot.after, 1), state.doc.lines))
@@ -90,7 +93,12 @@ export function codeSlots(source: SlotSource) {
   }
   return StateField.define<DecorationSet>({
     create: build,
-    update: (deco, tr) => (tr.docChanged || tr.effects.some((e) => e.is(refreshSlots)) ? build(tr.state) : deco),
+    update: (deco, tr) =>
+      tr.docChanged ||
+      tr.effects.some((e) => e.is(refreshSlots)) ||
+      !tr.startState.field(typingField, false) !== !tr.state.field(typingField, false)
+        ? build(tr.state)
+        : deco,
     provide: (f) => EditorView.decorations.from(f),
   })
 }

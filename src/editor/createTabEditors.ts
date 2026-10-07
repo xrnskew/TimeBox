@@ -29,6 +29,7 @@ import { hintCompletions, hintHover, syntaxLinter } from './assist.ts'
 import { type EmojiSpot, emojiPickers } from './emoji.ts'
 import './emoji.css'
 import { codeSlots, refreshSlots, type SlotSource } from './slots.ts'
+import { animateTyping, startTyping, stopTyping, typingField } from './typing.ts'
 import { editorTheme } from './theme.ts'
 
 // Один EditorView и по одному EditorState на вкладку. История отмены живёт в EditorState,
@@ -152,6 +153,7 @@ export function createTabEditors(o: TabEditorsOptions): TabEditors {
     syntaxLinter(o.lint),
     errorLineField,
     flashField,
+    typingField,
     // На Mac по умолчанию работает только Cmd — Ctrl задаём явно
     keymap.of([
       { key: 'Ctrl-z', run: undo, preventDefault: true },
@@ -179,6 +181,15 @@ export function createTabEditors(o: TabEditorsOptions): TabEditors {
 
   const stateOf = (tab: number) => (tab === current ? view.state : states[tab])
 
+  // Печать куска на глазах: только в открытой вкладке и если не просили меньше анимаций.
+  let stopAnimation = () => {}
+  const calm = () => window.matchMedia?.('(prefers-reduced-motion: reduce)').matches ?? false
+  function finishTyping() {
+    stopAnimation()
+    stopAnimation = () => {}
+    if (view.state.field(typingField, false)) view.dispatch({ effects: stopTyping.of(null) })
+  }
+
   // Правка вкладки, которая сейчас не открыта, применяется к её сохранённому EditorState.
   function apply(tab: number, spec: TransactionSpec) {
     if (tab === current) {
@@ -195,6 +206,7 @@ export function createTabEditors(o: TabEditorsOptions): TabEditors {
     },
     show(tab) {
       if (tab === current) return
+      finishTyping()
       states[current] = view.state
       scrollTops[current] = view.scrollDOM.scrollTop
       current = tab
@@ -227,11 +239,18 @@ export function createTabEditors(o: TabEditorsOptions): TabEditors {
       const lineNo = n + 1
       // подсвечиваем только строки с кодом: пустая строка-отступ перед куском не в счёт
       const lead = /^\n*/.exec(text)?.[0].length ?? 0
+      const at = n === 0 ? 0 : changes.from + 1
+      const typing = tab === current && !calm()
+      if (typing) finishTyping()
       apply(tab, {
         changes,
-        effects: setFlash.of({ from: lineNo + lead, to: lineNo + text.split('\n').length - 1 }),
+        effects: [
+          setFlash.of({ from: lineNo + lead, to: lineNo + text.split('\n').length - 1 }),
+          ...(typing ? [startTyping.of({ from: at + lead, to: at + text.length })] : []),
+        ],
         annotations: [isolateHistory.of('full'), programmatic.of(true)],
       })
+      if (typing) stopAnimation = animateTyping(view, () => (stopAnimation = () => {}))
       return lineNo + lead
     },
     undo(tab) {
@@ -296,6 +315,7 @@ export function createTabEditors(o: TabEditorsOptions): TabEditors {
       view.focus()
     },
     destroy() {
+      stopAnimation()
       view.destroy()
     },
   }

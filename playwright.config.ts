@@ -17,6 +17,8 @@ export default defineConfig({
   use: {
     ...devices['Desktop Chrome'],
     viewport: { width: 1440, height: 900 },
+    // без печати кусков на глазах: иначе каждая кнопка «Добавить» ждёт до секунды; печать — в своём тесте
+    contextOptions: { reducedMotion: 'reduce' },
     trace: 'retain-on-failure',
   },
   projects: [

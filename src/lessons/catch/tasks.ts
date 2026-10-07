@@ -152,24 +152,28 @@ export const HERO_MOVE_TASK: BuildTask = {
   doneText: 'Движение готово! Но герой пока стоит: в «Движке» скорость playerSpeed — 0. Следующий квест — в «Гайде».',
 }
 
-const PLAYER_SPEED = /^\s*var\s+playerSpeed\s*=\s*([\d.]+)\s*(;|$)/m
+/** Число в строке `var name = …;` движка: засчитано, когда оно больше 0. */
+const speedAbove0 = (name: string) => (engine: string) => {
+  const m = new RegExp(`^\\s*var\\s+${name}\\s*=\\s*([\\d.]+)\\s*(;|$)`, 'm').exec(stripComments(engine))
+  return !!m && Number(m[1]) > 0
+}
+
+/** Что выделить в строке `var name = …;` движка: само число. */
+const numberTarget = (name: string) => new RegExp(`var\\s+${name}\\s*=\\s*(?<n>[^;\\s]*)`, 'd')
 
 export const SPEED_TASK: EditTask = {
   kind: 'edit',
   title: 'Дай герою скорость',
-  text: 'Герой стоит, потому что в «Движке» `playerSpeed` — 0. Поставь число от 2 до 4, нажми «Собрать» и проверь стрелками.',
+  text: 'Герой стоит, потому что в «Движке» `playerSpeed` — 0. Поставь число от 5 до 7, нажми «Собрать» и проверь стрелками.',
   tab: 0,
-  target: /var\s+playerSpeed\s*=\s*(?<speed>[^;\s]*)/d,
+  target: numberTarget('playerSpeed'),
   hint: [
-    'Это первая строка «Движка»: `var playerSpeed = 0;`. Это сколько пикселей герой проезжает за кадр: 2 — спокойно, 4 — шустро. Попробуй разные!',
+    'Это первая строка «Движка»: `var playerSpeed = 0;`. Это сколько пикселей герой проезжает за кадр: 5 — спокойно, 7 — шустро. Попробуй разные!',
   ],
-  isDone(engine) {
-    const m = PLAYER_SPEED.exec(stripComments(engine))
-    return !!m && Number(m[1]) > 0
-  },
+  isDone: speedAbove0('playerSpeed'),
 }
 
-// ===== Шаг 2. Яблоки: падают → рисуются → «Всё быстрее» → «Не только яблоки» =====
+// ===== Шаг 2. Яблоки: падают → рисуются → скорость → «Всё быстрее» → «Не только яблоки» =====
 
 const FRAME_TICK = /\bframe\s*=\s*frame\s*\+\s*1\s*;/
 
@@ -202,7 +206,7 @@ export const ITEMS_MOVE_TASK: BuildTask = {
       isDone: (code) => has(code, /(\+|\+=)\s*fallSpeed\b/),
     },
   ],
-  doneText: 'Яблоки падают! Нажми «Собрать»: в «Приборах» растёт items. Но яблок пока не видно — дальше нарисуем.',
+  doneText: 'Яблоки появляются! Нажми «Собрать»: в «Приборах» растёт items. Но их пока не видно — дальше нарисуем.',
 }
 
 export const ITEMS_DRAW_TASK: BuildTask = {
@@ -226,7 +230,20 @@ export const ITEMS_DRAW_TASK: BuildTask = {
       isDone: (code) => has(code, /\bctx\.fillText\s*\(/),
     },
   ],
-  doneText: 'Яблоки нарисованы! Нажми «Собрать» — они посыплются сверху.',
+  doneText:
+    'Яблоки нарисованы! Но они висят над экраном: в «Движке» скорость fallSpeed — 0. Следующий квест — в «Гайде».',
+}
+
+export const FALL_SPEED_TASK: EditTask = {
+  kind: 'edit',
+  title: 'Дай яблокам скорость',
+  text: 'Яблоки появляются, но висят над экраном: в «Движке» `fallSpeed` — 0. Поставь 3, нажми «Собрать» — и они полетят вниз.',
+  tab: 0,
+  target: numberTarget('fallSpeed'),
+  hint: [
+    'Это вторая строка «Движка»: `var fallSpeed   = 0;`. Это сколько пикселей яблоко пролетает за кадр. 3 — в самый раз, больше — ловить труднее.',
+  ],
+  isDone: speedAbove0('fallSpeed'),
 }
 
 const SPEEDUP_DECL = decl('speedUp')

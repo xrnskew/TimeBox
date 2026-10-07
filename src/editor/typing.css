@@ -1,0 +1,22 @@
+/* Печать куска: ещё не «напечатанное» прозрачно, курсор — жёлтый, как кнопка «Добавить». */
+.cm-typingHidden,
+.cm-typingHidden * {
+  color: transparent !important;
+}
+
+.cm-typingCaret {
+  display: inline-block;
+  width: 2px;
+  height: 1.15em;
+  margin-right: -2px;
+  background: var(--sun);
+  vertical-align: text-bottom;
+  box-shadow: 0 0 8px rgba(255, 200, 58, 0.7);
+  animation: cm-caret 0.5s steps(1) infinite;
+}
+
+@keyframes cm-caret {
+  50% {
+    opacity: 0.25;
+  }
+}

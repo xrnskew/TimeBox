@@ -12,6 +12,7 @@ import {
 } from './tabs.ts'
 import {
   CATCH_TASK,
+  FALL_SPEED_TASK,
   HERO_CREATE_TASK,
   HERO_DRAW_TASK,
   HERO_MOVE_TASK,
@@ -65,7 +66,7 @@ export const GUIDE_STEPS: GuideStep[] = [
     code: STEP_APPLES,
     checks: ['Яблоки падают', 'В «Приборах» растёт `items`'],
     fns: ['moveItems', 'drawItems'],
-    quests: [ITEMS_MOVE_TASK, ITEMS_DRAW_TASK, SPEEDUP_TASK, ITEM_TASK],
+    quests: [ITEMS_MOVE_TASK, ITEMS_DRAW_TASK, FALL_SPEED_TASK, SPEEDUP_TASK, ITEM_TASK],
   },
   {
     step: 3,

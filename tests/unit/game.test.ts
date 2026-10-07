@@ -26,6 +26,7 @@ describe('учебная версия', () => {
     expect(sim.drawn).toEqual(['Счёт: 0', 'Жизни: 3'])
     expect(TUTORIAL_ENGINE).not.toMatch(/bombEmoji|goldEmoji|playerEmoji/)
     expect(sim.peek('playerSpeed')).toBe(0)
+    expect(sim.peek('fallSpeed')).toBe(0)
   })
 
   it('шаг 1: герой ездит и не уезжает за край', () => {
@@ -43,7 +44,10 @@ describe('учебная версия', () => {
   })
 
   it('шаги 2 и 3: яблоки падают, ловятся и роняются, игра кончается', () => {
-    const engine = TUTORIAL_ENGINE.replace('var playerSpeed = 0;', 'var playerSpeed = 3;')
+    const engine = TUTORIAL_ENGINE.replace('var playerSpeed = 0;', 'var playerSpeed = 3;').replace(
+      'var fallSpeed   = 0;',
+      'var fallSpeed   = 3;',
+    )
     const sim = boot([engine, STEP_HERO, STEP_APPLES, STEP_CATCH])
     sim.tick(60)
     expect(sim.peek<unknown[]>('items').length).toBe(1)

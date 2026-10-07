@@ -27,6 +27,7 @@ import {
   HERO_MOVE_TASK,
   HERO_PICK_TASK,
   HERO_RUN_TASK,
+  FALL_SPEED_TASK,
   ITEM_TASK,
   ITEMS_DRAW_TASK,
   ITEMS_MOVE_TASK,
@@ -58,11 +59,11 @@ function build(code: string, ...tasks: BuildTask[]): string {
   return code
 }
 
-const engineWith = (speed = 0, item = '🍎') =>
-  TUTORIAL_ENGINE.replace('var playerSpeed = 0;', `var playerSpeed = ${speed};`).replace(
-    'var itemEmoji   = "🍎";',
-    `var itemEmoji   = "${item}";`,
-  )
+/** Движок со своими настройками; яблоки по умолчанию падают со скоростью 3. */
+const engineWith = (speed = 0, item = '🍎', fall = 3) =>
+  TUTORIAL_ENGINE.replace('var playerSpeed = 0;', `var playerSpeed = ${speed};`)
+    .replace('var fallSpeed   = 0;', `var fallSpeed   = ${fall};`)
+    .replace('var itemEmoji   = "🍎";', `var itemEmoji   = "${item}";`)
 const heroWith = (emoji: string) => STEP_HERO.replace(`"${HERO_EMOJI}"`, `"${emoji}"`)
 
 describe('шаг 1: героя собирают по кусочкам', () => {
@@ -98,8 +99,9 @@ describe('шаг 1: героя собирают по кусочкам', () => {
 
   it('скорость в движке — 0: герой нарисован, но стоит, пока её не поменяют', () => {
     expect(SPEED_TASK.isDone(TUTORIAL_ENGINE)).toBe(false)
-    expect(SPEED_TASK.isDone(engineWith(3))).toBe(true)
-    expect(SPEED_TASK.isDone(engineWith(2.5))).toBe(true)
+    expect(SPEED_TASK.isDone(engineWith(6))).toBe(true)
+    expect(SPEED_TASK.isDone(engineWith(5.5))).toBe(true)
+    expect(SPEED_TASK.text).toContain('от 5 до 7')
     const at = editTarget(TUTORIAL_ENGINE, SPEED_TASK.target)!
     expect(TUTORIAL_ENGINE.split('\n')[at.line - 1].slice(at.from, at.to)).toBe('0')
 
@@ -140,6 +142,27 @@ describe('шаг 2: яблоки по кусочкам', () => {
   it('падают → рисуются: получается код шага', () => {
     const start = TUTORIAL_CODES[2]
     expect(build(start, ITEMS_MOVE_TASK, ITEMS_DRAW_TASK)).toBe(`${start}\n\n${STEP_APPLES}`)
+  })
+
+  it('«Дай яблокам скорость»: в движке 0 — яблоки висят, после 3 — падают', () => {
+    expect(FALL_SPEED_TASK.isDone(TUTORIAL_ENGINE)).toBe(false)
+    expect(FALL_SPEED_TASK.isDone(engineWith(6, '🍎', 3))).toBe(true)
+    const at = editTarget(TUTORIAL_ENGINE, FALL_SPEED_TASK.target)!
+    expect(TUTORIAL_ENGINE.split('\n')[at.line - 1].slice(at.from, at.to)).toBe('0')
+
+    const hanging = boot([engineWith(6, '🍎', 0), heroWith('🐱'), STEP_APPLES, TUTORIAL_CODES[3]])
+    hanging.tick(70)
+    expect(hanging.peek('items[0].y')).toBe(0)
+    const falling = boot([engineWith(6, '🍎', 3), heroWith('🐱'), STEP_APPLES, TUTORIAL_CODES[3]])
+    falling.tick(70)
+    expect(falling.peek<number>('items[0].y')).toBeGreaterThan(20)
+  })
+
+  it('квест скорости яблок — сразу после «Нарисуй яблоки»', () => {
+    const codes = [engineWith(6, '🍎', 0), heroWith('🐱'), STEP_APPLES, TUTORIAL_CODES[3]]
+    expect(currentQuest(GUIDE_STEPS, levelStates(GUIDE_STEPS, codes))).toEqual({ step: 1, quest: 2 })
+    codes[0] = engineWith(6)
+    expect(currentQuest(GUIDE_STEPS, levelStates(GUIDE_STEPS, codes))).toEqual({ step: 1, quest: 3 })
   })
 
   it('«Всё быстрее»: части нельзя добавить раньше предыдущих', () => {
@@ -201,7 +224,10 @@ describe('шаги открываются по очереди', () => {
 
   it('шаг 2 пройден, только когда выполнены все его квесты', () => {
     const codes = [step1[0], step1[1], GOLD_APPLES, TUTORIAL_CODES[3]]
-    expect(levelStates(GUIDE_STEPS, codes)[1]).toMatchObject({ questsDone: [true, true, true, false], done: false })
+    expect(levelStates(GUIDE_STEPS, codes)[1]).toMatchObject({
+      questsDone: [true, true, true, true, false],
+      done: false,
+    })
     codes[0] = engineWith(3, '🐟')
     expect(levelStates(GUIDE_STEPS, codes)[1].done).toBe(true)
     expect(levelStates(GUIDE_STEPS, codes)[2].unlocked).toBe(true)

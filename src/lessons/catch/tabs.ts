@@ -1,11 +1,11 @@
 import type { LessonVariant, TabDef } from '../types.ts'
 
-// Движок учебной версии — из ТЗ, с двумя отличиями: смайлик героя ученик создаёт сам во вкладке
-// «Герой», а скорость героя — 0, её ученик ставит сам в квесте после движения. Строк bombEmoji
+// Движок учебной версии — из ТЗ, с отличиями: смайлик героя ученик создаёт сам во вкладке «Герой»,
+// а скорости героя и яблок — 0: их ученик ставит сам в квестах после движения и после яблок. Строк bombEmoji
 // и goldEmoji тоже нет: их ученик добавляет в заданиях про бомбу и звезду.
 export const TUTORIAL_ENGINE = `// ===== НАСТРОЙКИ =====
 var playerSpeed = 0;
-var fallSpeed   = 3;
+var fallSpeed   = 0;
 var spawnEvery  = 60;
 var itemEmoji   = "🍎";
 
@@ -241,10 +241,9 @@ export const GOLD_CATCH = `function checkCatch() {
 
 // ===== Готовая версия (?finished): бомба, звезда, +10 очков, ускорение каждые 15 секунд до 8 =====
 
-const FINISHED_ENGINE = TUTORIAL_ENGINE.replace('var playerSpeed = 0;', 'var playerSpeed = 6;').replace(
-  'var itemEmoji   = "🍎";',
-  `var itemEmoji   = "🍎";\n${BOMB_LINE}\n${GOLD_LINE}`,
-)
+const FINISHED_ENGINE = TUTORIAL_ENGINE.replace('var playerSpeed = 0;', 'var playerSpeed = 6;')
+  .replace('var fallSpeed   = 0;', 'var fallSpeed   = 3;')
+  .replace('var itemEmoji   = "🍎";', `var itemEmoji   = "🍎";\n${BOMB_LINE}\n${GOLD_LINE}`)
 
 const FINISHED_HERO = STEP_HERO.replace(`"${HERO_EMOJI}"`, '"🧺"')
 

@@ -88,7 +88,7 @@ export async function drawHero(page: Page, emoji = '🐱') {
 }
 
 /** Шаг 1, квесты 5–6: движение по кусочкам и скорость в «Движке». */
-export async function moveHero(page: Page, speed = '3') {
+export async function moveHero(page: Page, speed = '6') {
   await openQuest(page, 1, 'Открыть «Герой»', 'Научи героя ездить')
   await addPieces(page, 4)
   await openQuest(page, 1, 'Открыть «Движок»', 'Дай герою скорость')
@@ -101,10 +101,12 @@ export async function buildHero(page: Page, emoji = '🐱') {
   await moveHero(page)
 }
 
-/** Шаг 2, квесты 1–2: яблоки падают и рисуются. */
+/** Шаг 2, квесты 1–3: яблоки падают, рисуются, скорость в «Движке». */
 export async function buildApples(page: Page) {
   await openQuest(page, 2, 'Открыть «Яблоки»')
   await addPieces(page, 4 + 3)
+  await openQuest(page, 2, 'Открыть «Движок»', 'Дай яблокам скорость')
+  await page.keyboard.type('3')
 }
 
 /** Шаг 2, квест 3: собрать speedUp — кнопки «Добавить» всплывают прямо в коде «Яблок». */

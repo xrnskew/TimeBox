@@ -8,7 +8,11 @@ const GLOBALS: Hint[] = [
     kind: 'variable',
     text: 'На сколько пикселей сдвигается герой за один кадр. 0 — стоит на месте.',
   },
-  { name: 'fallSpeed', kind: 'variable', text: 'На сколько пикселей опускается яблоко за один кадр.' },
+  {
+    name: 'fallSpeed',
+    kind: 'variable',
+    text: 'На сколько пикселей опускается яблоко за один кадр. 0 — висит на месте.',
+  },
   {
     name: 'spawnEvery',
     kind: 'variable',
