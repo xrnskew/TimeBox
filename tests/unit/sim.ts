@@ -12,6 +12,8 @@ export interface Sim {
   drawn: string[]
   /** Цвет каждого fillRect за последний кадр. */
   fills: string[]
+  /** Цвет кисти у каждого fillText за последний кадр: полупрозрачная кисть затемняет смайлики. */
+  textFills: string[]
 }
 
 export function boot(codes: string[]): Sim {
@@ -25,6 +27,8 @@ export function boot(codes: string[]): Sim {
   const canvas = { addEventListener: document.addEventListener }
   const drawn: string[] = []
   const fills: string[] = []
+  const textFills: string[] = []
+  const saved: string[] = []
   const ctx = {
     fillStyle: '',
     font: '',
@@ -33,6 +37,13 @@ export function boot(codes: string[]): Sim {
     },
     fillText(text: string) {
       drawn.push(text)
+      textFills.push(ctx.fillStyle)
+    },
+    save() {
+      saved.push(ctx.fillStyle)
+    },
+    restore() {
+      ctx.fillStyle = saved.pop() ?? ctx.fillStyle
     },
   }
   let next: (() => void) | null = null
@@ -53,6 +64,7 @@ export function boot(codes: string[]): Sim {
       for (let i = 0; i < times; i++) {
         drawn.length = 0
         fills.length = 0
+        textFills.length = 0
         const cb = next
         next = null
         cb?.()
@@ -63,5 +75,6 @@ export function boot(codes: string[]): Sim {
     },
     drawn,
     fills,
+    textFills,
   }
 }

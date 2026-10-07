@@ -2,7 +2,7 @@ import { after, append, decl, emojiOf, emojiTarget, has, into, numberAbove0, num
 import type { BuildTask, EditTask, RunTask } from '../types.ts'
 import { HERO_EMOJI } from './tabs.ts'
 
-// Квесты шагов Catch. Код шага собирается кнопками «Добавить» по кусочкам и в итоге совпадает с STEP_* из tabs.ts.
+// Квесты шагов «Корзинки». Код шага собирается кнопками «Добавить» по кусочкам и в итоге совпадает с STEP_* из tabs.ts.
 // Помощники (куда вставить кусок, как проверить) — общие для всех игр, в lessons/kit.ts.
 
 // ===== Шаг 1. Герой: создать смайлик → выбрать → нарисовать → собрать → движение → скорость =====

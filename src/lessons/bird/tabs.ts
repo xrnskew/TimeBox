@@ -1,6 +1,6 @@
 import type { LessonVariant, TabDef } from '../types.ts'
 
-// Птичка (как Flappy Bird). Новое по сравнению с Catch — скорость, а не только позиция:
+// Птичка (как Flappy Bird). Новое по сравнению с «Корзинкой» — скорость, а не только позиция:
 // гравитация каждый кадр прибавляется к скорости speedY, а скорость — к высоте birdY.
 // Гравитация, сила взмаха и скорость труб в учебном движке — 0: их ученик ставит сам в квестах.
 // Строк coinEmoji и maxSpeed нет: их ученик добавляет в дополнительных заданиях.
@@ -50,12 +50,16 @@ function checkHit()  {}
 // Рисует трубу цветом pipeColor от y = from до y = to.
 // Шапка — с того конца, который смотрит на дырку.
 function drawPipe(x, from, to) {
+  // save и restore: после трубы кисточка станет как была,
+  // иначе полупрозрачная тень зальёт и смайлики
+  ctx.save();
   var capY = from <= 0 ? to - 24 : from;
   pipePart(x, from, 52, to - from);
   pipePart(x - 4, capY, 60, 24);
   ctx.fillStyle = "rgba(0, 0, 0, 0.35)";
   ctx.fillRect(x - 4, capY, 60, 3);
   ctx.fillRect(x - 4, capY + 21, 60, 3);
+  ctx.restore();
 }
 
 // кусок трубы: цвет, блик слева и тень справа — так труба выглядит круглой
@@ -289,7 +293,9 @@ export const TUTORIAL: LessonVariant = {
 
 export const FINISHED: LessonVariant = {
   id: 'finished',
-  storageKey: 'bird-sandbox-finished-v1',
+  // v2: в v1 сохранялся движок с землёй и с drawPipe, которая затемняла смайлики, — готовая версия
+  // своего кода ученика не хранит, поэтому её просто начинаем заново
+  storageKey: 'bird-sandbox-finished-v2',
   tabs: FINISHED_TABS,
   initial: FINISHED_CODES,
   hasGuide: false,

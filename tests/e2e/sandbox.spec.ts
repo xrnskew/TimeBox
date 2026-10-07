@@ -31,10 +31,10 @@ test('1. игра уже крутится, вкладки шагов пусты�
   expect(await game(page, 'lives')).toBe(3)
   expect(await game(page, 'typeof playSound')).toBe('undefined')
   // сверху и во вкладке браузера — название конструктора, в гайде — название игры
-  await expect(page).toHaveTitle('TimeBox — Catch')
+  await expect(page).toHaveTitle('TimeBox — Корзинка')
   await expect(page.getByRole('banner')).toContainText('TimeBox')
   await expect(page.getByRole('banner')).toContainText('конструктор игр')
-  await expect(page.getByRole('heading', { level: 1, name: 'Catch' })).toBeVisible()
+  await expect(page.getByRole('heading', { level: 1, name: 'Корзинка' })).toBeVisible()
   await expect(runButton(page)).toBeVisible()
   await expect(runButton(page)).toHaveAttribute('data-dirty', 'false')
   // кнопки «Вставить» весь шаг больше нет — только сборка по кусочкам
@@ -51,16 +51,16 @@ test('главное меню: выбор игры, прогресс и возв
   await expect(page).toHaveTitle('TimeBox — конструктор игр')
   await expect(page.getByRole('heading', { level: 1, name: 'Выбери игру' })).toBeVisible()
   await expect(page.locator('iframe')).toHaveCount(0)
-  const card = page.getByRole('article', { name: 'Catch' })
+  const card = page.getByRole('article', { name: 'Корзинка' })
   await expect(card).toContainText('Очень легко')
   await expect(card).toContainText('Ещё не начата')
   await expect(page.getByLabel('Скоро')).toContainText('новые игры')
 
   // «Начать» открывает игру с гайдом
-  await card.getByRole('link', { name: 'Начать Catch' }).click()
+  await card.getByRole('link', { name: 'Начать Корзинка' }).click()
   await expect(page).toHaveURL(/\?game=catch$/)
   await waitGame(page)
-  await expect(page.getByRole('heading', { level: 1, name: 'Catch' })).toBeVisible()
+  await expect(page.getByRole('heading', { level: 1, name: 'Корзинка' })).toBeVisible()
   await drawHero(page, '🦊')
   await moveHero(page)
   await savedCodes(page)
@@ -70,7 +70,7 @@ test('главное меню: выбор игры, прогресс и возв
   await expect(page.getByRole('heading', { level: 1, name: 'Выбери игру' })).toBeVisible()
   await expect(card).toContainText('Пройдено 1 из 5')
   await expect(card).toContainText('🦊')
-  await card.getByRole('link', { name: 'Продолжить Catch' }).click()
+  await card.getByRole('link', { name: 'Продолжить Корзинка' }).click()
   await waitGame(page)
   expect(await game(page, 'playerEmoji')).toBe('🦊')
 
@@ -644,7 +644,7 @@ test('готовая игра под паролем: из гайда и по п�
   const finished = await popup
   await expect(finished.getByRole('heading', { name: 'Что тут есть' })).toBeVisible()
   expect(finished.url()).toMatch(/\?game=catch&finished$/)
-  await expect(finished).toHaveTitle('TimeBox — готовая игра Catch')
+  await expect(finished).toHaveTitle('TimeBox — готовая игра Корзинка')
   await expect(finished.getByRole('tab', { name: 'Гайд' })).toHaveCount(0)
 
   // по прямой ссылке без пароля — экран блокировки

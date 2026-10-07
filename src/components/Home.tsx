@@ -151,7 +151,7 @@ function Mini({ color, scene, pad, children }: { color: string; scene: string; p
   )
 }
 
-/** Catch: игра идёт сама — яблоки падают, герой успевает под каждое. */
+/** Корзинка: игра идёт сама — яблоки падают, герой успевает под каждое. */
 function Attract({ color, hero, item }: { color: string; hero: string; item: string }) {
   return (
     <Mini color={color} scene="catch" pad={2}>

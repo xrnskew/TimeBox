@@ -14,7 +14,7 @@ import App from '@/App.tsx'
 
 // Без параметров — главное меню с выбором игры. `?game=<id>` — учебная версия игры,
 // `?game=<id>&finished` — готовая: своё сохранение, гайда нет, открывается только по паролю.
-// Старая ссылка `?finished` без игры открывает готовую Catch.
+// Старая ссылка `?finished` без игры открывает готовую Корзинку.
 const route = readRoute(CATCH_LESSON.id)
 const lesson = route.kind === 'game' ? lessonById(route.id) : null
 const finished = route.kind === 'game' && route.finished

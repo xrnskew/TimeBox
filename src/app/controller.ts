@@ -357,7 +357,7 @@ export function createController(lesson: Lesson, variant: LessonVariant) {
       store.set({ best: score })
       saveBest(key, score)
     }
-    // конец игры: кончились жизни (Catch) или движок поднял флаг gameOver (Птичка)
+    // конец игры: кончились жизни (Корзинка) или движок поднял флаг gameOver (Птичка)
     const over = w.gameOver === true || (typeof lives === 'number' && lives <= 0)
     if (s.game === 'running' && over) store.set({ game: 'over', lastScore: score })
   }

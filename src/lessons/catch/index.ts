@@ -5,7 +5,7 @@ import { FINISHED, TUTORIAL } from './tabs.ts'
 
 export const CATCH_LESSON: Lesson = {
   id: 'catch',
-  title: 'Catch',
+  title: 'Корзинка',
   card: {
     level: 'Очень легко',
     levelBars: 1,

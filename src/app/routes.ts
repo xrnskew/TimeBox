@@ -10,7 +10,7 @@ export const gameHref = (id: string) => `?game=${encodeURIComponent(id)}`
 /** Готовая версия игры (под паролем). */
 export const finishedHref = (id: string) => `${gameHref(id)}&finished`
 
-/** Что открыть по адресу: меню или игру; `?finished` без игры — готовая Catch, как раньше. */
+/** Что открыть по адресу: меню или игру; `?finished` без игры — готовая Корзинка, как раньше. */
 export function readRoute(fallbackGame: string): { kind: 'home' } | { kind: 'game'; id: string; finished: boolean } {
   const q = new URLSearchParams(location.search)
   const finished = q.has('finished')

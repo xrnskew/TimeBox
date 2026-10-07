@@ -4,7 +4,7 @@ import { expect, type Page, test } from '@playwright/test'
 export const app = () => test.info().project.use.baseURL!
 export const KEY = 'catch-sandbox-v1'
 
-/** Открыть игру Catch с чистым хранилищем и дождаться редактора и игры. */
+/** Открыть игру Корзинка с чистым хранилищем и дождаться редактора и игры. */
 export async function open(page: Page, query = '?game=catch') {
   const errors: string[] = []
   page.on('pageerror', (e) => errors.push(e.message))

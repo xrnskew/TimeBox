@@ -53,7 +53,7 @@ const withSetting = (engine: string, name: string, line: string) =>
 const fullGame = (engine = engineWith()) => [engine, birdWith('🦉'), STEP_FLAP, STEP_PIPES, STEP_HIT]
 
 describe('Птичка в меню', () => {
-  it('стоит второй, после Catch, и открывается по ?game=bird', () => {
+  it('стоит второй, после Корзинки, и открывается по ?game=bird', () => {
     expect(LESSONS.map((l) => l.id)).toEqual(['catch', 'bird'])
     expect(lessonById('bird')?.title).toBe('Птичка')
   })
@@ -186,6 +186,18 @@ describe('Птичка: игра', () => {
     expect(sim.fills).not.toContain('#ffffff')
     // две трубы, у каждой — тело и шапка своим цветом
     expect(sim.fills.filter((f) => f === '#ec407a')).toHaveLength(4)
+  })
+
+  it('после труб кисть непрозрачная: птица и монетки не затемняются', () => {
+    const engine = withSetting(engineWith(0, 7, 0), 'coinEmoji', COIN_LINE)
+    for (const codes of [fullGame(), [engine, birdWith('🦉'), STEP_FLAP, COIN_PIPES, COIN_HIT], FINISHED_CODES]) {
+      const sim = boot(codes)
+      sim.peek('pipes = [{ x: 200, top: 120, passed: false, coin: true }]')
+      sim.tick()
+      const emoji = sim.drawn.flatMap((t, i) => (/\p{Extended_Pictographic}/u.test(t) ? [sim.textFills[i]] : []))
+      expect(emoji.length).toBeGreaterThan(0)
+      for (const fill of emoji) expect(fill).not.toMatch(/rgba/)
+    }
   })
 
   it('движок без шагов запускается, ждёт пробела и рисует счёт', () => {
