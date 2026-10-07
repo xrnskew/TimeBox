@@ -1,13 +1,14 @@
 import { explainRuntimeError, formatError, isSyntaxMessage } from '@/core/errors.ts'
 import { planSettingInsert } from '@/core/insert.ts'
-import { extraStates, levelStates } from '@/core/levels.ts'
+import { currentQuest, extraStates, type LevelState, levelStates } from '@/core/levels.ts'
 import { checkFinishedPassword } from '@/core/lock.ts'
 import { hasContent, stepDone } from '@/core/progress.ts'
 import { findSyntaxError, firstSyntaxError, type SyntaxIssue } from '@/core/syntax.ts'
 import { createTabEditors, type TabEditors } from '@/editor/createTabEditors.ts'
+import type { EmojiSpot } from '@/editor/emoji.ts'
 import type { SlotSource } from '@/editor/slots.ts'
 import { editTarget } from '@/lessons/catch/tasks.ts'
-import type { Lesson, LessonVariant } from '@/lessons/types.ts'
+import type { BuildTask, Lesson, LessonVariant, RunTask } from '@/lessons/types.ts'
 import { runner } from '@/sandbox/harness.ts'
 import {
   loadActive,
@@ -40,10 +41,19 @@ export interface Toast {
 
 export type Dialog = null | { kind: 'reset'; tab: number } | { kind: 'resetAll' } | { kind: 'unlock' }
 
+/** Открытое окно выбора смайлика: что заменить и где его показать. */
+export interface Picker extends EmojiSpot {
+  tab: number
+  /** Что было в кавычках, когда окно открыли. */
+  was: string
+}
+
 export interface AppState {
   view: View
   /** Снимок кода для интерфейса (значки, гайд). Обновляется с задержкой после печати. */
   codes: string[]
+  /** Код последнего запуска: по нему видно, есть ли несобранные изменения. */
+  ran: string[]
   /** Живая проверка синтаксиса по вкладкам. */
   syntax: (SyntaxIssue | null)[]
   /** Вкладка с ошибкой выполнения из последнего запуска — пока её не поправили. */
@@ -60,6 +70,9 @@ export interface AppState {
   dialog: Dialog
   panel: Panel
   unreadLogs: number
+  picker: Picker | null
+  /** Подсветку «Собрать» закрыли — до следующего запуска. */
+  spotOff: boolean
 }
 
 export interface LogEntry {
@@ -99,6 +112,7 @@ export function createController(lesson: Lesson, variant: LessonVariant) {
   const store: Store<AppState> = createStore<AppState>({
     view: startView,
     codes: latestCodes,
+    ran: latestCodes,
     syntax: latestCodes.map(checkSyntax),
     runtimeErrorTab: null,
     error: null,
@@ -113,6 +127,8 @@ export function createController(lesson: Lesson, variant: LessonVariant) {
     dialog: null,
     panel: 'inspector',
     unreadLogs: 0,
+    picker: null,
+    spotOff: false,
   })
   const logs = createStore<{ entries: LogEntry[] }>({ entries: [] })
   const inspector = createStore<{ values: Record<string, string> }>({ values: {} })
@@ -148,6 +164,10 @@ export function createController(lesson: Lesson, variant: LessonVariant) {
     const same = codes.every((c, i) => c === prev.codes[i])
     if (same) return
     store.set({ codes, syntax: codes.map(checkSyntax) })
+    if (!variant.hasGuide) return
+    // квест мог смениться из-за правки в другой вкладке — куски во вкладке пересчитываем
+    editors?.refreshSlots()
+    announceEdit(levelsOf(prev.codes), levelsOf(codes))
   }
 
   function onChange(tab: number, byUser: boolean) {
@@ -181,6 +201,7 @@ export function createController(lesson: Lesson, variant: LessonVariant) {
 
   // ===== Запуск =====
   function launch(codes: string[]) {
+    const before = variant.hasGuide ? levelsOf(codes) : null
     runCodes = codes
     editors?.clearErrors()
     dismissToast()
@@ -199,6 +220,9 @@ export function createController(lesson: Lesson, variant: LessonVariant) {
     store.set({
       doc: runner.buildDoc(codes, { focus: !bad, hitboxes: s.hitboxes }),
       runId: s.runId + 1,
+      ran: codes,
+      spotOff: false,
+      picker: null,
       error,
       runtimeErrorTab: null,
       game: bad ? 'blocked' : 'running',
@@ -208,6 +232,10 @@ export function createController(lesson: Lesson, variant: LessonVariant) {
     })
     // Нашли ошибку до запуска — игра не стартует, фокус остаётся в редакторе.
     if (bad) editors?.focus()
+    if (before) {
+      editors?.refreshSlots()
+      announceRun(before, levelsOf(codes))
+    }
   }
 
   function run() {
@@ -331,90 +359,115 @@ export function createController(lesson: Lesson, variant: LessonVariant) {
     if (s.game === 'running' && typeof lives === 'number' && lives <= 0) store.set({ game: 'over', lastScore: score })
   }
 
-  // ===== Гайд =====
-  function replaceTab(tab: number, code: string, done: string) {
-    if (!editors) return
-    selectView(tab)
-    if (editors.getCode(tab) === code) {
-      toast(`Этот код уже во вкладке «${title(tab)}». Нажми «Собрать».`)
+  // ===== Гайд: квесты =====
+  const levelsOf = (codes: string[], ran = store.get().ran): LevelState[] => levelStates(lesson.steps, codes, ran)
+  const questAt = (step: number, quest: number) => lesson.steps[step]?.quests[quest]
+
+  /** Квест «поправь сам» выполнен (печатью или из окна смайликов) — говорим, что дальше. */
+  function announceEdit(before: LevelState[], after: LevelState[]) {
+    const cur = currentQuest(lesson.steps, before)
+    if (!cur) return
+    const task = questAt(cur.step, cur.quest)
+    if (task.kind !== 'edit' || !after[cur.step].questsDone[cur.quest]) return
+    toast(`Квест «${task.title}» выполнен!${whatNext(after, cur.step)}`)
+  }
+
+  /** Квест «нажми «Собрать»» выполнен запуском. */
+  function announceRun(before: LevelState[], after: LevelState[]) {
+    const cur = currentQuest(lesson.steps, before)
+    if (!cur) return
+    const task = questAt(cur.step, cur.quest)
+    if (task.kind !== 'run' || !after[cur.step].questsDone[cur.quest]) return
+    toast(`${task.doneText}${whatNext(after, cur.step)}`)
+  }
+
+  /** Подсказка, где следующий квест. */
+  function whatNext(levels: LevelState[], step: number): string {
+    const next = currentQuest(lesson.steps, levels)
+    if (!next) return levels.every((l) => l.done) ? ' Игра собрана! Бомба и звезда — в «Гайде».' : ''
+    if (next.step !== step) return ` Шаг ${next.step + 1} открыт — он в «Гайде».`
+    const task = questAt(next.step, next.quest)
+    if (task.kind === 'build' && task.tab === editors?.current) return ' Дальше — жми «Добавить» прямо в коде.'
+    return ` Следующий квест «${task.title}» — в «Гайде».`
+  }
+
+  /** Открыть квест: «собери» — к всплывшему куску, «поправь» — выделить, что менять, «нажми» — собрать. */
+  function openTask(stepIndex: number, questIndex: number) {
+    const task = questAt(stepIndex, questIndex)
+    if (!task || !editors) return
+    if (task.kind === 'run') {
+      run()
       return
     }
-    editors.replace(tab, code)
-    const ed = editors
-    toast(`${done} Теперь нажми «Собрать».`, () => ed.undo(tab))
-  }
-
-  function insertStep(index: number) {
-    const step = lesson.steps[index]
-    replaceTab(step.tab, step.code, `Код шага ${step.step} — во вкладке «${title(step.tab)}».`)
-  }
-
-  /** Открыть вкладку задания: «поправь сам» — выделить, что менять; «собери» — к всплывшему куску. */
-  function openTask(stepIndex: number, taskIndex: number) {
-    const task = lesson.steps[stepIndex].tasks[taskIndex]
-    if (!task || !editors) return
     selectView(task.tab)
     if (task.kind === 'build') {
-      const next = nextPiece(stepIndex, editors.getCode(task.tab))
+      const next = nextPiece(task, editors.getCode(task.tab))
       if (next) editors.gotoLine(next.plan.after)
       else editors.focus()
       return
     }
     const at = editTarget(editors.getCode(task.tab), task.target)
-    if (at) editors.select(at.line, at.from, at.to)
-    else editors.focus()
+    if (!at) {
+      editors.focus()
+      return
+    }
+    editors.select(at.line, at.from, at.to)
+    if (task.picker) {
+      const ed = editors
+      const from = ed.posOf(at.line, at.from)
+      const to = ed.posOf(at.line, at.to)
+      // окно — после прокрутки к строке, иначе оно встанет по старым координатам
+      requestAnimationFrame(() =>
+        requestAnimationFrame(() => {
+          const rect = ed.coordsAt(to + 1)
+          if (rect && ed.current === task.tab) openPicker(task.tab, { from, to, rect })
+        }),
+      )
+    }
   }
 
-  /** Задание шага «собери по частям» (в шаге оно одно). */
-  function buildTaskOf(stepIndex: number) {
-    const tasks = lesson.steps[stepIndex].tasks
-    const index = tasks.findIndex((t) => t.kind === 'build')
-    const task = tasks[index]
-    return task?.kind === 'build' ? { task, index } : null
-  }
-
-  /** Какую часть задания «собери по частям» добавлять сейчас: первая несделанная, если для неё есть место. */
-  function nextPiece(stepIndex: number, code: string) {
-    const task = buildTaskOf(stepIndex)?.task
-    if (!task) return null
+  /** Какую часть сборки добавлять сейчас: первая несделанная, если для неё есть место. */
+  function nextPiece(task: BuildTask, code: string) {
     const index = task.pieces.findIndex((p) => !p.isDone(code))
     if (index < 0) return null
     const plan = task.pieces[index].plan(code)
     return plan ? { index, plan } : null
   }
 
-  /** Источник кусков для редактора: во вкладке задания, когда код шага уже вставлен, а задание не собрано. */
+  /** Текущий квест, если это сборка во вкладке `tab`. */
+  function buildingIn(tab: number, codes: string[]) {
+    const cur = currentQuest(lesson.steps, levelsOf(codes))
+    const task = cur && questAt(cur.step, cur.quest)
+    return cur && task?.kind === 'build' && task.tab === tab ? { ...cur, task } : null
+  }
+
+  /** Источник кусков для редактора: во вкладке, где сейчас идёт сборка по кусочкам. */
   function slotSources(): (SlotSource | null)[] {
     return variant.tabs.map((_, tab) => {
       if (!variant.hasGuide) return null
-      const stepIndex = lesson.steps.findIndex((_, i) => buildTaskOf(i)?.task.tab === tab)
-      if (stepIndex < 0) return null
-      const step = lesson.steps[stepIndex]
-      const { task, index: taskIndex } = buildTaskOf(stepIndex)!
+      if (!lesson.steps.some((s) => s.quests.some((q) => q.kind === 'build' && q.tab === tab))) return null
       return (code: string) => {
-        if (!stepDone(code, step.fns)) return null
-        // задания шага идут по одному: куски всплывают, когда дошла очередь сборки
-        const before = levelStates(lesson.steps, codesWith(task.tab, code))[stepIndex].tasksDone.slice(0, taskIndex)
-        if (!before.every(Boolean)) return null
-        const next = nextPiece(stepIndex, code)
+        const cur = buildingIn(tab, codesWith(tab, code))
+        if (!cur) return null
+        const next = nextPiece(cur.task, code)
         if (!next) return null
-        const piece = task.pieces[next.index]
+        const piece = cur.task.pieces[next.index]
         return {
           after: next.plan.after,
           code: next.plan.text.replace(/^\n+/, ''),
           n: next.index + 1,
-          total: task.pieces.length,
+          total: cur.task.pieces.length,
           title: piece.title,
-          onAdd: () => insertPiece(stepIndex, next.index),
+          onAdd: () => insertPiece(cur.step, cur.quest, next.index),
         }
       }
     })
   }
 
-  /** Задание «собери по частям»: добавить кусок функции. */
-  function insertPiece(stepIndex: number, pieceIndex: number) {
-    const task = buildTaskOf(stepIndex)?.task
-    if (!task || !editors) return
+  /** Сборка по кусочкам: добавить кусок. */
+  function insertPiece(stepIndex: number, questIndex: number, pieceIndex: number) {
+    const task = questAt(stepIndex, questIndex)
+    if (task?.kind !== 'build' || !editors) return
     const piece = task.pieces[pieceIndex]
     const code = editors.getCode(task.tab)
     selectView(task.tab)
@@ -429,24 +482,51 @@ export function createController(lesson: Lesson, variant: LessonVariant) {
     }
     const line = editors.insertLine(task.tab, plan.after, plan.text)
     editors.gotoLine(line)
-    // следующая часть может всплыть далеко от этой (вызов — в moveItems): прокручиваем к ней
-    const next = nextPiece(stepIndex, editors.getCode(task.tab))
-    if (next) editors.reveal(next.plan.after)
     const ed = editors
-    const done = task.pieces.every((p) => p.isDone(ed.getCode(task.tab)))
-    const more = buildTaskOf(stepIndex)!.index < lesson.steps[stepIndex].tasks.length - 1
+    const codes = codesNow()
+    // следующий кусок может всплыть далеко от этого: прокручиваем к нему
+    const cur = buildingIn(task.tab, codes)
+    const next = cur && nextPiece(cur.task, codes[task.tab])
+    if (next) ed.reveal(next.plan.after)
+    const done = task.pieces.every((p) => p.isDone(codes[task.tab]))
     toast(
       done
-        ? `Функция собрана! Через 15 секунд после запуска яблоки полетят быстрее.${more ? ' Следующий квест — в «Гайде».' : ''}`
+        ? `${task.doneText}${cur && cur.task !== task ? ` Дальше — «${cur.task.title}»: жми «Добавить».` : ''}`
         : `Часть ${pieceIndex + 1} из ${task.pieces.length} на месте. Жми «Добавить» у следующей.`,
       () => ed.undo(task.tab),
     )
   }
 
+  // ===== Окно выбора смайлика =====
+  function openPicker(tab: number, spot: EmojiSpot) {
+    if (!editors) return
+    store.set({ picker: { ...spot, tab, was: editors.getCode(tab).slice(spot.from, spot.to) } })
+  }
+
+  function closePicker(refocus = true) {
+    if (!store.get().picker) return
+    store.set({ picker: null })
+    if (refocus) editors?.focus()
+  }
+
+  function pickEmoji(emoji: string) {
+    const p = store.get().picker
+    if (!p || !editors) return
+    store.set({ picker: null })
+    if (editors.current !== p.tab || editors.getCode(p.tab).slice(p.from, p.to) !== p.was) {
+      toast('Код уже поменялся — нажми «Сменить» ещё раз.')
+      return
+    }
+    editors.replaceRange(p.from, p.to, emoji)
+    editors.focus()
+    // что квест выполнен, скажет снимок кода — так же, как после печати
+    snapshot()
+  }
+
   /** Бомбу и звезду можно добавить, только когда основная игра собрана: три шага с заданиями. */
   function extraLocked(extraIndex: number): boolean {
     const codes = codesNow()
-    const allDone = levelStates(lesson.steps, codes).every((l) => l.done)
+    const allDone = levelsOf(codes).every((l) => l.done)
     const state = extraStates(lesson.extras, allDone, codes)[extraIndex]
     if (state.unlocked) return false
     toast(
@@ -572,6 +652,7 @@ export function createController(lesson: Lesson, variant: LessonVariant) {
         onChange,
         onRun: run,
         slots: slotSources(),
+        onEmoji: openPicker,
       })
       editors.setVisible(view !== 'guide')
       const err = store.get().error
@@ -610,9 +691,13 @@ export function createController(lesson: Lesson, variant: LessonVariant) {
       logs.set({ entries: [] })
     },
 
-    insertStep,
     openTask,
     insertPiece,
+    pickEmoji,
+    closePicker,
+    dismissSpot() {
+      store.set({ spotOff: true })
+    },
     insertExtraSetting,
     insertExtraCode,
     unlockFinished,
@@ -647,17 +732,25 @@ export function tabBadges(c: Controller, s: Pick<AppState, 'codes' | 'syntax' | 
   })
 }
 
-/** Пройден ли уровень: шаг и задание после него. */
-export function levelsDone(c: Controller, codes: string[]): boolean[] {
-  return levelStates(c.lesson.steps, codes).map((l) => l.done)
+/** Пройден ли уровень: шаг и все его квесты. */
+export function levelsDone(c: Controller, codes: string[], ran: string[]): boolean[] {
+  return levelStates(c.lesson.steps, codes, ran).map((l) => l.done)
 }
 
 /** Бомба и звезда: добавлены ли (и переменная, и код). */
-export function extrasDone(c: Controller, codes: string[]): boolean[] {
-  const levels = levelStates(c.lesson.steps, codes)
+export function extrasDone(c: Controller, codes: string[], ran: string[]): boolean[] {
+  const levels = levelStates(c.lesson.steps, codes, ran)
   return extraStates(
     c.lesson.extras,
     levels.every((l) => l.done),
     codes,
   ).map((x) => x.done)
+}
+
+/** Квест «нажми «Собрать»», если он сейчас текущий: тогда кнопка подсвечивается поверх затемнения. */
+export function runQuestNow(c: Controller, codes: string[], ran: string[]): RunTask | null {
+  if (!c.variant.hasGuide) return null
+  const cur = currentQuest(c.lesson.steps, levelStates(c.lesson.steps, codes, ran))
+  const task = cur && c.lesson.steps[cur.step].quests[cur.quest]
+  return task?.kind === 'run' ? task : null
 }

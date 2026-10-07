@@ -10,15 +10,29 @@ import {
   STEP_CATCH,
   STEP_HERO,
 } from './tabs.ts'
-import { BASKET_TASK, ITEM_TASK, SPEEDUP_TASK, TEN_POINTS_TASK } from './tasks.ts'
+import {
+  CATCH_TASK,
+  HERO_CREATE_TASK,
+  HERO_DRAW_TASK,
+  HERO_MOVE_TASK,
+  HERO_PICK_TASK,
+  HERO_RUN_TASK,
+  ITEM_TASK,
+  ITEMS_DRAW_TASK,
+  ITEMS_MOVE_TASK,
+  SPEED_TASK,
+  SPEEDUP_TASK,
+  TEN_POINTS_TASK,
+} from './tasks.ts'
 
 // Тон: для подростка, который программирует впервые. Коротко, на «ты».
+// Каждый шаг — цепочка квестов: код собирается кнопками «Добавить» по кусочкам прямо во вкладке.
 // Подробности спрятаны за кнопкой «Как это работает».
 // В тексте `код` — инлайн-код, [[Ctrl]] — клавиша.
 
 export const GUIDE_INTRO: GuideIntro = {
   title: 'Catch',
-  lead: 'Вставь код шага, нажми «Собрать» и выполни задание — тогда откроется следующий шаг.',
+  lead: 'Собирай игру по кусочкам: выполняй квесты по порядку и жми «Собрать», чтобы увидеть, что получилось.',
   tips: ['[[Ctrl]] + [[Enter]] — собрать', '[[Ctrl]] + [[Z]] — отменить правку', 'Клик по экрану, потом [[←]] [[→]]'],
 }
 
@@ -26,17 +40,17 @@ export const GUIDE_STEPS: GuideStep[] = [
   {
     step: 1,
     tab: 1,
-    title: 'Корзина едет',
-    lead: 'Корзина ездит стрелками и не уезжает за край.',
+    title: 'Герой',
+    lead: 'Создай героя-смайлик, нарисуй его и научи ездить стрелками.',
     how: [
-      'Движок 60 раз в секунду вызывает `movePlayer()` и `drawPlayer()`.',
-      'Зажата `ArrowLeft` — уменьшаем `playerX`, `ArrowRight` — увеличиваем.',
-      '`ctx.fillText` рисует 🧺 в точке `playerX`, `playerY`. Да, корзина — это просто буква на холсте.',
+      'Движок 60 раз в секунду вызывает `drawPlayer()` и `movePlayer()`.',
+      '`ctx.fillText` рисует смайлик в точке `playerX`, `playerY`. Да, герой — это просто буква на холсте.',
+      'Зажата `ArrowLeft` — уменьшаем `playerX`, `ArrowRight` — увеличиваем на `playerSpeed`.',
     ],
     code: STEP_HERO,
-    checks: ['Корзина ездит от [[←]] и [[→]]', 'И не уезжает за край'],
-    fns: ['movePlayer', 'drawPlayer'],
-    tasks: [BASKET_TASK],
+    checks: ['Герой ездит от [[←]] и [[→]]', 'И не уезжает за край'],
+    fns: ['drawPlayer', 'movePlayer'],
+    quests: [HERO_CREATE_TASK, HERO_PICK_TASK, HERO_DRAW_TASK, HERO_RUN_TASK, HERO_MOVE_TASK, SPEED_TASK],
   },
   {
     step: 2,
@@ -46,12 +60,12 @@ export const GUIDE_STEPS: GuideStep[] = [
     how: [
       'Яблоки лежат в массиве `items`, у каждого есть `x` и `y`.',
       'Раз в `spawnEvery` кадров появляется новое, а цикл `for` прибавляет каждому `fallSpeed`.',
-      'Сквозь корзину они пока пролетают — поимка будет в шаге 3.',
+      'Сквозь героя они пока пролетают — поимка будет в шаге 3.',
     ],
     code: STEP_APPLES,
     checks: ['Яблоки падают', 'В «Приборах» растёт `items`'],
     fns: ['moveItems', 'drawItems'],
-    tasks: [SPEEDUP_TASK, ITEM_TASK],
+    quests: [ITEMS_MOVE_TASK, ITEMS_DRAW_TASK, SPEEDUP_TASK, ITEM_TASK],
   },
   {
     step: 3,
@@ -59,14 +73,14 @@ export const GUIDE_STEPS: GuideStep[] = [
     title: 'Поймал или уронил',
     lead: 'Поймал — очко, уронил — минус жизнь.',
     how: [
-      'Яблоко рядом с корзиной и опустилось до неё — поймано: `score` растёт.',
+      'Яблоко рядом с героем и опустилось до него — поймано: `score` растёт.',
       'Улетело ниже поля (`y > 500`) — минус жизнь.',
       'Цикл идёт с конца: `items.splice` вырезает яблоко и сдвигает остальные.',
     ],
     code: STEP_CATCH,
     checks: ['Поймал — счёт растёт', 'Три промаха — «Игра окончена»'],
     fns: ['checkCatch'],
-    tasks: [TEN_POINTS_TASK],
+    quests: [CATCH_TASK, TEN_POINTS_TASK],
   },
 ]
 

@@ -232,3 +232,19 @@ export function TargetIcon({ size = 14, className }: IconProps) {
     </svg>
   )
 }
+
+export function FaceIcon({ size = 14, className }: IconProps) {
+  return (
+    <svg {...base(size)} className={className}>
+      <circle cx="8" cy="8" r="6.4" stroke="currentColor" strokeWidth="1.6" />
+      <circle cx="5.8" cy="6.6" r="0.95" fill="currentColor" />
+      <circle cx="10.2" cy="6.6" r="0.95" fill="currentColor" />
+      <path
+        d="M5.3 9.6c.7 1 1.6 1.5 2.7 1.5s2-.5 2.7-1.5"
+        stroke="currentColor"
+        strokeWidth="1.5"
+        strokeLinecap="round"
+      />
+    </svg>
+  )
+}

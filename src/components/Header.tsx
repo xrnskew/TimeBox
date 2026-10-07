@@ -1,6 +1,6 @@
 import { useEffect, useMemo, useRef } from 'react'
 import { useApp, useController } from '@/app/context.ts'
-import { extrasDone, levelsDone } from '@/app/controller.ts'
+import { extrasDone, levelsDone, runQuestNow } from '@/app/controller.ts'
 import { CheckIcon, LogoCube, PlayIcon, ResetIcon } from './icons.tsx'
 import styles from './Header.module.css'
 
@@ -29,20 +29,66 @@ export function Header() {
           <ResetIcon size={13} />
           <span className={styles.wideOnly}>Сбросить всё</span>
         </button>
-        <button
-          type="button"
-          className={`key key--apple key--l ${styles.run}`}
-          onClick={c.run}
-          aria-keyshortcuts="Control+Enter"
-        >
-          <PlayIcon size={15} />
-          Собрать
-          <span className={styles.shortcut} aria-hidden="true">
-            Ctrl+Enter
-          </span>
-        </button>
+        <RunButton />
       </div>
     </header>
+  )
+}
+
+/**
+ * «Собрать». Есть несобранные изменения — кнопка подпрыгивает. В квесте «Собери игру» всё вокруг
+ * темнеет, а кнопка светится поверх: первый раз ученик должен её найти.
+ */
+function RunButton() {
+  const c = useController()
+  const dirty = useApp((s) => s.codes.some((code, i) => code !== s.ran[i]))
+  const codes = useApp((s) => s.codes)
+  const ran = useApp((s) => s.ran)
+  const off = useApp((s) => s.spotOff || s.dialog !== null)
+  const quest = useMemo(() => runQuestNow(c, codes, ran), [c, codes, ran])
+  const spot = quest !== null && !off
+  const button = useRef<HTMLButtonElement>(null)
+
+  useEffect(() => {
+    if (!spot) return
+    button.current?.focus()
+    const onKey = (e: KeyboardEvent) => {
+      if (e.key === 'Escape') c.dismissSpot()
+    }
+    window.addEventListener('keydown', onKey)
+    return () => window.removeEventListener('keydown', onKey)
+  }, [spot, c])
+
+  return (
+    <span className={styles.runWrap}>
+      {spot && <div className={styles.dim} aria-hidden="true" onClick={c.dismissSpot} />}
+      <button
+        ref={button}
+        type="button"
+        className={`key key--apple key--l ${styles.run}`}
+        data-dirty={dirty && !spot}
+        data-spot={spot}
+        onClick={c.run}
+        aria-keyshortcuts="Control+Enter"
+        aria-describedby={spot ? 'run-callout' : undefined}
+        title={dirty ? 'Есть изменения — собери игру, чтобы увидеть их' : undefined}
+      >
+        <PlayIcon size={15} />
+        Собрать
+        <span className={styles.shortcut} aria-hidden="true">
+          Ctrl+Enter
+        </span>
+        {dirty && !spot && <span className="visually-hidden"> — есть несобранные изменения</span>}
+      </button>
+      {spot && (
+        <div className={styles.callout} id="run-callout" role="status">
+          <p>{quest.callout}</p>
+          <button type="button" className="key key--s key--ghost" onClick={c.dismissSpot}>
+            Позже
+          </button>
+        </div>
+      )}
+    </span>
   )
 }
 
@@ -50,8 +96,9 @@ export function Header() {
 function Checkpoints() {
   const c = useController()
   const codes = useApp((s) => s.codes)
-  const levels = useMemo(() => levelsDone(c, codes), [c, codes])
-  const extras = useMemo(() => extrasDone(c, codes), [c, codes])
+  const ran = useApp((s) => s.ran)
+  const levels = useMemo(() => levelsDone(c, codes, ran), [c, codes, ran])
+  const extras = useMemo(() => extrasDone(c, codes, ran), [c, codes, ran])
   const points = [
     ...c.lesson.steps.map((step, i) => ({
       key: `step-${step.step}`,

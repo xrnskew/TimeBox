@@ -2,19 +2,31 @@ import { memo, useMemo, useState } from 'react'
 import { useApp, useController } from '@/app/context.ts'
 import { type ExtraState, extraStates, type LevelState, levelStates } from '@/core/levels.ts'
 import { type FnState, stepStates } from '@/core/progress.ts'
-import type { BuildTask, EditTask, GuideExtra, GuideStep, StepTask } from '@/lessons/types.ts'
+import type { BuildTask, EditTask, GuideExtra, GuideStep, RunTask, StepTask } from '@/lessons/types.ts'
 import { CodeBlock } from './CodeBlock.tsx'
-import { BulbIcon, CheckIcon, CodeIcon, HelpIcon, InsertIcon, LockIcon, TargetIcon, WarnIcon } from './icons.tsx'
+import {
+  BulbIcon,
+  CheckIcon,
+  CodeIcon,
+  FaceIcon,
+  HelpIcon,
+  LockIcon,
+  PlayIcon,
+  TargetIcon,
+  WarnIcon,
+} from './icons.tsx'
 import { Rich } from './Rich.tsx'
 import styles from './Guide.module.css'
 
-// Гайд заменяет презентацию: ученик идёт в своём темпе. После каждого шага — задание;
-// следующий шаг открывается, когда оно выполнено. Не размонтируется, чтобы помнить прокрутку.
+// Гайд заменяет презентацию: ученик идёт в своём темпе. Шаг — цепочка квестов: код собирается
+// кнопками «Добавить» по кусочкам прямо во вкладке. Следующий шаг открывается, когда выполнены все
+// квесты. Не размонтируется, чтобы помнить прокрутку.
 export function Guide() {
   const c = useController()
   const codes = useApp((s) => s.codes)
+  const ran = useApp((s) => s.ran)
   const { lesson } = c
-  const levels = useMemo(() => levelStates(lesson.steps, codes), [lesson, codes])
+  const levels = useMemo(() => levelStates(lesson.steps, codes, ran), [lesson, codes, ran])
   const allDone = levels.every((l) => l.done)
   const extras = useMemo(() => extraStates(lesson.extras, allDone, codes), [lesson, allDone, codes])
 
@@ -117,8 +129,10 @@ const StepItem = memo(function StepItem({
               Сделано
             </span>
           )}
-          {state === 'active' && (
-            <span className="chip chip--todo">{level.stepDone ? 'Осталось задание' : 'Не сделано'}</span>
+          {state === 'active' && level.current >= 0 && (
+            <span className="chip chip--todo">
+              Квест {level.current + 1} из {step.quests.length}
+            </span>
           )}
           {state === 'locked' && (
             <span className="chip chip--todo">
@@ -132,7 +146,7 @@ const StepItem = memo(function StepItem({
         </p>
 
         {state === 'locked' ? (
-          <p className={styles.lockedText}>Откроется, когда выполнишь задание шага {step.step - 1}.</p>
+          <p className={styles.lockedText}>Откроется, когда выполнишь квесты шага {step.step - 1}.</p>
         ) : (
           <>
             <ul className={styles.fns} aria-label={`Что должно быть во вкладке «${tabTitle}»`}>
@@ -145,19 +159,42 @@ const StepItem = memo(function StepItem({
               ))}
             </ul>
 
+            {/* квесты по одному: выполненные свёрнуты в строку, текущий раскрыт, следующие скрыты */}
+            <ol className={styles.quests} aria-label="Квесты">
+              {step.quests.map((task, j) =>
+                level.questsDone.slice(0, j).every(Boolean) ? (
+                  level.questsDone[j] && j !== step.quests.length - 1 ? (
+                    <li key={j} className={styles.questDone}>
+                      <CheckIcon size={13} />
+                      <span>{task.title}</span>
+                      <span className="visually-hidden"> — выполнено</span>
+                    </li>
+                  ) : (
+                    <li key={j}>
+                      <TaskBox
+                        stepIndex={index}
+                        taskIndex={j}
+                        task={task}
+                        count={step.quests.length}
+                        done={level.questsDone[j]}
+                        code={codes[task.tab]}
+                        next={level.done && step.step < total ? step.step + 1 : null}
+                      />
+                    </li>
+                  )
+                ) : null,
+              )}
+            </ol>
+
             <div className={styles.actions}>
-              <button type="button" className="key key--apple key--l" onClick={() => c.insertStep(index)}>
-                <InsertIcon size={16} />
-                Вставить в «{tabTitle}»
-              </button>
               <button
                 type="button"
-                className="key key--l"
+                className="key key--l key--ghost"
                 aria-expanded={showCode}
                 onClick={() => setShowCode(!showCode)}
               >
                 <CodeIcon size={16} />
-                {showCode ? 'Скрыть код' : 'Показать код'}
+                {showCode ? 'Скрыть готовый код' : 'Готовый код'}
               </button>
               <button
                 type="button"
@@ -182,34 +219,22 @@ const StepItem = memo(function StepItem({
             {showCode && (
               <div className={styles.code}>
                 <CodeBlock code={step.code} />
-                <p className={styles.aside}>Можно не вставлять, а перепечатать руками — так лучше запомнится.</p>
+                <p className={styles.aside}>
+                  Так будет выглядеть «{tabTitle}», когда соберёшь все кусочки. Можно перепечатать руками — так лучше
+                  запомнится.
+                </p>
               </div>
             )}
 
-            <ul className={styles.checks} aria-label="Проверь">
-              {step.checks.map((t, i) => (
-                <li key={i}>
-                  <Rich text={t} />
-                </li>
-              ))}
-            </ul>
-
-            {/* задания открываются по одному: следующее — когда выполнено предыдущее */}
-            {level.stepDone &&
-              step.tasks.map((task, j) =>
-                level.tasksDone.slice(0, j).every(Boolean) ? (
-                  <TaskBox
-                    key={j}
-                    stepIndex={index}
-                    taskIndex={j}
-                    task={task}
-                    count={step.tasks.length}
-                    done={level.tasksDone[j]}
-                    code={codes[task.tab]}
-                    next={level.done && j === step.tasks.length - 1 && step.step < total ? step.step + 1 : null}
-                  />
-                ) : null,
-              )}
+            {level.done && (
+              <ul className={styles.checks} aria-label="Проверь">
+                {step.checks.map((t, i) => (
+                  <li key={i}>
+                    <Rich text={t} />
+                  </li>
+                ))}
+              </ul>
+            )}
           </>
         )}
       </div>
@@ -217,7 +242,7 @@ const StepItem = memo(function StepItem({
   )
 })
 
-/** Задание после шага: «поправь сам» или «собери по частям». */
+/** Квест шага: «собери по кусочкам», «поправь сам» или «нажми «Собрать»». */
 function TaskBox({
   stepIndex,
   taskIndex,
@@ -237,9 +262,11 @@ function TaskBox({
   next: number | null
 }) {
   return (
-    <section className={styles.task} data-done={done} aria-label={`Задание: ${task.title}`}>
+    <section className={styles.task} data-done={done} aria-label={`Квест: ${task.title}`}>
       <div className={styles.taskHead}>
-        <span className={styles.taskLabel}>{count > 1 ? `Задание ${taskIndex + 1} из ${count}` : 'Задание'}</span>
+        <span className={styles.taskLabel}>
+          Квест {taskIndex + 1} из {count}
+        </span>
         <h3>{task.title}</h3>
         {done && (
           <span className="chip chip--ok">
@@ -251,12 +278,9 @@ function TaskBox({
       <p className={styles.taskText}>
         <Rich text={task.text} />
       </p>
-      {task.kind === 'edit' ? (
-        <EditTaskBody stepIndex={stepIndex} taskIndex={taskIndex} task={task} done={done} />
-      ) : (
-        <BuildTaskBody stepIndex={stepIndex} taskIndex={taskIndex} task={task} code={code} />
-      )}
-      {done && taskIndex < count - 1 && <p className={styles.unlocked}>Задание {taskIndex + 2} — ниже.</p>}
+      {task.kind === 'edit' && <EditTaskBody stepIndex={stepIndex} taskIndex={taskIndex} task={task} done={done} />}
+      {task.kind === 'build' && <BuildTaskBody stepIndex={stepIndex} taskIndex={taskIndex} task={task} code={code} />}
+      {task.kind === 'run' && <RunTaskBody task={task} done={done} />}
       {next && <p className={styles.unlocked}>Шаг {next} открыт — листай ниже.</p>}
     </section>
   )
@@ -284,8 +308,8 @@ function EditTaskBody({
           className={done ? 'key key--l' : 'key key--sun key--l'}
           onClick={() => c.openTask(stepIndex, taskIndex)}
         >
-          <TargetIcon size={15} />
-          Открыть «{tabTitle}»
+          {task.picker ? <FaceIcon size={16} /> : <TargetIcon size={15} />}
+          {task.picker ? `Выбрать смайлик в «${tabTitle}»` : `Открыть «${tabTitle}»`}
         </button>
         <button type="button" className="key key--l key--ghost" aria-expanded={hint} onClick={() => setHint(!hint)}>
           <BulbIcon size={15} />
@@ -348,6 +372,20 @@ function BuildTaskBody({
         </button>
       </div>
     </>
+  )
+}
+
+/** «Нажми «Собрать»»: та же кнопка, что в шапке. */
+function RunTaskBody({ task, done }: { task: RunTask; done: boolean }) {
+  const c = useController()
+  return (
+    <div className={styles.actions}>
+      <button type="button" className={done ? 'key key--l' : 'key key--apple key--l'} onClick={c.run}>
+        <PlayIcon size={15} />
+        Собрать
+      </button>
+      {!done && <span className={styles.aside}>{task.callout}</span>}
+    </div>
   )
 }
 

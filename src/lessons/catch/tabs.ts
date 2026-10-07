@@ -1,12 +1,12 @@
 import type { LessonVariant, TabDef } from '../types.ts'
 
-// Движок учебной версии — дословно из ТЗ. В нём нет строк bombEmoji и goldEmoji:
-// их ученик добавляет сам в заданиях про бомбу и звезду.
+// Движок учебной версии — из ТЗ, с двумя отличиями: смайлик героя ученик создаёт сам во вкладке
+// «Герой», а скорость героя — 0, её ученик ставит сам в квесте после движения. Строк bombEmoji
+// и goldEmoji тоже нет: их ученик добавляет в заданиях про бомбу и звезду.
 export const TUTORIAL_ENGINE = `// ===== НАСТРОЙКИ =====
-var playerSpeed = 6;
+var playerSpeed = 0;
 var fallSpeed   = 3;
 var spawnEvery  = 60;
-var playerEmoji = "🧺";
 var itemEmoji   = "🍎";
 
 // ===== СОСТОЯНИЕ ИГРЫ =====
@@ -60,19 +60,26 @@ export const BOMB_LINE = 'var bombEmoji   = "💣";'
 export const GOLD_LINE = 'var goldEmoji   = "🌟";'
 
 // ===== Код шагов гайда — базовая версия: только яблоки, +1 очко, скорость постоянная =====
+// Каждый шаг собирается кнопками по кусочкам (tasks.ts) и в итоге совпадает с этим кодом.
 
-export const STEP_HERO = `function movePlayer() {
-  if (keys["ArrowLeft"])  playerX = playerX - playerSpeed;
-  if (keys["ArrowRight"]) playerX = playerX + playerSpeed;
+/** Смайлик героя, с которого начинают. Квест «Выбери героя» — поменять его на свой. */
+export const HERO_EMOJI = '🙂'
 
-  // не даём корзине уехать за край поля
-  if (playerX < 0)   playerX = 0;
-  if (playerX > 340) playerX = 340;
-}
+export const STEP_HERO = `// герой — любой смайлик
+var playerEmoji = "${HERO_EMOJI}";
 
 function drawPlayer() {
   ctx.font = "34px serif";
   ctx.fillText(playerEmoji, playerX, playerY);
+}
+
+function movePlayer() {
+  if (keys["ArrowLeft"])  playerX = playerX - playerSpeed;
+  if (keys["ArrowRight"]) playerX = playerX + playerSpeed;
+
+  // не даём герою уехать за край поля
+  if (playerX < 0)   playerX = 0;
+  if (playerX > 340) playerX = 340;
 }`
 
 export const STEP_APPLES = `function moveItems() {
@@ -234,10 +241,12 @@ export const GOLD_CATCH = `function checkCatch() {
 
 // ===== Готовая версия (?finished): бомба, звезда, +10 очков, ускорение каждые 15 секунд до 8 =====
 
-const FINISHED_ENGINE = TUTORIAL_ENGINE.replace(
+const FINISHED_ENGINE = TUTORIAL_ENGINE.replace('var playerSpeed = 0;', 'var playerSpeed = 6;').replace(
   'var itemEmoji   = "🍎";',
   `var itemEmoji   = "🍎";\n${BOMB_LINE}\n${GOLD_LINE}`,
 )
+
+const FINISHED_HERO = STEP_HERO.replace(`"${HERO_EMOJI}"`, '"🧺"')
 
 // ===== Вкладки =====
 
@@ -250,26 +259,31 @@ export const TUTORIAL_TABS: TabDef[] = [
     title: 'Движок',
     note: 'Готовый движок: настройки, состояние игры и главный цикл. Настройки сверху можно менять.',
   },
-  { id: 'hero', title: 'Герой', step: 1, note: 'Шаг 1: корзина ездит стрелками и рисуется на холсте.' },
+  {
+    id: 'hero',
+    title: 'Герой',
+    step: 1,
+    note: 'Шаг 1: герой — смайлик, который рисуется на холсте и ездит стрелками.',
+  },
   { id: 'apples', title: 'Яблоки', step: 2, note: 'Шаг 2: яблоки появляются сверху и падают вниз.' },
   { id: 'catch', title: 'Поимка', step: 3, note: 'Шаг 3: поймал — очко, уронил — минус жизнь.' },
 ]
 
 export const TUTORIAL_CODES: string[] = [
   TUTORIAL_ENGINE,
-  placeholder(1, 'Здесь будут функции movePlayer и drawPlayer.'),
+  placeholder(1, 'Здесь будет твой герой: смайлик, drawPlayer и movePlayer.'),
   placeholder(2, 'Здесь будут функции moveItems и drawItems.'),
   placeholder(3, 'Здесь будет функция checkCatch.'),
 ]
 
 export const FINISHED_TABS: TabDef[] = [
   { id: 'engine', title: 'Движок', note: 'Настройки, состояние игры и главный цикл. Эмодзи и скорости можно менять.' },
-  { id: 'hero', title: 'Герой', note: 'Корзина: движение стрелками и отрисовка.' },
+  { id: 'hero', title: 'Герой', note: 'Корзина: смайлик, отрисовка и движение стрелками.' },
   { id: 'apples', title: 'Яблоки', note: 'Предметы: яблоко, бомба или звезда. Каждые 15 секунд всё падает быстрее.' },
   { id: 'catch', title: 'Поимка', note: 'Яблоко — 10 очков, бомба — минус жизнь, звезда — плюс жизнь.' },
 ]
 
-export const FINISHED_CODES: string[] = [FINISHED_ENGINE, STEP_HERO, GOLD_APPLES, GOLD_CATCH]
+export const FINISHED_CODES: string[] = [FINISHED_ENGINE, FINISHED_HERO, GOLD_APPLES, GOLD_CATCH]
 
 export const TUTORIAL: LessonVariant = {
   id: 'tutorial',
@@ -290,6 +304,6 @@ export const FINISHED: LessonVariant = {
     '💣 Бомба: поймал — минус жизнь, упустил — ничего страшного.',
     '🌟 Звезда: поймал — плюс жизнь.',
     'Каждые 15 секунд всё падает быстрее, но не быстрее скорости 8.',
-    'Эмодзи, скорости и частоту появления можно менять в «Движке».',
+    'Скорости, частоту появления и смайлики можно менять в «Движке» и «Герое».',
   ],
 }

@@ -26,7 +26,9 @@ import { classHighlighter } from '@lezer/highlight'
 import type { SyntaxIssue } from '@/core/syntax.ts'
 import type { HintSet } from '@/lessons/types.ts'
 import { hintCompletions, hintHover, syntaxLinter } from './assist.ts'
-import { codeSlots, type SlotSource } from './slots.ts'
+import { type EmojiSpot, emojiPickers } from './emoji.ts'
+import './emoji.css'
+import { codeSlots, refreshSlots, type SlotSource } from './slots.ts'
 import { editorTheme } from './theme.ts'
 
 // Один EditorView и по одному EditorState на вкладку. История отмены живёт в EditorState,
@@ -80,6 +82,8 @@ export interface TabEditorsOptions {
   onRun: () => void
   /** Куски, которые всплывают в коде вкладки с кнопкой «Добавить» (по одному источнику на вкладку). */
   slots?: (SlotSource | null)[]
+  /** Нажали «Сменить» у смайлика в открытой вкладке. */
+  onEmoji?: (tab: number, spot: EmojiSpot) => void
 }
 
 export interface TabEditors {
@@ -101,6 +105,14 @@ export interface TabEditors {
   select(line: number, from: number, to: number): void
   /** Прокрутить к строке, не трогая курсор и фокус. Вкладка должна быть открыта. */
   reveal(line: number): void
+  /** Заменить кусок [from, to) как правку ученика — отдельной записью в истории. Вкладка должна быть открыта. */
+  replaceRange(from: number, to: number, text: string): void
+  /** Позиция начала строки `line`, столбец `col` (с 0) — в открытой вкладке. */
+  posOf(line: number, col: number): number
+  /** Где на экране символ `pos` открытой вкладки; null — не виден. */
+  coordsAt(pos: number): { left: number; top: number; bottom: number } | null
+  /** Пересчитать всплывающие куски: квест мог смениться без правки в этой вкладке. */
+  refreshSlots(): void
   focus(): void
   destroy(): void
 }
@@ -150,6 +162,7 @@ export function createTabEditors(o: TabEditorsOptions): TabEditors {
       ...historyKeymap,
     ]),
     editorTheme,
+    emojiPickers((_, spot) => o.onEmoji?.(current, spot)),
     EditorView.contentAttributes.of({ 'aria-label': 'Код вкладки', spellcheck: 'false', autocapitalize: 'off' }),
     EditorView.updateListener.of((u) => {
       if (!u.docChanged) return
@@ -186,6 +199,7 @@ export function createTabEditors(o: TabEditorsOptions): TabEditors {
       scrollTops[current] = view.scrollDOM.scrollTop
       current = tab
       view.setState(states[tab])
+      view.dispatch({ effects: refreshSlots.of(null) })
       const top = scrollTops[tab]
       requestAnimationFrame(() => {
         view.scrollDOM.scrollTop = top
@@ -258,6 +272,25 @@ export function createTabEditors(o: TabEditorsOptions): TabEditors {
       const doc = view.state.doc
       const l = doc.line(Math.min(Math.max(line, 1), doc.lines))
       view.dispatch({ effects: EditorView.scrollIntoView(l.to, { y: 'center' }) })
+    },
+    replaceRange(from, to, text) {
+      view.dispatch({
+        changes: { from, to, insert: text },
+        selection: { anchor: from + text.length },
+        annotations: isolateHistory.of('full'),
+        userEvent: 'input.emoji',
+      })
+    },
+    posOf(line, col) {
+      const l = view.state.doc.line(Math.min(Math.max(line, 1), view.state.doc.lines))
+      return Math.min(l.from + col, l.to)
+    },
+    coordsAt(pos) {
+      const r = view.coordsAtPos(pos)
+      return r ? { left: r.left, top: r.top, bottom: r.bottom } : null
+    },
+    refreshSlots() {
+      view.dispatch({ effects: refreshSlots.of(null) })
     },
     focus() {
       view.focus()

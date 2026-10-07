@@ -41,8 +41,8 @@ export interface GuideStep {
   checks: Rich[]
   /** Функции, которые должны быть объявлены и не пустые. */
   fns: string[]
-  /** Задания после шага — открываются по одному. Следующий шаг откроется, когда выполнены все. */
-  tasks: StepTask[]
+  /** Квесты шага — открываются по одному. Следующий шаг откроется, когда выполнены все. */
+  quests: StepTask[]
 }
 
 /** Куда вставить кусок кода: после строки `after` (с 1). */
@@ -61,6 +61,8 @@ export interface EditTask {
   target: RegExp
   hint: Rich[]
   isDone: (code: string) => boolean
+  /** Меняется смайлик: кнопка в гайде сразу открывает окно выбора. */
+  picker?: boolean
 }
 
 /** Кусок функции, который добавляется кнопкой. */
@@ -78,9 +80,25 @@ export interface BuildTask {
   text: Rich
   tab: number
   pieces: BuildPiece[]
+  /** Уведомление, когда собраны все части. */
+  doneText: string
 }
 
-export type StepTask = EditTask | BuildTask
+/** Квест «нажми «Собрать»»: засчитан, когда последний запуск был уже с нужным кодом. */
+export interface RunTask {
+  kind: 'run'
+  title: string
+  text: Rich
+  tab: number
+  /** Подпись у подсвеченной кнопки «Собрать», пока квест не выполнен. */
+  callout: string
+  /** Уведомление, когда квест выполнен. */
+  doneText: string
+  /** Проверка по коду последнего запуска. */
+  isDone: (ranCodes: string[]) => boolean
+}
+
+export type StepTask = EditTask | BuildTask | RunTask
 
 export interface GuideExtra {
   n: number

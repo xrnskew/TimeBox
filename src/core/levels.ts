@@ -1,37 +1,50 @@
 import type { GuideExtra, GuideStep, StepTask } from '../lessons/types.ts'
 import { partDone, stepDone, varLine } from './progress.ts'
 
-// Уровни гайда: шаг + задания после него (по одному, по порядку). Следующий шаг открывается,
-// когда пройден предыдущий уровень. Всё считается по коду, поэтому после перезагрузки прогресс тот же.
+// Уровни гайда: шаг — цепочка квестов (по одному, по порядку). Следующий шаг открывается,
+// когда пройден предыдущий уровень. Всё считается по коду, поэтому после перезагрузки прогресс тот же:
+// квест «нажми «Собрать»» смотрит на код последнего запуска, а при загрузке игра запускается сама.
 
 export interface LevelState {
+  /** Функции шага объявлены и не пустые. */
   stepDone: boolean
-  /** Какие задания шага выполнены — по порядку. */
-  tasksDone: boolean[]
-  /** Все задания шага выполнены. */
-  taskDone: boolean
-  /** Шаг и все задания выполнены. */
+  /** Какие квесты шага выполнены — по порядку. */
+  questsDone: boolean[]
+  /** Первый невыполненный квест; -1 — все выполнены. Квесты после него пока скрыты. */
+  current: number
+  /** Шаг и все квесты выполнены. */
   done: boolean
-  /** Можно вставлять код шага. */
+  /** Шаг открыт. */
   unlocked: boolean
 }
 
-export function taskDone(task: StepTask, codes: string[]): boolean {
+/** Выполнен ли квест. `ran` — код последнего запуска (для квеста «нажми «Собрать»»). */
+export function questDone(task: StepTask, codes: string[], ran: string[]): boolean {
+  if (task.kind === 'run') return task.isDone(ran)
   const code = codes[task.tab]
   return task.kind === 'edit' ? task.isDone(code) : task.pieces.every((p) => p.isDone(code))
 }
 
-export function levelStates(steps: GuideStep[], codes: string[]): LevelState[] {
+export function levelStates(steps: GuideStep[], codes: string[], ran: string[] = codes): LevelState[] {
   const out: LevelState[] = []
   steps.forEach((step, i) => {
     const s = stepDone(codes[step.tab], step.fns)
-    const tasksDone = step.tasks.map((task) => s && taskDone(task, codes))
-    const t = tasksDone.every(Boolean)
-    // шаг, код которого уже есть, не прячем, даже если раньше что-то сломали
-    const unlocked = i === 0 || out[i - 1].done || s
-    out.push({ stepDone: s, tasksDone, taskDone: t, done: s && t, unlocked })
+    const questsDone = step.quests.map((q) => questDone(q, codes, ran))
+    const current = questsDone.indexOf(false)
+    // шаг, в котором что-то уже сделано, не прячем, даже если раньше что-то сломали
+    const unlocked = i === 0 || out[i - 1].done || questsDone.some(Boolean)
+    out.push({ stepDone: s, questsDone, current, done: s && current < 0, unlocked })
   })
   return out
+}
+
+/** Квест, который ученик делает сейчас: первый невыполненный в первом непройденном шаге. */
+export function currentQuest(steps: GuideStep[], levels: LevelState[]): { step: number; quest: number } | null {
+  const i = levels.findIndex((l) => !l.done)
+  if (i < 0 || !levels[i].unlocked) return null
+  const quest = levels[i].current
+  // все квесты выполнены, но функции шага сломаны — квеста нет, есть ошибка в коде
+  return quest < 0 || !steps[i].quests[quest] ? null : { step: i, quest }
 }
 
 export interface ExtraState {

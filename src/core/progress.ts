@@ -97,6 +97,31 @@ export function functionState(code: string, name: string): FnState {
   return body.trim() ? 'ok' : 'empty'
 }
 
+const lineAt = (src: string, index: number) => src.slice(0, index).split('\n').length
+
+/**
+ * Строки (с 1), где объявлена функция `name` и где её закрывающая }. Берётся последнее объявление.
+ * null — функции нет или она не закрыта.
+ */
+export function functionLines(code: string, name: string): { open: number; close: number } | null {
+  const src = stripComments(code)
+  const re = new RegExp(`\\bfunction\\s+${name}\\s*\\(`, 'g')
+  let start = -1
+  let paren = -1
+  for (let m = re.exec(src); m; m = re.exec(src)) {
+    start = m.index
+    paren = m.index + m[0].length - 1
+  }
+  if (start < 0) return null
+  const closeParen = matchBracket(src, paren)
+  if (closeParen < 0) return null
+  const open = src.indexOf('{', closeParen)
+  if (open < 0 || src.slice(closeParen + 1, open).trim() !== '') return null
+  const close = matchBracket(src, open)
+  if (close < 0) return null
+  return { open: lineAt(src, start), close: lineAt(src, close) }
+}
+
 export function stepStates(code: string, fns: string[]): { name: string; state: FnState }[] {
   return fns.map((name) => ({ name, state: functionState(code, name) }))
 }

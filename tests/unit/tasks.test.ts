@@ -1,7 +1,9 @@
 import { describe, expect, it } from 'vitest'
-import { extraStates, levelStates } from '@/core/levels.ts'
+import { currentQuest, extraStates, levelStates } from '@/core/levels.ts'
 import { checkFinishedPassword } from '@/core/lock.ts'
+import { functionLines } from '@/core/progress.ts'
 import { findSyntaxError } from '@/core/syntax.ts'
+import { isEmojiString } from '@/editor/emoji.ts'
 import { GUIDE_EXTRAS, GUIDE_STEPS } from '@/lessons/catch/guide.ts'
 import {
   BOMB_APPLES,
@@ -10,14 +12,29 @@ import {
   GOLD_APPLES,
   GOLD_CATCH,
   GOLD_LINE,
+  HERO_EMOJI,
   STEP_APPLES,
   STEP_CATCH,
   STEP_HERO,
   TUTORIAL_CODES,
   TUTORIAL_ENGINE,
 } from '@/lessons/catch/tabs.ts'
-import { BASKET_TASK, editTarget, ITEM_TASK, SPEEDUP_TASK, TEN_POINTS_TASK } from '@/lessons/catch/tasks.ts'
-import type { InsertPlan } from '@/lessons/types.ts'
+import {
+  CATCH_TASK,
+  editTarget,
+  HERO_CREATE_TASK,
+  HERO_DRAW_TASK,
+  HERO_MOVE_TASK,
+  HERO_PICK_TASK,
+  HERO_RUN_TASK,
+  ITEM_TASK,
+  ITEMS_DRAW_TASK,
+  ITEMS_MOVE_TASK,
+  SPEED_TASK,
+  SPEEDUP_TASK,
+  TEN_POINTS_TASK,
+} from '@/lessons/catch/tasks.ts'
+import type { BuildTask, InsertPlan } from '@/lessons/types.ts'
 import { boot } from './sim.ts'
 
 /** То же, что делает редактор: вставить текст после строки plan.after. */
@@ -27,120 +44,200 @@ function apply(code: string, plan: InsertPlan): string {
   return lines.join('\n')
 }
 
-const engineWith = (emoji: string, item = '🍎') =>
-  TUTORIAL_ENGINE.replace('var playerEmoji = "🧺";', `var playerEmoji = "${emoji}";`).replace(
+/** Собрать все части по порядку, как кнопками «Добавить». Каждая промежуточная версия — без ошибок. */
+function build(code: string, ...tasks: BuildTask[]): string {
+  for (const task of tasks)
+    for (const piece of task.pieces) {
+      expect(piece.isDone(code), piece.title).toBe(false)
+      const plan = piece.plan(code)
+      expect(plan, piece.title).not.toBeNull()
+      code = apply(code, plan!)
+      expect(piece.isDone(code), piece.title).toBe(true)
+      expect(findSyntaxError(code), piece.title).toBeNull()
+    }
+  return code
+}
+
+const engineWith = (speed = 0, item = '🍎') =>
+  TUTORIAL_ENGINE.replace('var playerSpeed = 0;', `var playerSpeed = ${speed};`).replace(
     'var itemEmoji   = "🍎";',
     `var itemEmoji   = "${item}";`,
   )
+const heroWith = (emoji: string) => STEP_HERO.replace(`"${HERO_EMOJI}"`, `"${emoji}"`)
 
-describe('задание шага 1: своя корзина', () => {
-  it('засчитано, только когда смайлик другой', () => {
-    expect(BASKET_TASK.isDone(TUTORIAL_ENGINE)).toBe(false)
-    expect(BASKET_TASK.isDone(engineWith('🐱'))).toBe(true)
-    expect(BASKET_TASK.isDone(engineWith(''))).toBe(false)
-    expect(BASKET_TASK.isDone(`// var playerEmoji = "🐱";\n${TUTORIAL_ENGINE}`)).toBe(false)
+describe('шаг 1: героя собирают по кусочкам', () => {
+  const start = TUTORIAL_CODES[1]
+
+  it('создать → нарисовать → движение: получается код шага', () => {
+    expect(build(start, HERO_CREATE_TASK, HERO_DRAW_TASK, HERO_MOVE_TASK)).toBe(`${start}\n\n${STEP_HERO}`)
   })
 
-  it('кнопка выделяет сам смайлик', () => {
-    const at = editTarget(TUTORIAL_ENGINE, BASKET_TASK.target)!
-    expect(at.line).toBe(5)
-    expect(TUTORIAL_ENGINE.split('\n')[4].slice(at.from, at.to)).toBe('🧺')
+  it('кусок встаёт в конец функции, перед её }', () => {
+    const shell = apply(start, HERO_DRAW_TASK.pieces[0].plan(start)!)
+    expect(functionLines(shell, 'drawPlayer')).toEqual({ open: 4, close: 5 })
+    expect(HERO_DRAW_TASK.pieces[1].plan(shell)).toMatchObject({ after: 4 })
+    // функции ещё нет или она в одну строку — места для куска нет
+    expect(HERO_DRAW_TASK.pieces[1].plan(start)).toBeNull()
+    expect(HERO_DRAW_TASK.pieces[1].plan('function drawPlayer() {}')).toBeNull()
+  })
+
+  it('«Выбери героя»: засчитано, только когда смайлик другой; кнопка выделяет смайлик', () => {
+    const hero = build(start, HERO_CREATE_TASK)
+    expect(HERO_PICK_TASK.isDone(hero)).toBe(false)
+    expect(HERO_PICK_TASK.isDone(hero.replace(HERO_EMOJI, '🐱'))).toBe(true)
+    expect(HERO_PICK_TASK.isDone(hero.replace(HERO_EMOJI, ''))).toBe(false)
+    const at = editTarget(hero, HERO_PICK_TASK.target)!
+    expect(hero.split('\n')[at.line - 1].slice(at.from, at.to)).toBe(HERO_EMOJI)
+  })
+
+  it('«Собери игру» засчитан по коду последнего запуска, а не по редактору', () => {
+    const drawn = build(start, HERO_CREATE_TASK, HERO_DRAW_TASK)
+    expect(HERO_RUN_TASK.isDone([TUTORIAL_ENGINE, start])).toBe(false)
+    expect(HERO_RUN_TASK.isDone([TUTORIAL_ENGINE, drawn])).toBe(true)
+  })
+
+  it('скорость в движке — 0: герой нарисован, но стоит, пока её не поменяют', () => {
+    expect(SPEED_TASK.isDone(TUTORIAL_ENGINE)).toBe(false)
+    expect(SPEED_TASK.isDone(engineWith(3))).toBe(true)
+    expect(SPEED_TASK.isDone(engineWith(2.5))).toBe(true)
+    const at = editTarget(TUTORIAL_ENGINE, SPEED_TASK.target)!
+    expect(TUTORIAL_ENGINE.split('\n')[at.line - 1].slice(at.from, at.to)).toBe('0')
+
+    const still = boot([TUTORIAL_ENGINE, heroWith('🐱'), TUTORIAL_CODES[2], TUTORIAL_CODES[3]])
+    still.key('ArrowRight', true)
+    still.tick(5)
+    expect(still.peek('playerX')).toBe(170)
+    expect(still.drawn).toContain('🐱')
+
+    const moving = boot([engineWith(3), heroWith('🐱'), TUTORIAL_CODES[2], TUTORIAL_CODES[3]])
+    moving.key('ArrowRight', true)
+    moving.tick(5)
+    expect(moving.peek('playerX')).toBe(170 + 3 * 5)
+  })
+
+  it('квесты идут по порядку, и текущий — первый невыполненный', () => {
+    const quest = (codes: string[], ran = codes) => currentQuest(GUIDE_STEPS, levelStates(GUIDE_STEPS, codes, ran))
+    const codes = [...TUTORIAL_CODES]
+    expect(quest(codes)).toEqual({ step: 0, quest: 0 })
+    codes[1] = build(start, HERO_CREATE_TASK)
+    expect(quest(codes)).toEqual({ step: 0, quest: 1 })
+    codes[1] = codes[1].replace(HERO_EMOJI, '🐱')
+    expect(quest(codes)).toEqual({ step: 0, quest: 2 })
+    codes[1] = build(codes[1], HERO_DRAW_TASK)
+    // нарисовали, но ещё не собирали
+    expect(quest(codes, TUTORIAL_CODES)).toEqual({ step: 0, quest: 3 })
+    expect(quest(codes)).toEqual({ step: 0, quest: 4 })
+    codes[1] = build(codes[1], HERO_MOVE_TASK)
+    expect(quest(codes)).toEqual({ step: 0, quest: 5 })
+    expect(levelStates(GUIDE_STEPS, codes)[1].unlocked).toBe(false)
+    codes[0] = engineWith(3)
+    expect(quest(codes)).toEqual({ step: 1, quest: 0 })
+    expect(levelStates(GUIDE_STEPS, codes)[0].done).toBe(true)
   })
 })
 
-describe('задание шага 2: «Всё быстрее» по частям', () => {
-  const [shell, cond, step, call] = SPEEDUP_TASK.pieces
+describe('шаг 2: яблоки по кусочкам', () => {
+  it('падают → рисуются: получается код шага', () => {
+    const start = TUTORIAL_CODES[2]
+    expect(build(start, ITEMS_MOVE_TASK, ITEMS_DRAW_TASK)).toBe(`${start}\n\n${STEP_APPLES}`)
+  })
 
-  it('части нельзя добавить раньше предыдущих', () => {
+  it('«Всё быстрее»: части нельзя добавить раньше предыдущих', () => {
+    const [, cond, step, call] = SPEEDUP_TASK.pieces
     expect(cond.plan(STEP_APPLES)).toBeNull()
     expect(step.plan(STEP_APPLES)).toBeNull()
     expect(call.plan(STEP_APPLES)).toBeNull()
   })
 
-  it('собранная функция работает: каждые 15 секунд быстрее, но не быстрее 8', () => {
-    let code = STEP_APPLES
-    for (const piece of SPEEDUP_TASK.pieces) {
-      expect(piece.isDone(code)).toBe(false)
-      code = apply(code, piece.plan(code)!)
-      expect(piece.isDone(code)).toBe(true)
-    }
-    expect(findSyntaxError(code)).toBeNull()
-    expect(shell.isDone(code) && cond.isDone(code) && step.isDone(code) && call.isDone(code)).toBe(true)
+  it('«Всё быстрее»: собранная функция ускоряет каждые 15 секунд, но не быстрее 8', () => {
+    const code = build(STEP_APPLES, SPEEDUP_TASK)
     expect(code).toContain('  frame = frame + 1;\n  speedUp();')
-
-    const sim = boot([engineWith('🐱'), STEP_HERO, code, STEP_CATCH])
+    const sim = boot([engineWith(3), heroWith('🐱'), code, STEP_CATCH])
     sim.peek('lives = 1000000')
     sim.tick(899)
     expect(sim.peek('fallSpeed')).toBe(4)
     sim.tick(900 * 10)
     expect(sim.peek('fallSpeed')).toBe(8)
   })
+
+  it('«Не только яблоки»: засчитано, только когда 🍎 заменили', () => {
+    expect(ITEM_TASK.isDone(TUTORIAL_ENGINE)).toBe(false)
+    expect(ITEM_TASK.isDone(engineWith(3, '🍩'))).toBe(true)
+    expect(ITEM_TASK.isDone(engineWith(3, ' '))).toBe(false)
+    const at = editTarget(TUTORIAL_ENGINE, ITEM_TASK.target)!
+    expect(TUTORIAL_ENGINE.split('\n')[at.line - 1].slice(at.from, at.to)).toBe('🍎')
+  })
 })
 
-describe('задание шага 3: десять очков', () => {
-  it('засчитано, когда яблоко даёт 10', () => {
+describe('шаг 3: поимка по кусочкам', () => {
+  it('получается код шага, и он работает', () => {
+    const start = TUTORIAL_CODES[3]
+    expect(build(start, CATCH_TASK)).toBe(`${start}\n\n${STEP_CATCH}`)
+  })
+
+  it('десять очков: засчитано, когда яблоко даёт 10; кнопка выделяет число', () => {
     expect(TEN_POINTS_TASK.isDone(STEP_CATCH)).toBe(false)
     expect(TEN_POINTS_TASK.isDone(STEP_CATCH.replace('score = score + 1;', 'score = score + 10;'))).toBe(true)
     expect(TEN_POINTS_TASK.isDone(STEP_CATCH.replace('score = score + 1;', 'score += 10;'))).toBe(true)
-  })
-
-  it('кнопка выделяет число очков', () => {
     const at = editTarget(STEP_CATCH, TEN_POINTS_TASK.target)!
     expect(STEP_CATCH.split('\n')[at.line - 1].slice(at.from, at.to)).toBe('1')
   })
 })
 
-describe('второй квест шага 2: не только яблоки', () => {
-  it('засчитано, только когда 🍎 заменили', () => {
-    expect(ITEM_TASK.isDone(TUTORIAL_ENGINE)).toBe(false)
-    expect(ITEM_TASK.isDone(engineWith('🧺', '🍩'))).toBe(true)
-    expect(ITEM_TASK.isDone(engineWith('🧺', ' '))).toBe(false)
-  })
-
-  it('кнопка выделяет смайлик яблока', () => {
-    const at = editTarget(TUTORIAL_ENGINE, ITEM_TASK.target)!
-    expect(TUTORIAL_ENGINE.split('\n')[at.line - 1].slice(at.from, at.to)).toBe('🍎')
-  })
-
-  it('шаг 2 пройден, только когда выполнены оба задания — по порядку', () => {
-    const withSpeed = [engineWith('🐱'), STEP_HERO, GOLD_APPLES, TUTORIAL_CODES[3]]
-    const l1 = levelStates(GUIDE_STEPS, withSpeed)[1]
-    expect(l1).toMatchObject({ stepDone: true, tasksDone: [true, false], done: false })
-    expect(levelStates(GUIDE_STEPS, withSpeed)[2].unlocked).toBe(false)
-    withSpeed[0] = engineWith('🐱', '🐟')
-    expect(levelStates(GUIDE_STEPS, withSpeed)[1].done).toBe(true)
-    expect(levelStates(GUIDE_STEPS, withSpeed)[2].unlocked).toBe(true)
-  })
-})
-
 describe('шаги открываются по очереди', () => {
+  const step1 = [engineWith(3), heroWith('🐱'), TUTORIAL_CODES[2], TUTORIAL_CODES[3]]
+
   it('в начале открыт только шаг 1', () => {
     expect(levelStates(GUIDE_STEPS, TUTORIAL_CODES).map((l) => l.unlocked)).toEqual([true, false, false])
   })
 
-  it('шаг 2 открывается после кода шага 1 и своей корзины', () => {
-    const codes = [TUTORIAL_ENGINE, STEP_HERO, TUTORIAL_CODES[2], TUTORIAL_CODES[3]]
-    expect(levelStates(GUIDE_STEPS, codes)[1].unlocked).toBe(false)
-    codes[0] = engineWith('🐱')
-    const levels = levelStates(GUIDE_STEPS, codes)
-    expect(levels[0]).toMatchObject({ stepDone: true, taskDone: true, done: true })
+  it('шаг 2 открывается, когда выполнены все квесты героя', () => {
+    expect(levelStates(GUIDE_STEPS, [TUTORIAL_ENGINE, ...step1.slice(1)])[1].unlocked).toBe(false)
+    const levels = levelStates(GUIDE_STEPS, step1)
+    expect(levels[0]).toMatchObject({ stepDone: true, current: -1, done: true })
     expect(levels[1].unlocked).toBe(true)
     expect(levels[2].unlocked).toBe(false)
+  })
+
+  it('шаг 2 пройден, только когда выполнены все его квесты', () => {
+    const codes = [step1[0], step1[1], GOLD_APPLES, TUTORIAL_CODES[3]]
+    expect(levelStates(GUIDE_STEPS, codes)[1]).toMatchObject({ questsDone: [true, true, true, false], done: false })
+    codes[0] = engineWith(3, '🐟')
+    expect(levelStates(GUIDE_STEPS, codes)[1].done).toBe(true)
+    expect(levelStates(GUIDE_STEPS, codes)[2].unlocked).toBe(true)
   })
 
   it('бомба и звезда закрыты, пока игра не собрана; звезда — ещё и до бомбы', () => {
     expect(extraStates(GUIDE_EXTRAS, false, TUTORIAL_CODES).map((x) => x.unlocked)).toEqual([false, false])
     expect(extraStates(GUIDE_EXTRAS, true, TUTORIAL_CODES).map((x) => x.unlocked)).toEqual([true, false])
-    const engine = `${engineWith('🐱')}\n${BOMB_LINE}`
+    const engine = `${engineWith(3)}\n${BOMB_LINE}`
     const withBomb = [engine, STEP_HERO, BOMB_APPLES, BOMB_CATCH]
     expect(extraStates(GUIDE_EXTRAS, true, withBomb).map((x) => x.unlocked)).toEqual([true, true])
     const withStar = [`${engine}\n${GOLD_LINE}`, STEP_HERO, GOLD_APPLES, GOLD_CATCH]
     expect(extraStates(GUIDE_EXTRAS, true, withStar).map((x) => x.done)).toEqual([true, true])
   })
 
-  it('код бомбы и звезды сохраняет ускорение и 10 очков', () => {
-    const levels = levelStates(GUIDE_STEPS, [engineWith('🐱', '🍩'), STEP_HERO, GOLD_APPLES, GOLD_CATCH])
+  it('код бомбы и звезды сохраняет все квесты яблок и поимки', () => {
+    const levels = levelStates(GUIDE_STEPS, [engineWith(3, '🍩'), heroWith('🐱'), GOLD_APPLES, GOLD_CATCH])
     expect(levels.every((l) => l.done)).toBe(true)
+  })
+})
+
+describe('кнопка «Сменить» у смайлика', () => {
+  it('есть у строки со смайликом и у переменной …Emoji, даже пустой', () => {
+    expect(isEmojiString('🐱', 'var playerEmoji = ')).toBe(true)
+    expect(isEmojiString('', 'var itemEmoji   = ')).toBe(true)
+    expect(isEmojiString('кот', 'var playerEmoji = ')).toBe(true)
+    expect(isEmojiString('❤️', 'x = ')).toBe(true)
+    expect(isEmojiString('👨‍🚀', '')).toBe(true)
+  })
+
+  it('нет у обычных строк', () => {
+    expect(isEmojiString('#141414', '  ctx.fillStyle = ')).toBe(false)
+    expect(isEmojiString('Счёт: ', '  ctx.fillText(')).toBe(false)
+    expect(isEmojiString('ArrowLeft', '  if (keys[')).toBe(false)
+    expect(isEmojiString('34px serif', '  ctx.font = ')).toBe(false)
+    expect(isEmojiString('1', '')).toBe(false)
   })
 })
 

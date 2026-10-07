@@ -38,7 +38,7 @@ describe('синтаксис', () => {
 
   it('незакрытая { функции в конце вкладки', () => {
     const issue = findSyntaxError(STEP_HERO.replace(/\}$/, ''))
-    expect(issue?.line).toBe(10)
+    expect(issue?.line).toBe(9)
     expect(issue?.message).toMatch(/открыта, но не закрыта/)
   })
 
@@ -172,10 +172,10 @@ describe('прогресс', () => {
 describe('строка настройки в «Движке»', () => {
   it('встаёт после последнего …Emoji', () => {
     const plan = planSettingInsert(TUTORIAL_ENGINE, 'bombEmoji', BOMB_LINE)
-    expect(plan).toEqual({ kind: 'insert', after: 6, text: BOMB_LINE })
+    expect(plan).toEqual({ kind: 'insert', after: 5, text: BOMB_LINE })
     const next = applySettingInsert(TUTORIAL_ENGINE, plan)
-    expect(next.split('\n')[6]).toBe(BOMB_LINE)
-    expect(planSettingInsert(next, 'bombEmoji', BOMB_LINE)).toEqual({ kind: 'exists', line: 7 })
+    expect(next.split('\n')[5]).toBe(BOMB_LINE)
+    expect(planSettingInsert(next, 'bombEmoji', BOMB_LINE)).toEqual({ kind: 'exists', line: 6 })
   })
 
   it('без эмодзи — после заголовка настроек, без заголовка — в начало', () => {

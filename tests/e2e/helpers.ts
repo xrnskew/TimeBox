@@ -33,12 +33,15 @@ export function game<T = unknown>(page: Page, expr: string): Promise<T> {
   }, expr)
 }
 
+/** Кнопка «Собрать» в шапке (в гайде есть такая же у квеста «Собери игру»). */
+export const runButton = (page: Page) => page.getByRole('banner').getByRole('button', { name: /^Собрать/ })
+
 export async function run(page: Page) {
   // каждый запуск — новый iframe: помечаем старый и ждём новый
   await page.evaluate(() => {
     ;(document.querySelector('iframe')!.contentWindow as Window & { __old?: number }).__old = 1
   })
-  await page.getByRole('button', { name: 'Собрать' }).click()
+  await runButton(page).click()
   await page.waitForFunction(() => {
     const w = document.querySelector('iframe')?.contentWindow as (Window & { __old?: number }) | null
     return !!w && !w.__old && w.document.readyState === 'complete'
@@ -55,56 +58,82 @@ export async function savedCodes(page: Page): Promise<string[]> {
   return page.evaluate((k) => JSON.parse(localStorage.getItem(k) ?? 'null'), KEY)
 }
 
-export async function insertStep(page: Page, n: number) {
+/** Кнопка квеста в гайде: шаг n, подпись кнопки. quest — дождаться, что в гайде уже этот квест. */
+export async function openQuest(page: Page, n: number, button: string | RegExp, quest?: string) {
   await tab(page, 'Гайд')
-  const tabTitle = ['Герой', 'Яблоки', 'Поимка'][n - 1]
-  await page
-    .locator(`#guide-step-${n}`)
-    .getByRole('button', { name: `Вставить в «${tabTitle}»` })
-    .click()
+  const step = page.locator(`#guide-step-${n}`)
+  const scope = quest ? step.getByRole('region', { name: `Квест: ${quest}` }) : step
+  await scope.getByRole('button', { name: button }).click()
 }
 
-/** Задание шага 1: заменить корзину в «Движке» — кнопка выделяет смайлик, печатаем новый. */
-export async function completeBasket(page: Page, emoji = '🐱') {
-  await tab(page, 'Гайд')
-  await page.locator('#guide-step-1').getByRole('button', { name: 'Открыть «Движок»' }).click()
-  await page.keyboard.type(emoji)
+/** Нажать «Добавить» у всплывающих в коде кусков `count` раз подряд. */
+export async function addPieces(page: Page, count: number) {
+  const add = page.locator('.cm-editor').getByRole('button', { name: /^Добавить:/ })
+  for (let i = 0; i < count; i++) await add.click()
 }
 
-/** Задание шага 2: собрать speedUp — кнопки «Добавить» всплывают прямо в коде «Яблок». */
+/** Выбрать смайлик в открытом окне выбора. */
+export async function pick(page: Page, emoji: string) {
+  await page.getByRole('dialog', { name: 'Выбери смайлик' }).getByRole('button', { name: emoji, exact: true }).click()
+}
+
+/** Шаг 1, квесты 1–4: создать героя, выбрать смайлик, нарисовать, собрать. */
+export async function drawHero(page: Page, emoji = '🐱') {
+  await openQuest(page, 1, 'Открыть «Герой»')
+  await addPieces(page, 1)
+  await page.locator('.cm-emojiPick').first().click()
+  await pick(page, emoji)
+  await addPieces(page, 3)
+  await run(page)
+}
+
+/** Шаг 1, квесты 5–6: движение по кусочкам и скорость в «Движке». */
+export async function moveHero(page: Page, speed = '3') {
+  await openQuest(page, 1, 'Открыть «Герой»', 'Научи героя ездить')
+  await addPieces(page, 4)
+  await openQuest(page, 1, 'Открыть «Движок»', 'Дай герою скорость')
+  await page.keyboard.type(speed)
+}
+
+/** Весь шаг 1. */
+export async function buildHero(page: Page, emoji = '🐱') {
+  await drawHero(page, emoji)
+  await moveHero(page)
+}
+
+/** Шаг 2, квесты 1–2: яблоки падают и рисуются. */
+export async function buildApples(page: Page) {
+  await openQuest(page, 2, 'Открыть «Яблоки»')
+  await addPieces(page, 4 + 3)
+}
+
+/** Шаг 2, квест 3: собрать speedUp — кнопки «Добавить» всплывают прямо в коде «Яблок». */
 export async function completeSpeedUp(page: Page) {
-  await tab(page, 'Гайд')
-  await page.locator('#guide-step-2').getByRole('button', { name: 'Открыть «Яблоки»' }).click()
-  for (let i = 0; i < 4; i++)
-    await page
-      .locator('.cm-editor')
-      .getByRole('button', { name: /^Добавить:/ })
-      .click()
+  await openQuest(page, 2, 'Открыть «Яблоки»', 'Всё быстрее')
+  await addPieces(page, 4)
   await expect(page.locator('.cm-editor').getByRole('button', { name: /^Добавить:/ })).toHaveCount(0)
 }
 
-/** Второй квест шага 2: заменить яблоко в «Движке» — кнопка выделяет 🍎, печатаем новый смайлик. */
+/** Шаг 2, квест 4: кнопка в гайде открывает окно смайликов у 🍎 в «Движке». */
 export async function completeItem(page: Page, emoji = '🍩') {
-  await tab(page, 'Гайд')
-  await page.locator('#guide-step-2').getByRole('button', { name: 'Открыть «Движок»' }).click()
-  await page.keyboard.type(emoji)
+  await openQuest(page, 2, 'Выбрать смайлик в «Движок»')
+  await pick(page, emoji)
 }
 
-/** Задание шага 3: десять очков — кнопка выделяет «1», печатаем «10». */
-export async function completeTenPoints(page: Page) {
-  await tab(page, 'Гайд')
-  await page.locator('#guide-step-3').getByRole('button', { name: 'Открыть «Поимка»' }).click()
+/** Шаг 3: собрать checkCatch и дать 10 очков — кнопка выделяет «1», печатаем «10». */
+export async function buildCatch(page: Page) {
+  await openQuest(page, 3, 'Открыть «Поимка»')
+  await addPieces(page, 4)
+  await openQuest(page, 3, 'Открыть «Поимка»', 'Десять очков')
   await page.keyboard.type('10')
 }
 
-/** Вся основная игра: три шага и четыре задания. */
+/** Вся основная игра: три шага со всеми квестами. */
 export async function buildGame(page: Page) {
-  await insertStep(page, 1)
-  await completeBasket(page)
-  await insertStep(page, 2)
+  await buildHero(page)
+  await buildApples(page)
   await completeSpeedUp(page)
   await completeItem(page)
-  await insertStep(page, 3)
-  await completeTenPoints(page)
+  await buildCatch(page)
   await tab(page, 'Гайд')
 }

@@ -24,24 +24,27 @@ describe('учебная версия', () => {
     const sim = boot(TUTORIAL_CODES)
     sim.tick()
     expect(sim.drawn).toEqual(['Счёт: 0', 'Жизни: 3'])
-    expect(TUTORIAL_ENGINE).not.toMatch(/bombEmoji|goldEmoji/)
+    expect(TUTORIAL_ENGINE).not.toMatch(/bombEmoji|goldEmoji|playerEmoji/)
+    expect(sim.peek('playerSpeed')).toBe(0)
   })
 
-  it('шаг 1: корзина ездит и не уезжает за край', () => {
-    const sim = boot([TUTORIAL_ENGINE, STEP_HERO, TUTORIAL_CODES[2], TUTORIAL_CODES[3]])
+  it('шаг 1: герой ездит и не уезжает за край', () => {
+    const engine = TUTORIAL_ENGINE.replace('var playerSpeed = 0;', 'var playerSpeed = 3;')
+    const sim = boot([engine, STEP_HERO, TUTORIAL_CODES[2], TUTORIAL_CODES[3]])
     sim.key('ArrowRight', true)
     sim.tick(2)
-    expect(sim.peek('playerX')).toBe(170 + 6 * 2)
+    expect(sim.peek('playerX')).toBe(170 + 3 * 2)
     sim.tick(100)
     expect(sim.peek('playerX')).toBe(340)
     sim.key('ArrowRight', false)
     sim.key('ArrowLeft', true)
-    sim.tick(100)
+    sim.tick(150)
     expect(sim.peek('playerX')).toBe(0)
   })
 
   it('шаги 2 и 3: яблоки падают, ловятся и роняются, игра кончается', () => {
-    const sim = boot([TUTORIAL_ENGINE, STEP_HERO, STEP_APPLES, STEP_CATCH])
+    const engine = TUTORIAL_ENGINE.replace('var playerSpeed = 0;', 'var playerSpeed = 3;')
+    const sim = boot([engine, STEP_HERO, STEP_APPLES, STEP_CATCH])
     sim.tick(60)
     expect(sim.peek<unknown[]>('items').length).toBe(1)
 
@@ -118,8 +121,14 @@ describe('бомба и звезда', () => {
 })
 
 describe('готовая версия', () => {
-  it('+10 очков, бомба, звезда', () => {
+  it('+10 очков, бомба, звезда; корзина ездит', () => {
     const sim = boot(FINISHED_CODES)
+    sim.tick()
+    expect(sim.drawn).toContain('🧺')
+    sim.key('ArrowLeft', true)
+    sim.tick()
+    expect(sim.peek('playerX')).toBe(164)
+    sim.key('ArrowLeft', false)
     sim.peek('items = [{ x: playerX, y: playerY, kind: "apple" }]')
     sim.tick()
     expect(sim.peek('score')).toBe(10)

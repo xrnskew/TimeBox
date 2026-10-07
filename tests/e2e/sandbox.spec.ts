@@ -1,19 +1,25 @@
 import { expect, test } from '@playwright/test'
 import {
+  addPieces,
   app,
+  buildApples,
   buildGame,
-  completeBasket,
+  buildHero,
   completeItem,
+  drawHero,
   game,
-  insertStep,
+  moveHero,
   open,
+  openQuest,
+  pick,
   run,
+  runButton,
   savedCodes,
   tab,
   waitGame,
 } from './helpers.ts'
 
-// Чек-лист из раздела 11 ТЗ + задания после шагов, бомба и звезда, пароль.
+// Чек-лист из раздела 11 ТЗ + квесты шагов, бомба и звезда, пароль.
 // Каждый тест — с чистым хранилищем (у каждого теста свой контекст браузера).
 
 test('1. игра уже крутится, вкладки шагов пустые, ошибок нет', async ({ page }) => {
@@ -27,17 +33,21 @@ test('1. игра уже крутится, вкладки шагов пусты�
   // сверху — название конструктора, в гайде — название игры
   await expect(page.getByRole('banner')).toContainText('TimeBox')
   await expect(page.getByRole('heading', { level: 1, name: 'Catch' })).toBeVisible()
-  await expect(page.getByRole('button', { name: 'Собрать' })).toBeVisible()
+  await expect(runButton(page)).toBeVisible()
+  await expect(runButton(page)).toHaveAttribute('data-dirty', 'false')
+  // кнопки «Вставить» весь шаг больше нет — только сборка по кусочкам
+  await expect(page.getByRole('button', { name: /^Вставить в/ })).toHaveCount(0)
   await expect(page.getByRole('navigation', { name: 'Прогресс' }).getByRole('button')).toHaveCount(5)
   await expect(page.getByRole('navigation', { name: 'Прогресс' })).toContainText('0/5')
   expect(errors).toEqual([])
 })
 
-test('2. шаг 1: корзина ездит стрелками, страница не прокручивается', async ({ page }) => {
+test('2. шаг 1: герой ездит стрелками, страница не прокручивается', async ({ page }) => {
   await open(page)
-  await insertStep(page, 1)
+  await drawHero(page, '🦊')
   await expect(page.getByRole('tab', { name: 'Герой' })).toHaveAttribute('aria-selected', 'true')
-  await expect(page.getByRole('status')).toContainText('Теперь нажми «Собрать»')
+  expect(await game(page, 'playerEmoji')).toBe('🦊')
+  await moveHero(page)
   await run(page)
   // игра забрала фокус сама
   await expect(page.getByText('Играем: жми')).toBeVisible()
@@ -49,7 +59,7 @@ test('2. шаг 1: корзина ездит стрелками, страниц�
   await expect(page.getByText('Играем: жми')).toBeVisible()
   const x0 = await game<number>(page, 'playerX')
   await page.keyboard.down('ArrowRight')
-  await page.waitForTimeout(300)
+  await page.waitForTimeout(600)
   await page.keyboard.up('ArrowRight')
   expect(await game<number>(page, 'playerX')).toBeGreaterThan(x0 + 30)
   // стрелки на корпусе не забирают фокус: «Кликни, чтобы играть» не всплывает
@@ -58,7 +68,7 @@ test('2. шаг 1: корзина ездит стрелками, страниц�
   const x1 = await game<number>(page, 'playerX')
   await page.mouse.move(box.x + box.width / 2, box.y + box.height / 2)
   await page.mouse.down()
-  await page.waitForTimeout(300)
+  await page.waitForTimeout(600)
   await expect(page.getByText('Кликни, чтобы играть')).toHaveCount(0)
   await page.mouse.up()
   expect(await game<number>(page, 'playerX')).toBeGreaterThan(x1 + 30)
@@ -67,37 +77,114 @@ test('2. шаг 1: корзина ездит стрелками, страниц�
   await expect(page.getByRole('tab', { name: 'Герой' })).toHaveAccessibleName(/шаг сделан/)
 })
 
-test('шаги открываются по очереди: сначала задание', async ({ page }) => {
+test('шаг 1 по квестам: смайлик из окна, подсветка «Собрать», скорость 0', async ({ page }) => {
   await open(page)
+  const step1 = page.locator('#guide-step-1')
   const step2 = page.locator('#guide-step-2')
   await expect(step2).toHaveAttribute('data-state', 'locked')
-  await expect(step2.getByRole('button', { name: /^Вставить/ })).toHaveCount(0)
+  // виден только текущий квест
+  await expect(step1.getByRole('region', { name: /^Квест:/ })).toHaveCount(1)
+  await expect(step1.getByRole('region', { name: 'Квест: Создай героя' })).toBeVisible()
 
-  await insertStep(page, 1)
+  // 1. создать героя: кусок всплывает в «Герое»
+  await openQuest(page, 1, 'Открыть «Герой»')
+  await expect(page.locator('.cm-editor').getByRole('button', { name: 'Добавить: Смайлик героя' })).toBeVisible()
+  await addPieces(page, 1)
+  await expect(page.getByRole('status')).toContainText('Герой создан')
+  await expect(runButton(page)).toHaveAttribute('data-dirty', 'true')
+
+  // 2. выбрать героя: кнопка в гайде сразу открывает окно у смайлика
+  await openQuest(page, 1, 'Выбрать смайлик в «Герой»')
+  const picker = page.getByRole('dialog', { name: 'Выбери смайлик' })
+  await expect(picker).toBeVisible()
+  await expect(picker.getByRole('button', { pressed: true })).toHaveCount(0)
+  await pick(page, '🦊')
+  await expect(picker).toHaveCount(0)
+  expect((await savedCodes(page))[1]).toContain('var playerEmoji = "🦊";')
+  await expect(page.getByRole('status')).toContainText('Квест «Выбери героя» выполнен')
+
+  // 3. нарисовать: после последнего куска всё темнеет, «Собрать» светится поверх
+  await addPieces(page, 3)
+  await expect(runButton(page)).toHaveAttribute('data-spot', 'true')
+  await expect(runButton(page)).toBeFocused()
+  await expect(page.locator('#run-callout')).toContainText('Нажми «Собрать»')
+  await page.keyboard.press('Escape')
+  await expect(runButton(page)).toHaveAttribute('data-spot', 'false')
+  // закрыли подсветку — кнопка просто подпрыгивает
+  await expect(runButton(page)).toHaveAttribute('data-dirty', 'true')
+
+  // 4. собрать: герой на экране, изменений нет
+  await run(page)
+  await expect(page.getByRole('status')).toContainText('Вот твой герой')
+  await expect(runButton(page)).toHaveAttribute('data-dirty', 'false')
+  await expect(runButton(page)).toHaveAttribute('data-spot', 'false')
+
+  // 5. движение по кусочкам — но скорость в «Движке» 0, герой стоит
+  await openQuest(page, 1, 'Открыть «Герой»')
+  await addPieces(page, 4)
+  await expect(page.getByRole('status')).toContainText('скорость playerSpeed — 0')
+  await run(page)
+  await page.locator('iframe').click()
+  await page.keyboard.down('ArrowRight')
+  await page.waitForTimeout(200)
+  await page.keyboard.up('ArrowRight')
+  expect(await game(page, 'playerX')).toBe(170)
   await tab(page, 'Гайд')
-  await expect(page.locator('#guide-step-1')).toContainText('Осталось задание')
   await expect(step2).toHaveAttribute('data-state', 'locked')
 
-  // кнопка открывает «Движок» и выделяет корзину — печатаем новый смайлик
-  await completeBasket(page)
-  expect((await savedCodes(page))[0]).toContain('var playerEmoji = "🐱";')
+  // 6. скорость: кнопка выделяет 0, печатаем 3
+  await openQuest(page, 1, 'Открыть «Движок»')
+  await page.keyboard.type('3')
+  expect((await savedCodes(page))[0]).toContain('var playerSpeed = 3;')
+  await expect(page.getByRole('status')).toContainText('Шаг 2 открыт')
   await tab(page, 'Гайд')
-  await expect(page.locator('#guide-step-1')).toHaveAttribute('data-state', 'done')
+  await expect(step1).toHaveAttribute('data-state', 'done')
   await expect(step2).toHaveAttribute('data-state', 'active')
   await expect(page.locator('#guide-step-3')).toHaveAttribute('data-state', 'locked')
   await expect(page.getByRole('navigation', { name: 'Прогресс' })).toContainText('1/5')
+  // подсветка была один раз: дальше «Собрать» только подпрыгивает
+  await expect(runButton(page)).toHaveAttribute('data-dirty', 'true')
+  await expect(runButton(page)).toHaveAttribute('data-spot', 'false')
+})
+
+test('«Сменить» у смайлика в коде: окно закрывается по Escape и клику мимо', async ({ page }) => {
+  await open(page)
+  await tab(page, 'Движок')
+  const pickBtn = page.locator('.cm-editor').getByRole('button', { name: 'Сменить смайлик' })
+  // в «Движке» смайлик один — 🍎
+  await expect(pickBtn).toHaveCount(1)
+  const picker = page.getByRole('dialog', { name: 'Выбери смайлик' })
+  await pickBtn.click()
+  await expect(picker.getByRole('button', { name: '🍎', exact: true })).toHaveAttribute('aria-pressed', 'true')
+  await page.keyboard.press('Escape')
+  await expect(picker).toHaveCount(0)
+  await pickBtn.click()
+  await page.getByText('Готовый движок').click()
+  await expect(picker).toHaveCount(0)
+  await pickBtn.click()
+  await pick(page, '🍩')
+  expect((await savedCodes(page))[0]).toContain('var itemEmoji   = "🍩";')
+  // это правка ученика: Ctrl+Z возвращает 🍎
+  await page.keyboard.press('ControlOrMeta+z')
+  expect((await savedCodes(page))[0]).toContain('var itemEmoji   = "🍎";')
+  await expect(runButton(page)).toHaveAttribute('data-dirty', 'false')
+  await pickBtn.click()
+  await pick(page, '🍩')
+  await expect(runButton(page)).toHaveAttribute('data-dirty', 'true')
+  await run(page)
+  expect(await game(page, 'itemEmoji')).toBe('🍩')
+  await expect(runButton(page)).toHaveAttribute('data-dirty', 'false')
 })
 
 test('«Всё быстрее»: части функции всплывают в коде «Яблок» и добавляются по очереди', async ({ page }) => {
   await open(page)
-  await insertStep(page, 1)
-  await completeBasket(page)
-  await insertStep(page, 2)
+  await buildHero(page)
+  await buildApples(page)
   // в гайде кнопок нет — только какие части на месте и переход во вкладку
   await tab(page, 'Гайд')
   const guideTask = page.locator('#guide-step-2')
-  // второй квест прячется, пока не собрано ускорение
-  await expect(guideTask.getByRole('region', { name: /^Задание:/ })).toHaveCount(1)
+  // следующий квест прячется, пока не собрано ускорение
+  await expect(guideTask.getByRole('region', { name: /^Квест:/ })).toHaveCount(1)
   await expect(guideTask.getByRole('button', { name: /^Добавить:/ })).toHaveCount(0)
   await expect(guideTask.getByRole('list', { name: 'Части функции' }).getByRole('listitem')).toHaveCount(4)
 
@@ -114,12 +201,12 @@ test('«Всё быстрее»: части функции всплывают в
     await expect(add).toHaveCount(1)
     await expect(add).toHaveAccessibleName(`Добавить: ${t}`)
     if (t === titles[3]) {
-      // кусок стоит под строкой «frame = frame + 1;», и номера строк ниже не съехали
+      // кусок стоит под строкой «frame = frame + 1;» (5-я), и номера строк ниже не съехали
       const off = await page.evaluate(() => {
         const g = [...document.querySelectorAll('.cm-lineNumbers .cm-gutterElement')].find(
-          (e) => e.textContent === '5',
+          (e) => e.textContent === '6',
         )!
-        const l = document.querySelectorAll('.cm-line')[4]
+        const l = document.querySelectorAll('.cm-line')[5]
         return Math.abs(g.getBoundingClientRect().top - l.getBoundingClientRect().top)
       })
       expect(off).toBeLessThan(1)
@@ -137,7 +224,7 @@ test('«Всё быстрее»: части функции всплывают в
   await tab(page, 'Гайд')
   const step2 = page.locator('#guide-step-2')
   await expect(step2).toHaveAttribute('data-state', 'active')
-  await expect(step2.getByRole('region', { name: 'Задание: Не только яблоки' })).toContainText('Задание 2 из 2')
+  await expect(step2.getByRole('region', { name: 'Квест: Не только яблоки' })).toContainText('Квест 4 из 4')
   await expect(page.locator('#guide-step-3')).toHaveAttribute('data-state', 'locked')
   await completeItem(page, '🐟')
   expect((await savedCodes(page))[0]).toContain('var itemEmoji   = "🐟";')
@@ -189,9 +276,9 @@ test('4. сломанная скобка и ошибка выполнения: �
   await page.keyboard.press('Shift+Home')
   await page.keyboard.press('Backspace')
   await page.keyboard.press('Backspace')
-  await page.getByRole('button', { name: 'Собрать' }).click()
+  await runButton(page).click()
   const bar = page.getByRole('alert')
-  await expect(bar).toContainText('Ошибка во вкладке «Поимка», строка 2: скобка { открыта, но не закрыта')
+  await expect(bar).toContainText('Ошибка во вкладке «Поимка», строка 5: скобка { открыта, но не закрыта')
   await expect(page.locator('iframe').locator('xpath=..')).toHaveAttribute('data-game', 'blocked')
   expect(await page.evaluate(() => !!document.activeElement?.closest('.cm-editor'))).toBe(true)
   await expect(page.getByRole('tab', { name: 'Поимка' })).toHaveAccessibleName(/ошибка/)
@@ -206,7 +293,7 @@ test('4. сломанная скобка и ошибка выполнения: �
   await page.keyboard.type('drawBasket();')
   await page.keyboard.press('Escape')
   await run(page)
-  await expect(bar).toContainText('Ошибка во вкладке «Герой», строка 14: drawBasket не найдено')
+  await expect(bar).toContainText('Ошибка во вкладке «Герой», строка 20: drawBasket не найдено')
   await bar.getByRole('button', { name: 'Показать' }).click()
   await expect(page.getByRole('tab', { name: 'Герой' })).toHaveAttribute('aria-selected', 'true')
   await expect(page.locator('.cm-errorLine')).toHaveCount(1)
@@ -214,7 +301,7 @@ test('4. сломанная скобка и ошибка выполнения: �
 
 test('5–7. сохранение, сброс вкладки не трогает движок, Ctrl+Z и Ctrl+Shift+Z', async ({ page }) => {
   await open(page)
-  await insertStep(page, 1)
+  await drawHero(page)
   // настройка в «Движке»: playerSpeed = 9
   await tab(page, 'Движок')
   await page.locator('.cm-content').click()
@@ -230,7 +317,7 @@ test('5–7. сохранение, сброс вкладки не трогает
   await expect(page.locator('.cm-editor')).toHaveCount(1)
   let codes = await savedCodes(page)
   expect(codes[0]).toContain('var playerSpeed = 9;')
-  expect(codes[1]).toContain('function movePlayer()')
+  expect(codes[1]).toContain('function drawPlayer()')
 
   await tab(page, 'Герой')
   await page.getByRole('button', { name: 'Сбросить вкладку' }).click()
@@ -239,15 +326,15 @@ test('5–7. сохранение, сброс вкладки не трогает
   await dialog.getByRole('button', { name: 'Сбросить вкладку' }).click()
   await expect(dialog).toBeHidden()
   codes = await savedCodes(page)
-  expect(codes[1]).not.toContain('function movePlayer()')
+  expect(codes[1]).not.toContain('function drawPlayer()')
   expect(codes[0]).toContain('var playerSpeed = 9;')
 
   // фокус вернулся в редактор — Ctrl+Z работает сразу
   expect(await page.evaluate(() => !!document.activeElement?.closest('.cm-editor'))).toBe(true)
   await page.keyboard.press('ControlOrMeta+z')
-  expect((await savedCodes(page))[1]).toContain('function movePlayer()')
+  expect((await savedCodes(page))[1]).toContain('function drawPlayer()')
   await page.keyboard.press('ControlOrMeta+Shift+z')
-  expect((await savedCodes(page))[1]).not.toContain('function movePlayer()')
+  expect((await savedCodes(page))[1]).not.toContain('function drawPlayer()')
 })
 
 test('сброс движка: отдельное предупреждение, фокус на «Отмене»', async ({ page }) => {
@@ -277,8 +364,8 @@ test('8. бомба и звезда: закрыты до сборки игры, 
   await bomb.getByRole('button', { name: setting }).click()
   let codes = await savedCodes(page)
   const lines = codes[0].split('\n')
-  expect(lines[6]).toBe('var bombEmoji   = "💣";')
-  expect(lines[4]).toBe('var playerEmoji = "🐱";')
+  expect(lines[5]).toBe('var bombEmoji   = "💣";')
+  expect(lines[4]).toBe('var itemEmoji   = "🍩";')
   await expect(page.getByRole('status')).toContainText('Остальные настройки на месте')
 
   // повторно — «уже есть», без кнопки отмены
@@ -319,8 +406,7 @@ test('8. бомба и звезда: закрыты до сборки игры, 
 
 test('9. «Сбросить всё»: без слова кнопка неактивна, «Вернуть как было» возвращает код', async ({ page }) => {
   await open(page)
-  await insertStep(page, 1)
-  await completeBasket(page)
+  await drawHero(page)
   await page.getByRole('button', { name: 'Сбросить всё' }).click()
   const dialog = page.getByRole('dialog')
   const confirm = dialog.getByRole('button', { name: 'Сбросить всё' })
@@ -332,12 +418,12 @@ test('9. «Сбросить всё»: без слова кнопка неакт�
   await confirm.click()
   await expect(page.getByRole('tab', { name: 'Гайд' })).toHaveAttribute('aria-selected', 'true')
   let codes = await savedCodes(page)
-  expect(codes[1]).not.toContain('movePlayer()')
-  expect(codes[0]).toContain('var playerEmoji = "🧺";')
+  expect(codes[1]).not.toContain('drawPlayer()')
+  expect(codes[1]).not.toContain('playerEmoji')
   await page.getByRole('status').getByRole('button', { name: 'Вернуть как было' }).click()
   codes = await savedCodes(page)
-  expect(codes[1]).toContain('function movePlayer()')
-  expect(codes[0]).toContain('var playerEmoji = "🐱";')
+  expect(codes[1]).toContain('function drawPlayer()')
+  expect(codes[1]).toContain('var playerEmoji = "🐱";')
 })
 
 test('10. ширина 375px: нет горизонтальной прокрутки', async ({ page }) => {
@@ -369,8 +455,7 @@ test('11. без сети: запросов наружу нет, шрифты з
     if (r.status() >= 400) failed.push(`${r.status()} ${r.url()}`)
   })
   await open(page)
-  await insertStep(page, 1)
-  await run(page)
+  await drawHero(page)
   expect(
     await page.evaluate(
       async () => (await document.fonts.ready, [...document.fonts].filter((f) => f.status === 'loaded').length),
@@ -421,9 +506,8 @@ test('живая проверка синтаксиса: значок и подч
 
 test('консоль, «Приборы», 60 кадров и «Границы»', async ({ page }) => {
   await open(page)
-  await insertStep(page, 1)
-  await completeBasket(page)
-  await insertStep(page, 2)
+  await buildHero(page)
+  await buildApples(page)
   await tab(page, 'Герой')
   await page.locator('.cm-content').click()
   await page.keyboard.press('ControlOrMeta+End')
@@ -460,16 +544,17 @@ test('гайд: код, объяснение и подсказка открыв�
   await open(page)
   const step = page.locator('#guide-step-1')
   await expect(step.locator('pre')).toHaveCount(0)
-  await step.getByRole('button', { name: 'Показать код' }).click()
+  await step.getByRole('button', { name: 'Готовый код' }).click()
   await expect(step.locator('pre')).toContainText('function movePlayer()')
-  await step.getByRole('button', { name: 'Скрыть код' }).click()
+  await step.getByRole('button', { name: 'Скрыть готовый код' }).click()
   await expect(step.locator('pre')).toHaveCount(0)
   await step.getByRole('button', { name: 'Как это работает' }).click()
-  await expect(step).toContainText('корзина — это просто буква')
-  await insertStep(page, 1)
+  await expect(step).toContainText('герой — это просто буква')
+  await openQuest(page, 1, 'Открыть «Герой»')
+  await addPieces(page, 1)
   await tab(page, 'Гайд')
   await step.getByRole('button', { name: 'Подсказка' }).click()
-  await expect(step).toContainText('var playerEmoji = "🧺";')
+  await expect(step).toContainText('var playerEmoji = "🙂";')
 })
 
 test('готовая игра под паролем: из гайда и по прямой ссылке', async ({ page, context }) => {
@@ -505,7 +590,7 @@ test('готовая игра под паролем: из гайда и по п�
   expect(await direct.evaluate(() => localStorage.getItem('catch-sandbox-v1'))).toBeNull()
 })
 
-test('телефон: экранные стрелки двигают корзину, холст чёткий, а для кода — 380 × 470', async ({ browser }) => {
+test('телефон: экранные стрелки двигают героя, холст чёткий, а для кода — 380 × 470', async ({ browser }) => {
   const ctx = await browser.newContext({
     viewport: { width: 375, height: 812 },
     deviceScaleFactor: 2,
@@ -515,7 +600,9 @@ test('телефон: экранные стрелки двигают корзи�
   const page = await ctx.newPage()
   await open(page)
   expect(await page.evaluate(() => document.documentElement.scrollWidth)).toBeLessThanOrEqual(375)
-  await insertStep(page, 1)
+  await drawHero(page)
+  await page.screenshot({ path: 'test-results/shots/375-hero.png' })
+  await moveHero(page)
   await run(page)
   expect(await game(page, '[canvas.width, canvas.height]')).toEqual([380, 470])
   expect(
@@ -525,7 +612,7 @@ test('телефон: экранные стрелки двигают корзи�
   await expect(right).toBeVisible()
   const x0 = await game<number>(page, 'playerX')
   await right.dispatchEvent('pointerdown')
-  await page.waitForTimeout(300)
+  await page.waitForTimeout(600)
   await right.dispatchEvent('pointerup')
   const x1 = await game<number>(page, 'playerX')
   expect(x1).toBeGreaterThan(x0 + 30)

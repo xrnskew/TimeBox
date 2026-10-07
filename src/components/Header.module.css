@@ -163,8 +163,152 @@
   margin-bottom: 0;
 }
 
+.runWrap {
+  position: relative;
+  display: inline-flex;
+}
+
 .run {
   padding: 0 18px 0 20px;
+}
+
+/* ===== Есть несобранные изменения: кнопка подпрыгивает и вокруг неё пульсирует кольцо ===== */
+.run::after {
+  content: '';
+  position: absolute;
+  inset: -5px;
+  border: 2px solid var(--sun);
+  border-radius: 18px;
+  opacity: 0;
+  pointer-events: none;
+}
+
+.run[data-dirty='true'] {
+  animation: nudge 2.6s ease-in-out infinite;
+}
+
+.run[data-dirty='true']::after {
+  animation: ring 2.6s ease-out infinite;
+}
+
+/* translate, а не transform: transform занят нажатием клавиши */
+@keyframes nudge {
+  0%,
+  64%,
+  100% {
+    translate: 0 0;
+  }
+  70% {
+    translate: 0 -6px;
+  }
+  76% {
+    translate: 0 0;
+  }
+  81% {
+    translate: 0 -2px;
+  }
+  86% {
+    translate: 0 0;
+  }
+}
+
+@keyframes ring {
+  0%,
+  62% {
+    opacity: 0;
+    scale: 0.96;
+  }
+  72% {
+    opacity: 1;
+  }
+  100% {
+    opacity: 0;
+    scale: 1.12;
+  }
+}
+
+/* ===== Квест «Собери игру»: всё темнеет, кнопка светится поверх ===== */
+.dim {
+  position: fixed;
+  z-index: 40;
+  inset: 0;
+  background: rgba(7, 8, 11, 0.8);
+  animation: dim-in 0.35s ease-out;
+}
+
+.run[data-spot='true'] {
+  z-index: 41;
+  box-shadow:
+    0 var(--key-depth) 0 var(--key-edge),
+    0 0 0 4px var(--sun),
+    0 0 48px 10px rgba(255, 200, 58, 0.42);
+  animation: nudge 1.8s ease-in-out infinite;
+}
+
+.callout {
+  position: absolute;
+  z-index: 41;
+  top: calc(100% + 18px);
+  right: 0;
+  width: max-content;
+  max-width: min(320px, calc(100vw - 32px));
+  padding: 14px 14px 10px 18px;
+  border-radius: 18px;
+  background: var(--sun);
+  color: #151a23;
+  box-shadow: var(--shadow-pop);
+  animation: callout-in 0.35s cubic-bezier(0.2, 0.8, 0.3, 1) 0.15s backwards;
+}
+
+/* хвостик к кнопке */
+.callout::before {
+  content: '';
+  position: absolute;
+  top: -7px;
+  right: 46px;
+  width: 16px;
+  height: 16px;
+  border-radius: 3px;
+  background: var(--sun);
+  rotate: 45deg;
+}
+
+.callout p {
+  margin: 0;
+  font-size: var(--text-m);
+  font-weight: 600;
+  line-height: 1.4;
+}
+
+.callout :global(.key) {
+  --key-ink: #151a23;
+  --key-bg-hover: rgba(0, 0, 0, 0.08);
+  margin: 6px 0 0 -11px;
+}
+
+@keyframes dim-in {
+  from {
+    opacity: 0;
+  }
+}
+
+@keyframes callout-in {
+  from {
+    opacity: 0;
+    translate: 0 8px;
+  }
+}
+
+@media (prefers-reduced-motion: reduce) {
+  .run[data-dirty='true'],
+  .run[data-spot='true'] {
+    animation: none;
+  }
+
+  .run[data-dirty='true']::after {
+    animation: none;
+    opacity: 1;
+  }
 }
 
 .shortcut {
@@ -205,10 +349,13 @@
     display: contents;
   }
 
-  .run {
+  .runWrap {
     order: 1;
-    min-height: 44px;
     margin-left: auto;
+  }
+
+  .run {
+    min-height: 44px;
     padding: 0 14px;
     font-size: 15px;
   }

@@ -234,9 +234,29 @@
   border-radius: 4px;
 }
 
-/* ===== Задание после шага ===== */
+/* ===== Квесты шага: выполненные — строкой с галочкой, текущий — карточкой ===== */
+.quests {
+  display: grid;
+  gap: 6px;
+  margin: 18px 0 0;
+  padding: 0;
+  list-style: none;
+}
+
+.questDone {
+  display: flex;
+  align-items: center;
+  gap: 9px;
+  padding: 7px 14px;
+  border-radius: 12px;
+  background: var(--leaf-soft);
+  color: var(--leaf);
+  font-size: 14px;
+  font-weight: 600;
+}
+
 .task {
-  margin-top: 22px;
+  margin-top: 4px;
   padding: 18px 18px 14px;
   border: 1px solid #4a3d12;
   border-radius: 18px;

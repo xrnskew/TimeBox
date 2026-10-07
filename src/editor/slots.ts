@@ -1,5 +1,5 @@
 import type { EditorState } from '@codemirror/state'
-import { StateField } from '@codemirror/state'
+import { StateEffect, StateField } from '@codemirror/state'
 import { Decoration, type DecorationSet, EditorView, WidgetType } from '@codemirror/view'
 import './slots.css'
 
@@ -21,6 +21,9 @@ export interface CodeSlot {
 
 /** По коду вкладки — какой кусок предложить сейчас (или ничего). */
 export type SlotSource = (code: string) => CodeSlot | null
+
+/** Пересчитать кусок без правки: квест сменился из-за другой вкладки или запуска. */
+export const refreshSlots = StateEffect.define<null>()
 
 const PLUS =
   '<svg width="13" height="13" viewBox="0 0 16 16" aria-hidden="true"><path d="M8 2.5v11M2.5 8h11" stroke="currentColor" stroke-width="2.2" stroke-linecap="round"/></svg>'
@@ -87,7 +90,7 @@ export function codeSlots(source: SlotSource) {
   }
   return StateField.define<DecorationSet>({
     create: build,
-    update: (deco, tr) => (tr.docChanged ? build(tr.state) : deco),
+    update: (deco, tr) => (tr.docChanged || tr.effects.some((e) => e.is(refreshSlots)) ? build(tr.state) : deco),
     provide: (f) => EditorView.decorations.from(f),
   })
 }
