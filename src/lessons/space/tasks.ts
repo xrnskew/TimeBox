@@ -283,14 +283,14 @@ export const BULLET_COLOR_TASK: EditTask = {
   },
 }
 
-// ===== Шаг 3. Пришельцы: волна → отрисовка → скорость → свой пришелец =====
+// ===== Шаг 3. Пришельцы: волна → отрисовка → скорость → зигзаг → свой пришелец =====
 
 const WAVE_UP = /\bwave\s*(=\s*wave\s*\+|\+=)/
 
 export const WAVE_TASK: BuildTask = {
   kind: 'build',
   title: 'Волна пришельцев',
-  text: 'Собери `moveEnemies()` в «Пришельцах»: когда пришельцев не осталось, цикл `for` сразу добавляет целую волну, и все они спускаются вниз.',
+  text: 'Собери `moveEnemies()` в «Пришельцах»: когда пришельцев не осталось, цикл `for` сразу добавляет целую волну — каждого в случайном месте, — и все они спускаются вниз.',
   tab: 3,
   pieces: [
     shell('moveEnemies'),
@@ -303,12 +303,12 @@ export const WAVE_TASK: BuildTask = {
       isDone: (code) => has(code, /\benemies\.length\s*===?\s*0\b/) && has(code, WAVE_UP),
     },
     {
-      title: 'В волне waveSize пришельцев — лесенкой',
+      title: 'В волне waveSize пришельцев — прилетают по одному',
       plan: (code) =>
         after(
           code,
           WAVE_UP,
-          '    for (var k = 0; k < waveSize; k++) {\n      // лесенкой: каждый следующий правее и выше\n      enemies.push({ x: 20 + k * 70, y: 120 - k * 45 });\n    }',
+          '    for (var k = 0; k < waveSize; k++) {\n      // в случайном месте, каждый следующий выше — прилетают по одному;\n      // dx — своя скорость вбок у каждого\n      enemies.push({ x: Math.random() * 340, y: 40 - k * 60, dx: 0.5 + Math.random() * 1.5 });\n    }',
         ),
       isDone: (code) => has(code, /\benemies\.push\s*\(/),
     },
@@ -316,7 +316,7 @@ export const WAVE_TASK: BuildTask = {
       title: 'Все пришельцы спускаются вниз',
       plan: into(
         'moveEnemies',
-        '\n  // все пришельцы спускаются вниз\n  for (var i = 0; i < enemies.length; i++) {\n    enemies[i].y = enemies[i].y + enemySpeed;\n  }',
+        '\n  for (var i = 0; i < enemies.length; i++) {\n    var a = enemies[i];\n    // все спускаются вниз\n    a.y = a.y + enemySpeed;\n  }',
       ),
       isDone: (code) => has(code, /(\+|\+=)\s*enemySpeed\b/),
     },
@@ -351,13 +351,35 @@ export const ENEMIES_DRAW_TASK: BuildTask = {
 export const ENEMY_SPEED_TASK: EditTask = {
   kind: 'edit',
   title: 'Скорость пришельцев',
-  text: 'Пришельцы висят: в «Движке» `enemySpeed` — 0. Поставь 0.5, нажми «Собрать» — и волна поползёт вниз.',
+  text: 'Пришельцы висят: в «Движке» `enemySpeed` — 0. Поставь 1, нажми «Собрать» — и волна поползёт вниз.',
   tab: 0,
   target: numberTarget('enemySpeed'),
   hint: [
-    'Это четвёртая строка «Движка»: `var enemySpeed  = 0;`. Дробные числа пишутся через точку: `0.5` — полпикселя за кадр. 1 — уже быстро.',
+    'Это четвёртая строка «Движка»: `var enemySpeed  = 0;`. Это сколько пикселей пришельцы спускаются за кадр: `0.5` — медленно (дробные числа — через точку), 1 — в самый раз, 2 — очень быстро.',
   ],
   isDone: numberAbove0('enemySpeed'),
+}
+
+const A_DOWN = /\ba\.y\s*(=\s*a\.y\s*\+|\+=)\s*enemySpeed\b/
+
+export const ZIGZAG_TASK: BuildTask = {
+  kind: 'build',
+  title: 'Зигзаг',
+  text: 'Пришельцы ползут строго вниз — в таких попасть легко. Но у каждого в волне есть своя скорость вбок, `dx`. Прибавь её к `x`, а у края экрана разверни: `dx` станет `-dx`.',
+  tab: 3,
+  pieces: [
+    {
+      title: 'Летят вбок, у края — разворот',
+      plan: (code) =>
+        after(
+          code,
+          A_DOWN,
+          '    // и летят вбок зигзагом: у края — разворот\n    a.x = a.x + a.dx;\n    if (a.x < 0 || a.x > 340) a.dx = -a.dx;',
+        ),
+      isDone: (code) => has(code, /\ba\.dx\s*=\s*-\s*a\.dx\b/),
+    },
+  ],
+  doneText: 'Зигзаг готов! Нажми «Собрать» — теперь пришельцы мечутся, и целиться надо с упреждением.',
 }
 
 export const ENEMY_PICK_TASK: EditTask = {

@@ -13,9 +13,13 @@ const GLOBALS: Hint[] = [
   {
     name: 'enemySpeed',
     kind: 'variable',
-    text: 'На сколько пикселей пришельцы спускаются за кадр. Можно дробное: 0.5.',
+    text: 'На сколько пикселей пришельцы спускаются за кадр. 1 — в самый раз, можно дробное: 0.5.',
   },
-  { name: 'waveSize', kind: 'variable', text: 'Сколько пришельцев в волне. Больше 5 в ширину экрана не влезет.' },
+  {
+    name: 'waveSize',
+    kind: 'variable',
+    text: 'Сколько пришельцев в волне. Они прилетают по одному, так что можно и 10.',
+  },
   { name: 'enemyEmoji', kind: 'variable', text: 'Смайлик пришельца. Кнопка «Сменить» — рядом.' },
   {
     name: 'bulletColor',
@@ -35,7 +39,7 @@ const GLOBALS: Hint[] = [
   {
     name: 'enemies',
     kind: 'variable',
-    text: 'Массив всех пришельцев. У каждого есть x и y. Пустой — летит новая волна.',
+    text: 'Массив всех пришельцев. У каждого есть x, y и dx — своя скорость вбок. Пустой — летит новая волна.',
   },
   {
     name: 'booms',
@@ -50,6 +54,8 @@ const GLOBALS: Hint[] = [
   { name: 'score', kind: 'variable', text: 'Счёт: сколько пришельцев сбито.' },
   { name: 'lives', kind: 'variable', text: 'Жизни. Пришелец долетел до корабля — минус одна. 0 — игра окончена.' },
   { name: 'wave', kind: 'variable', text: 'Номер волны. Растёт на 1, когда прилетает новая.' },
+  { name: 'shownWave', kind: 'variable', text: 'Движок: волна, про которую уже показана надпись «Волна N».' },
+  { name: 'banner', kind: 'variable', text: 'Движок: сколько кадров ещё показывать надпись «Волна N».' },
   { name: 'frame', kind: 'variable', text: 'Номер кадра. Движок прибавляет 1 каждый кадр.' },
   { name: 'keys', kind: 'variable', text: 'Какие клавиши зажаты: keys["ArrowLeft"], keys[" "] — это пробел.' },
   { name: 'stars', kind: 'variable', text: 'Звёзды на фоне. Их двигает и рисует движок.' },
@@ -74,6 +80,12 @@ const GLOBALS: Hint[] = [
     text: 'Шаг 4: каждая пуля × каждый пришелец — сбит или нет; долетел — минус жизнь.',
   },
   { name: 'drawSpace', kind: 'function', detail: '()', text: 'Движок: рисует звёзды и луну.' },
+  {
+    name: 'drawBanner',
+    kind: 'function',
+    detail: '()',
+    text: 'Движок: прилетела новая волна — крупно пишет «Волна N», и надпись гаснет.',
+  },
   { name: 'loop', kind: 'function', detail: '()', text: 'Главный цикл движка. Перерисовывает поле 60 раз в секунду.' },
   {
     name: 'requestAnimationFrame',

@@ -75,6 +75,27 @@ function drawSpace() {
   ctx.restore();
 }
 
+// ===== НОВАЯ ВОЛНА =====
+// Прилетела новая волна — полторы секунды крупно пишем её номер, в конце надпись гаснет.
+var shownWave = 0;
+var banner = 0;
+
+function drawBanner() {
+  if (wave !== shownWave) {
+    shownWave = wave;
+    banner = 90;
+  }
+  if (banner <= 0 || lives <= 0) return;
+  banner = banner - 1;
+  ctx.save();
+  ctx.globalAlpha = Math.min(1, banner / 30);
+  ctx.fillStyle = "#ffd54a";
+  ctx.font = "bold 34px sans-serif";
+  ctx.textAlign = "center";
+  ctx.fillText("Волна " + wave, 190, 230);
+  ctx.restore();
+}
+
 // ===== ГЛАВНЫЙ ЦИКЛ =====
 function loop() {
   ctx.fillStyle = "#0b0d1a";
@@ -98,6 +119,7 @@ function loop() {
   ctx.fillText("Счёт: " + score, 12, 26);
   ctx.fillText("Жизни: " + Math.max(0, lives), 12, 48);
   ctx.fillText("Волна: " + wave, 12, 70);
+  drawBanner();
 
   if (lives <= 0) {
     ctx.font = "bold 26px sans-serif";
@@ -171,14 +193,19 @@ const ENEMIES = (fast = '', boom = '') => `function moveEnemies() {
   if (enemies.length === 0) {
     wave = wave + 1;${fast}
     for (var k = 0; k < waveSize; k++) {
-      // лесенкой: каждый следующий правее и выше
-      enemies.push({ x: 20 + k * 70, y: 120 - k * 45 });
+      // в случайном месте, каждый следующий выше — прилетают по одному;
+      // dx — своя скорость вбок у каждого
+      enemies.push({ x: Math.random() * 340, y: 40 - k * 60, dx: 0.5 + Math.random() * 1.5 });
     }
   }
 
-  // все пришельцы спускаются вниз
   for (var i = 0; i < enemies.length; i++) {
-    enemies[i].y = enemies[i].y + enemySpeed;
+    var a = enemies[i];
+    // все спускаются вниз
+    a.y = a.y + enemySpeed;
+    // и летят вбок зигзагом: у края — разворот
+    a.x = a.x + a.dx;
+    if (a.x < 0 || a.x > 340) a.dx = -a.dx;
   }
 }
 
@@ -241,9 +268,10 @@ const BOOM_PUSH = `
 
 const FAST = `
 
-    // каждая новая волна быстрее, но не быстрее maxSpeed
+    // каждая новая волна больше и быстрее, но не быстрее maxSpeed
     if (wave > 1 && enemySpeed < maxSpeed) {
       enemySpeed = enemySpeed + 0.25;
+      waveSize = waveSize + 1;
     }
 `
 
@@ -251,12 +279,12 @@ export const BOOM_ENEMIES = ENEMIES('', BOOM_DRAW)
 export const BOOM_HITS = HITS(BOOM_PUSH)
 export const FAST_ENEMIES = ENEMIES(FAST, BOOM_DRAW)
 
-// ===== Готовая версия (?finished): взрывы, волны всё быстрее, всё настроено =====
+// ===== Готовая версия (?finished): взрывы, волны всё больше и быстрее, всё настроено =====
 
 const FINISHED_ENGINE = TUTORIAL_ENGINE.replace('var shipSpeed   = 0;', 'var shipSpeed   = 6;')
   .replace('var bulletSpeed = 0;', 'var bulletSpeed = 9;')
   .replace('var reloadTime  = 0;', 'var reloadTime  = 12;')
-  .replace('var enemySpeed  = 0;', 'var enemySpeed  = 0.5;')
+  .replace('var enemySpeed  = 0;', 'var enemySpeed  = 1;')
   .replace(
     `var enemyEmoji  = "${ENEMY_EMOJI}";`,
     `var enemyEmoji  = "${ENEMY_EMOJI}";\n${BOOM_LINE}\n${MAX_SPEED_LINE}`,
@@ -280,7 +308,7 @@ export const TUTORIAL_TABS: TabDef[] = [
     step: 2,
     note: 'Шаг 2: пробел — выстрел. Пули — второй массив, между выстрелами перезарядка.',
   },
-  { id: 'enemies', title: 'Пришельцы', step: 3, note: 'Шаг 3: пришельцы летят сверху волнами.' },
+  { id: 'enemies', title: 'Пришельцы', step: 3, note: 'Шаг 3: пришельцы летят волнами — вниз и зигзагом.' },
   {
     id: 'hits',
     title: 'Попадание',
@@ -305,7 +333,11 @@ export const FINISHED_TABS: TabDef[] = [
   },
   { id: 'ship', title: 'Корабль', note: 'Корабль: смайлик, отрисовка и полёт стрелками.' },
   { id: 'bullets', title: 'Пули', note: 'Пробел — выстрел, между выстрелами перезарядка reloadTime кадров.' },
-  { id: 'enemies', title: 'Пришельцы', note: 'Волны пришельцев — каждая быстрее прошлой. Взрывы горят 20 кадров.' },
+  {
+    id: 'enemies',
+    title: 'Пришельцы',
+    note: 'Волны пришельцев летят зигзагом — каждая больше и быстрее прошлой. Взрывы горят 20 кадров.',
+  },
   {
     id: 'hits',
     title: 'Попадание',
@@ -332,7 +364,7 @@ export const FINISHED: LessonVariant = {
   features: [
     'Стрелки ← → — лететь, пробел — стрелять. Пробел можно держать: корабль стреляет сам, с перезарядкой.',
     'Сбил пришельца — 1 очко и 💥 взрыв. Пришелец долетел до корабля — минус жизнь, жизней три.',
-    'Пришельцы летят волнами. Каждая новая волна быстрее прошлой, но не быстрее maxSpeed.',
+    'Пришельцы летят волнами, вниз и зигзагом. Каждая новая волна больше и быстрее прошлой, но не быстрее maxSpeed.',
     'Скорости, перезарядку, размер волны, цвет пуль и смайлики можно менять в «Движке» и «Корабле».',
   ],
 }

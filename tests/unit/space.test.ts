@@ -46,13 +46,14 @@ import {
   SHIP_SPEED_TASK,
   SHOOT_TASK,
   WAVE_TASK,
+  ZIGZAG_TASK,
 } from '@/lessons/space/tasks.ts'
 import type { BuildTask, EditTask } from '@/lessons/types.ts'
 import { apply, build } from './build.ts'
 import { boot, type Sim } from './sim.ts'
 
 /** Движок со своими настройками: по умолчанию всё настроено, как в квестах. */
-const engineWith = (ship = 6, bullet = 9, reload = 15, enemy = 0.5) =>
+const engineWith = (ship = 6, bullet = 9, reload = 15, enemy = 1) =>
   TUTORIAL_ENGINE.replace('var shipSpeed   = 0;', `var shipSpeed   = ${ship};`)
     .replace('var bulletSpeed = 0;', `var bulletSpeed = ${bullet};`)
     .replace('var reloadTime  = 0;', `var reloadTime  = ${reload};`)
@@ -197,17 +198,20 @@ describe('Космос: пули и перезарядка', () => {
 })
 
 describe('Космос: волны пришельцев', () => {
-  it('пришельцев нет — летит волна из waveSize лесенкой; сбили всех — следующая', () => {
+  it('пришельцев нет — летит волна из waveSize: каждый в случайном месте, по одному сверху; сбили всех — следующая', () => {
     const sim = boot(fullGame(engineWith(6, 9, 15, 0)))
     sim.tick()
     expect(n(sim, 'wave')).toBe(1)
-    expect(sim.peek('enemies.map(function (a) { return [a.x, a.y]; })')).toEqual([
-      [20, 120],
-      [90, 75],
-      [160, 30],
-      [230, -15],
-      [300, -60],
-    ])
+    const wave = sim.peek<{ x: number; y: number; dx: number }[]>('enemies')
+    expect(wave.map((a) => a.y)).toEqual([40, -20, -80, -140, -200])
+    for (const a of wave) {
+      expect(a.x).toBeGreaterThanOrEqual(-2)
+      expect(a.x).toBeLessThanOrEqual(342)
+      expect(Math.abs(a.dx)).toBeGreaterThanOrEqual(0.5)
+      expect(Math.abs(a.dx)).toBeLessThanOrEqual(2)
+    }
+    // места и скорости вбок у всех разные
+    expect(new Set(wave.map((a) => a.x)).size).toBe(5)
     expect(sim.drawn.filter((t) => t === '👾')).toHaveLength(5)
     sim.peek('enemies = []')
     sim.tick()
@@ -218,11 +222,42 @@ describe('Космос: волны пришельцев', () => {
   it('спускаются со скоростью enemySpeed; enemySpeed 0 — висят', () => {
     let sim = boot(fullGame(engineWith(6, 9, 15, 0)))
     sim.tick(60)
-    expect(n(sim, 'enemies[0].y')).toBe(120)
-    // первый кадр движок делает сам, при запуске: волна уже спустилась на 0.5
+    expect(n(sim, 'enemies[0].y')).toBe(40)
+    // первый кадр движок делает сам, при запуске: волна уже спустилась на 1
     sim = boot(fullGame())
     sim.tick(10)
-    expect(n(sim, 'enemies[0].y')).toBe(125.5)
+    expect(n(sim, 'enemies[0].y')).toBe(51)
+  })
+
+  it('летят вбок зигзагом: у края разворачиваются', () => {
+    const sim = boot(fullGame(engineWith(6, 9, 15, 0)))
+    sim.peek('enemies = [{ x: 339, y: 100, dx: 2 }, { x: 1, y: 100, dx: -2 }, { x: 150, y: 100, dx: 1.5 }]')
+    sim.tick()
+    expect(sim.peek('enemies.map(function (a) { return [a.x, a.dx]; })')).toEqual([
+      [341, -2],
+      [-1, 2],
+      [151.5, 1.5],
+    ])
+    sim.tick()
+    expect(sim.peek('enemies.map(function (a) { return a.x; })')).toEqual([339, 1, 153])
+  })
+
+  it('новая волна — крупная надпись «Волна N»: полторы секунды, в конце гаснет', () => {
+    const sim = boot(fullGame())
+    // волна 1 прилетела ещё при запуске
+    sim.tick()
+    let at = sim.drawn.indexOf('Волна 1')
+    expect(at).toBeGreaterThan(-1)
+    expect(sim.textAlphas[at]).toBe(1)
+    expect(sim.textFills[at]).toBe('#ffd54a')
+    sim.tick(70)
+    at = sim.drawn.indexOf('Волна 1')
+    expect(sim.textAlphas[at]).toBeLessThan(1)
+    sim.tick(19)
+    expect(sim.drawn).not.toContain('Волна 1')
+    sim.peek('enemies = []')
+    sim.tick()
+    expect(sim.drawn).toContain('Волна 2')
   })
 
   it('размер волны — waveSize', () => {
@@ -238,16 +273,18 @@ describe('Космос: попадание', () => {
 
   it('пуля внутри рамки пришельца — сбит: очко, пропадают и он, и пуля', () => {
     const sim = still()
-    sim.peek('enemies = [{ x: 100, y: 200 }, { x: 250, y: 200 }]; bullets = [{ x: 110, y: 180 }]')
+    sim.peek('enemies = [{ x: 100, y: 200, dx: 0 }, { x: 250, y: 200, dx: 0 }]; bullets = [{ x: 110, y: 180 }]')
     sim.tick()
     expect(n(sim, 'score')).toBe(1)
-    expect(sim.peek('enemies')).toEqual([{ x: 250, y: 200 }])
+    expect(sim.peek('enemies')).toEqual([{ x: 250, y: 200, dx: 0 }])
     expect(n(sim, 'bullets.length')).toBe(0)
   })
 
   it('рядом с рамкой — мимо', () => {
     const sim = still()
-    sim.peek('enemies = [{ x: 100, y: 200 }]; bullets = [{ x: 135, y: 180 }, { x: 95, y: 180 }, { x: 110, y: 201 }]')
+    sim.peek(
+      'enemies = [{ x: 100, y: 200, dx: 0 }]; bullets = [{ x: 135, y: 180 }, { x: 95, y: 180 }, { x: 110, y: 201 }]',
+    )
     sim.tick()
     expect(n(sim, 'score')).toBe(0)
     expect(n(sim, 'bullets.length')).toBe(3)
@@ -255,7 +292,7 @@ describe('Космос: попадание', () => {
 
   it('две пули в одного пришельца — одно очко, вторая пуля летит дальше (break)', () => {
     const sim = still()
-    sim.peek('enemies = [{ x: 100, y: 200 }]; bullets = [{ x: 110, y: 180 }, { x: 112, y: 185 }]')
+    sim.peek('enemies = [{ x: 100, y: 200, dx: 0 }]; bullets = [{ x: 110, y: 180 }, { x: 112, y: 185 }]')
     sim.tick()
     expect(n(sim, 'score')).toBe(1)
     expect(n(sim, 'bullets.length')).toBe(1)
@@ -263,7 +300,7 @@ describe('Космос: попадание', () => {
 
   it('одна пуля в двух пришельцев — сбит только один', () => {
     const sim = still()
-    sim.peek('enemies = [{ x: 100, y: 200 }, { x: 104, y: 200 }]; bullets = [{ x: 110, y: 180 }]')
+    sim.peek('enemies = [{ x: 100, y: 200, dx: 0 }, { x: 104, y: 200, dx: 0 }]; bullets = [{ x: 110, y: 180 }]')
     sim.tick()
     expect(n(sim, 'score')).toBe(1)
     expect(n(sim, 'enemies.length')).toBe(1)
@@ -271,10 +308,10 @@ describe('Космос: попадание', () => {
 
   it('пришелец долетел до корабля — минус жизнь, он пропадает', () => {
     const sim = still()
-    sim.peek('enemies = [{ x: 100, y: 441 }, { x: 200, y: 300 }]')
+    sim.peek('enemies = [{ x: 100, y: 441, dx: 0 }, { x: 200, y: 300, dx: 0 }]')
     sim.tick()
     expect(n(sim, 'lives')).toBe(2)
-    expect(sim.peek('enemies')).toEqual([{ x: 200, y: 300 }])
+    expect(sim.peek('enemies')).toEqual([{ x: 200, y: 300, dx: 0 }])
   })
 
   it('без стрельбы жизни уходят по одной и не в минус; потом всё стоит и «Игра окончена»', () => {
@@ -296,14 +333,12 @@ describe('Космос: попадание', () => {
     expect(n(sim, 'bullets.length')).toBe(0)
   })
 
-  it('стреляем, пролетая вдоль всей волны, — сбиваем всю волну', () => {
-    const sim = boot(fullGame(engineWith(6, 9, 12)))
-    sim.peek('shipX = 0')
+  it('корабль под пришельцем держит пробел — пуля долетает и сбивает его', () => {
+    const sim = boot(fullGame(engineWith(6, 9, 12, 0)))
+    sim.peek('enemies = [{ x: 160, y: 150, dx: 0 }]; shipX = 160')
     sim.key(' ', true)
-    sim.key('ArrowRight', true)
-    sim.tick(400)
-    expect(n(sim, 'score')).toBe(5)
-    expect(n(sim, 'wave')).toBe(2)
+    sim.tick(40)
+    expect(n(sim, 'score')).toBe(1)
     expect(n(sim, 'lives')).toBe(3)
   })
 })
@@ -311,7 +346,7 @@ describe('Космос: попадание', () => {
 describe('Космос: взрывы, «Волна за волной» и готовая версия', () => {
   it('сбил — на месте пришельца 💥 горит 20 кадров и гаснет', () => {
     const sim = boot(boomGame(engineWith(6, 0, 15, 0)))
-    sim.peek('enemies = [{ x: 100, y: 200 }]; bullets = [{ x: 110, y: 180 }]')
+    sim.peek('enemies = [{ x: 100, y: 200, dx: 0 }]; bullets = [{ x: 110, y: 180 }]')
     sim.tick()
     expect(n(sim, 'score')).toBe(1)
     expect(sim.peek('booms')).toEqual([{ x: 100, y: 200, t: 19 }])
@@ -324,19 +359,25 @@ describe('Космос: взрывы, «Волна за волной» и гот
     expect(sim.drawn).not.toContain('💥')
   })
 
-  it('каждая новая волна быстрее на 0.25, до maxSpeed', () => {
-    // первая волна прилетает уже при запуске — с той скоростью, что в «Движке»
+  it('каждая новая волна быстрее на 0.25 и на одного пришельца больше, до maxSpeed', () => {
+    // первая волна прилетает уже при запуске — с той скоростью и того размера, что в «Движке»
     const sim = boot(fastGame())
-    expect(n(sim, 'wave')).toBe(1)
-    expect(n(sim, 'enemySpeed')).toBe(0.5)
-    const speeds: number[] = []
-    for (let i = 0; i < 10; i++) {
+    expect(sim.peek('[wave, enemySpeed, enemies.length]')).toEqual([1, 1, 5])
+    const waves: number[][] = []
+    for (let i = 0; i < 6; i++) {
       sim.peek('enemies = []')
       sim.tick()
-      speeds.push(n(sim, 'enemySpeed'))
+      waves.push(sim.peek('[enemySpeed, enemies.length]'))
     }
-    expect(n(sim, 'wave')).toBe(11)
-    expect(speeds).toEqual([0.75, 1, 1.25, 1.5, 1.75, 2, 2, 2, 2, 2])
+    expect(n(sim, 'wave')).toBe(7)
+    expect(waves).toEqual([
+      [1.25, 6],
+      [1.5, 7],
+      [1.75, 8],
+      [2, 9],
+      [2, 9],
+      [2, 9],
+    ])
   })
 
   it('готовая версия: всё настроено, есть взрывы и ускорение; автопилот сбивает волну за волной', () => {
@@ -345,21 +386,25 @@ describe('Космос: взрывы, «Волна за волной» и гот
       6,
       9,
       12,
-      0.5,
+      1,
       '💥',
       2,
     ])
     sim.key(' ', true)
-    // автопилот: корабль всё время под самым нижним пришельцем
+    // автопилот, как игрок: летит стрелками под самого нижнего пришельца, туда, где он будет,
+    // когда долетит пуля (упреждение), и держит пробел
+    const aim =
+      'var low = null; for (var q = 0; q < enemies.length; q++) if (enemies[q].y > 0 && (!low || enemies[q].y > low.y)) low = enemies[q];' +
+      'if (low) { var tx = Math.max(0, Math.min(340, low.x + low.dx * (shipY - 34 - low.y) / (bulletSpeed + enemySpeed))) + 2;' +
+      'keys.ArrowRight = shipX < tx - 3; keys.ArrowLeft = shipX > tx + 3; }'
     for (let i = 0; i < 3000; i++) {
-      sim.peek(
-        'if (enemies.length) { var low = enemies[0]; for (var q = 1; q < enemies.length; q++) if (enemies[q].y > low.y) low = enemies[q]; shipX = Math.max(0, Math.min(340, low.x)); }',
-      )
+      sim.peek(aim)
       sim.tick()
     }
     expect(n(sim, 'score')).toBeGreaterThan(30)
-    expect(n(sim, 'wave')).toBeGreaterThan(6)
-    expect(n(sim, 'enemySpeed')).toBe(2)
+    expect(n(sim, 'wave')).toBeGreaterThan(5)
+    expect(sim.peek('[enemySpeed, waveSize]')).toEqual([2, 9])
+    expect(n(sim, 'lives')).toBeGreaterThan(0)
   })
 })
 
@@ -376,9 +421,9 @@ describe('Космос: сборка по кусочкам даёт код ша�
     )
   })
 
-  it('шаг 3: волна → отрисовка', () => {
+  it('шаг 3: волна → отрисовка → зигзаг', () => {
     const start = TUTORIAL_CODES[3]
-    expect(build(start, WAVE_TASK, ENEMIES_DRAW_TASK)).toBe(`${start}\n\n${STEP_ENEMIES}`)
+    expect(build(start, WAVE_TASK, ENEMIES_DRAW_TASK, ZIGZAG_TASK)).toBe(`${start}\n\n${STEP_ENEMIES}`)
   })
 
   it('шаг 4: вложенный цикл → очко → прорыв', () => {
@@ -397,6 +442,10 @@ describe('Космос: сборка по кусочкам даёт код ша�
       WAVE_TASK.pieces[2].plan(build(TUTORIAL_CODES[3], { ...WAVE_TASK, pieces: WAVE_TASK.pieces.slice(0, 1) })),
     ).toBeNull()
     // очко некуда добавить, пока нет if (popal)
+    // зигзаг некуда вставить, пока пришельцы не спускаются
+    expect(
+      ZIGZAG_TASK.pieces[0].plan(build(TUTORIAL_CODES[3], { ...WAVE_TASK, pieces: WAVE_TASK.pieces.slice(0, 3) })),
+    ).toBeNull()
     const noIf = build(TUTORIAL_CODES[4], { ...HITS_TASK, pieces: HITS_TASK.pieces.slice(0, 4) })
     expect(SCORE_TASK.pieces[0].plan(noIf)).toBeNull()
   })
@@ -405,7 +454,7 @@ describe('Космос: сборка по кусочкам даёт код ша�
     const steps: [number, BuildTask[]][] = [
       [1, [SHIP_CREATE_TASK, SHIP_DRAW_TASK, SHIP_MOVE_TASK]],
       [2, [SHOOT_TASK, BULLETS_MOVE_TASK, BULLETS_DRAW_TASK, RELOAD_TASK]],
-      [3, [WAVE_TASK, ENEMIES_DRAW_TASK]],
+      [3, [WAVE_TASK, ENEMIES_DRAW_TASK, ZIGZAG_TASK]],
       [4, [HITS_TASK, SCORE_TASK, BREACH_TASK]],
     ]
     // остальные вкладки — уже готовые: так проверяется и работа куска вместе со всей игрой
@@ -521,8 +570,8 @@ describe('Космос в меню', () => {
     expect(FINISHED.features!.length).toBeGreaterThan(0)
   })
 
-  it('21 квест в 4 шагах; функции шага — в своей вкладке', () => {
-    expect(GUIDE_STEPS.map((s) => s.quests.length)).toEqual([6, 8, 4, 3])
+  it('22 квеста в 4 шагах; функции шага — в своей вкладке', () => {
+    expect(GUIDE_STEPS.map((s) => s.quests.length)).toEqual([6, 8, 5, 3])
     for (const step of GUIDE_STEPS)
       for (const fn of step.fns) expect(step.code, fn).toMatch(new RegExp(`\\bfunction\\s+${fn}\\s*\\(`))
   })
@@ -579,9 +628,11 @@ describe('Космос: квесты идут по порядку', () => {
     expect(quest(codes)).toEqual({ step: 2, quest: 1 })
     codes[3] = build(codes[3], ENEMIES_DRAW_TASK)
     expect(quest(codes)).toEqual({ step: 2, quest: 2 })
-    codes[0] = engine(6, 9, 15, 0.5, '#ec407a')
+    codes[0] = engine(6, 9, 15, 1, '#ec407a')
     expect(quest(codes)).toEqual({ step: 2, quest: 3 })
-    codes[0] = engine(6, 9, 15, 0.5, '#ec407a', '👽')
+    codes[3] = build(codes[3], ZIGZAG_TASK)
+    expect(quest(codes)).toEqual({ step: 2, quest: 4 })
+    codes[0] = engine(6, 9, 15, 1, '#ec407a', '👽')
     expect(quest(codes)).toEqual({ step: 3, quest: 0 })
 
     codes[4] = build(codes[4], HITS_TASK)
@@ -601,7 +652,7 @@ describe('Космос: квесты идут по порядку', () => {
   it('взрывы и волны закрыты до сборки игры; их код сохраняет все квесты', () => {
     expect(extraStates(GUIDE_EXTRAS, false, TUTORIAL_CODES).map((x) => x.unlocked)).toEqual([false, false])
     expect(extraStates(GUIDE_EXTRAS, true, TUTORIAL_CODES).map((x) => x.unlocked)).toEqual([true, false])
-    const base = engine(6, 9, 15, 0.5, '#ec407a', '👽')
+    const base = engine(6, 9, 15, 1, '#ec407a', '👽')
     const done = [base, STEP_SHIP.replace(SHIP_EMOJI, '🛸'), STEP_BULLETS, STEP_ENEMIES, STEP_HITS]
     expect(levelStates(GUIDE_STEPS, done).every((l) => l.done)).toBe(true)
     expect(extraStates(GUIDE_EXTRAS, true, done).map((x) => x.done)).toEqual([false, false])

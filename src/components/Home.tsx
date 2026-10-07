@@ -183,7 +183,7 @@ function BirdAttract({ color, bird }: { color: string; bird: string }) {
 }
 
 /**
- * Космос: волна лесенкой — пришельцы входят сверху по одному, корабль подъезжает под каждого,
+ * Космос: пришельцы входят сверху по одному и спускаются зигзагом, корабль подъезжает под каждого,
  * пуля летит вверх, и пришелец лопается.
  */
 function SpaceAttract({ color, ship, alien }: { color: string; ship: string; alien: string }) {
