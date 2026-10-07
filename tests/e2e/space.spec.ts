@@ -7,25 +7,20 @@ import { addPieces, app, game, open, openQuest, pick, run, tab, waitGame } from 
 
 const progress = (page: Page) => page.getByRole('navigation', { name: 'Прогресс' })
 
-/** Кнопка «Огонь» на корпусе: зажать пальцем на `ms` миллисекунд. */
-async function holdFire(page: Page, ms: number) {
-  const fire = page.getByRole('button', { name: 'Огонь', exact: true })
-  await fire.dispatchEvent('pointerdown')
-  await page.waitForTimeout(ms)
-  await fire.dispatchEvent('pointerup')
-}
-
 /**
- * Сколько пуль вылетело, пока «Огонь» зажат `ms` миллисекунд, и сколько за это время прошло кадров игры.
- * Считаем в кадрах, а не по часам: на загруженной машине кадров в секунду меньше, а игра считает кадрами.
+ * Зажать «Огонь» на корпусе на `frames` кадров игры и посчитать, сколько пуль вылетело.
+ * Держим по кадрам, а не по часам: на загруженной машине кадров в секунду меньше, а игра считает кадрами.
  */
-async function shotsWhileHeld(page: Page, ms: number): Promise<{ shots: number; frames: number }> {
+async function shotsOverFrames(page: Page, frames: number): Promise<{ shots: number; frames: number }> {
   // считаем каждый push в bullets: пули улетают за край, и длина массива — не то
   await game(
     page,
     'window.__shots = 0; window.__frame0 = frame; var __push = bullets.push; bullets.push = function () { window.__shots++; return __push.apply(this, arguments); }',
   )
-  await holdFire(page, ms)
+  const fire = page.getByRole('button', { name: 'Огонь', exact: true })
+  await fire.dispatchEvent('pointerdown')
+  await expect.poll(() => game<number>(page, 'frame - __frame0'), { timeout: 15_000 }).toBeGreaterThanOrEqual(frames)
+  await fire.dispatchEvent('pointerup')
   return game(page, '({ shots: __shots, frames: frame - __frame0 })')
 }
 
@@ -84,8 +79,7 @@ test('Космос: вся игра по квестам — луч, переза
   await run(page)
   // без перезарядки — пуля каждый кадр, пока зажат «Огонь». Часть кадров уходит, пока нажатие дойдёт до игры
   // и пока мы читаем счёт, поэтому проверяем «не меньше половины кадров» — в разы гуще, чем с перезарядкой
-  const beam = await shotsWhileHeld(page, 500)
-  expect(beam.frames).toBeGreaterThan(5)
+  const beam = await shotsOverFrames(page, 20)
   expect(beam.shots).toBeGreaterThanOrEqual(beam.frames / 2)
   await openQuest(page, 2, 'Открыть «Пули»', 'Перезарядка')
   await addPieces(page, 2)
@@ -93,8 +87,7 @@ test('Космос: вся игра по квестам — луч, переза
   await page.keyboard.type('15')
   await run(page)
   // с перезарядкой 15 кадров — не больше одной пули на 16 кадров
-  const burst = await shotsWhileHeld(page, 800)
-  expect(burst.frames).toBeGreaterThan(16)
+  const burst = await shotsOverFrames(page, 40)
   expect(burst.shots).toBeGreaterThanOrEqual(1)
   expect(burst.shots).toBeLessThanOrEqual(Math.ceil(burst.frames / 16) + 1)
   await openQuest(page, 2, 'Выбрать цвет в «Движок»', 'Цвет пуль')
@@ -181,7 +174,7 @@ test('Космос: готовая версия под паролем', async ({
   await expect(page).toHaveTitle('TimeBox — готовая игра Космос')
   await expect(page.getByRole('heading', { name: 'Что тут есть' })).toBeVisible()
   expect(await game(page, '[shipSpeed, bulletSpeed, reloadTime, enemySpeed, boomEmoji]')).toEqual([6, 9, 12, 1, '💥'])
-  const held = await shotsWhileHeld(page, 800)
+  const held = await shotsOverFrames(page, 40)
   expect(held.shots).toBeGreaterThanOrEqual(1)
   expect(held.shots).toBeLessThanOrEqual(Math.ceil(held.frames / 13) + 1)
 })
