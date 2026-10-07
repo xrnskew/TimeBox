@@ -4,8 +4,8 @@ import type { Picker } from '@/app/controller.ts'
 import { CloseIcon } from './icons.tsx'
 import styles from './EmojiPicker.module.css'
 
-// Окно выбора смайлика у кнопки «Сменить» в коде. Системное меню эмодзи новичок не найдёт,
-// а здесь — клик по смайлику, и он сам встаёт между кавычками.
+// Окно выбора смайлика или цвета у кнопки «Сменить» в коде. Системное меню эмодзи новичок не найдёт,
+// а код цвета вроде #5ec639 не придумает — здесь клик, и значение само встаёт между кавычками.
 
 const GROUPS: { title: string; list: string }[] = [
   { title: 'Звери и герои', list: '🐱 🐶 🦊 🐸 🐼 🐵 🐧 🐰 🐻 🐯 🦁 🐷 🦄 🐲 🦖 🐙 🤖 👽 👻 😎 🥷 🧙 🦸 🤠' },
@@ -13,6 +13,31 @@ const GROUPS: { title: string; list: string }[] = [
   { title: 'Транспорт', list: '🚀 🛸 🚗 🚲 🛹 ⛵ 🚁 🛶' },
   { title: 'Еда', list: '🍎 🍐 🍊 🍋 🍌 🍉 🍇 🍓 🍒 🥕 🍩 🍪 🍕 🍔 🧁 🍬 🍭 🐟' },
   { title: 'Вещи', list: '🧺 🪣 🎩 ⚽ 🏀 🎁 💎 🪙 💰 ⭐ 🌟 💣 ❤️ 🔥 ⚡ ❄️' },
+]
+
+/** Палитра для переменных …Color: значение — код цвета, подпись — для экранного диктора и подсказки. */
+const COLORS: { title: string; list: [string, string][] }[] = [
+  {
+    title: 'Цвета',
+    list: [
+      ['#5ec639', 'зелёный'],
+      ['#2e7d32', 'тёмно-зелёный'],
+      ['#26a69a', 'бирюзовый'],
+      ['#4fc3f7', 'голубой'],
+      ['#1e63d6', 'синий'],
+      ['#7e57c2', 'фиолетовый'],
+      ['#ec407a', 'розовый'],
+      ['#e53935', 'красный'],
+      ['#fb8c00', 'оранжевый'],
+      ['#ffca28', 'жёлтый'],
+      ['#c0ca33', 'салатовый'],
+      ['#8d6e63', 'коричневый'],
+      ['#b0bec5', 'серый'],
+      ['#ffffff', 'белый'],
+      ['#ffd700', 'золотой'],
+      ['#ff80ab', 'светло-розовый'],
+    ],
+  },
 ]
 
 const WIDTH = 344
@@ -43,7 +68,7 @@ function PickerBody({ picker }: { picker: Picker }) {
   }, [picker])
 
   useEffect(() => {
-    box.current?.querySelector<HTMLButtonElement>('[aria-pressed="true"], [data-emoji]')?.focus()
+    box.current?.querySelector<HTMLButtonElement>('[aria-pressed="true"], [data-value]')?.focus()
     const onDown = (e: PointerEvent) => {
       if (!box.current?.contains(e.target as Node)) c.closePicker(false)
     }
@@ -69,18 +94,20 @@ function PickerBody({ picker }: { picker: Picker }) {
     }
   }, [c])
 
-  const current = picker.was.trim()
+  const current = picker.was.trim().toLowerCase()
+  const color = picker.kind === 'color'
+  const heading = color ? 'Выбери цвет' : 'Выбери смайлик'
 
   return (
     <div
       ref={box}
       className={styles.picker}
       role="dialog"
-      aria-label="Выбери смайлик"
+      aria-label={heading}
       style={pos ? { left: pos.left, top: pos.top } : { visibility: 'hidden' }}
     >
       <div className={styles.head}>
-        <p>Выбери смайлик</p>
+        <p>{heading}</p>
         <button
           type="button"
           className="key key--s key--icon key--ghost"
@@ -91,25 +118,46 @@ function PickerBody({ picker }: { picker: Picker }) {
         </button>
       </div>
       <div className={styles.groups}>
-        {GROUPS.map((g) => (
-          <section key={g.title} aria-label={g.title}>
-            <h3>{g.title}</h3>
-            <div className={styles.grid}>
-              {g.list.split(' ').map((e) => (
-                <button
-                  key={e}
-                  type="button"
-                  className={styles.emoji}
-                  data-emoji={e}
-                  aria-pressed={e === current}
-                  onClick={() => c.pickEmoji(e)}
-                >
-                  {e}
-                </button>
-              ))}
-            </div>
-          </section>
-        ))}
+        {color &&
+          COLORS.map((g) => (
+            <section key={g.title} aria-label={g.title}>
+              <div className={styles.colorGrid}>
+                {g.list.map(([value, name]) => (
+                  <button
+                    key={value}
+                    type="button"
+                    className={styles.color}
+                    style={{ background: value }}
+                    data-value={value}
+                    aria-label={name}
+                    title={name}
+                    aria-pressed={value === current}
+                    onClick={() => c.pickEmoji(value)}
+                  />
+                ))}
+              </div>
+            </section>
+          ))}
+        {!color &&
+          GROUPS.map((g) => (
+            <section key={g.title} aria-label={g.title}>
+              <h3>{g.title}</h3>
+              <div className={styles.grid}>
+                {g.list.split(' ').map((e) => (
+                  <button
+                    key={e}
+                    type="button"
+                    className={styles.emoji}
+                    data-value={e}
+                    aria-pressed={e === current}
+                    onClick={() => c.pickEmoji(e)}
+                  >
+                    {e}
+                  </button>
+                ))}
+              </div>
+            </section>
+          ))}
       </div>
     </div>
   )

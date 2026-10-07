@@ -10,7 +10,7 @@ export function GamePanel() {
 
   return (
     <section className={styles.panel} aria-label="Игра">
-      <div className={styles.console}>
+      <div className={styles.console} data-shell={c.lesson.consoleColor}>
         <div className={styles.bezel}>
           <GameScreen />
           <FocusLed />

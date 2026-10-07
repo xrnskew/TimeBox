@@ -11,6 +11,7 @@ import {
   FaceIcon,
   HelpIcon,
   LockIcon,
+  PaletteIcon,
   PlayIcon,
   TargetIcon,
   WarnIcon,
@@ -308,8 +309,18 @@ function EditTaskBody({
           className={done ? 'key key--l' : 'key key--sun key--l'}
           onClick={() => c.openTask(stepIndex, taskIndex)}
         >
-          {task.picker ? <FaceIcon size={16} /> : <TargetIcon size={15} />}
-          {task.picker ? `Выбрать смайлик в «${tabTitle}»` : `Открыть «${tabTitle}»`}
+          {task.picker === 'emoji' ? (
+            <FaceIcon size={16} />
+          ) : task.picker === 'color' ? (
+            <PaletteIcon size={16} />
+          ) : (
+            <TargetIcon size={15} />
+          )}
+          {task.picker === 'emoji'
+            ? `Выбрать смайлик в «${tabTitle}»`
+            : task.picker === 'color'
+              ? `Выбрать цвет в «${tabTitle}»`
+              : `Открыть «${tabTitle}»`}
         </button>
         <button type="button" className="key key--l key--ghost" aria-expanded={hint} onClick={() => setHint(!hint)}>
           <BulbIcon size={15} />

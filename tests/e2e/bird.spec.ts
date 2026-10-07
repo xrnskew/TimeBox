@@ -62,9 +62,15 @@ test('Птичка: вся игра по квестам, взмах, удар и
 
   // шаг 3: трубы
   await openQuest(page, 3, 'Открыть «Трубы»')
-  await addPieces(page, 5 + 3)
+  await addPieces(page, 5 + 4)
   await openQuest(page, 3, 'Открыть «Движок»', 'Скорость труб')
   await page.keyboard.type('2')
+  // свой цвет труб — из палитры у pipeColor
+  await openQuest(page, 3, 'Выбрать цвет в «Движок»', 'Цвет труб')
+  const palette = page.getByRole('dialog', { name: 'Выбери цвет' })
+  await expect(palette.getByRole('button', { name: 'зелёный', exact: true })).toHaveAttribute('aria-pressed', 'true')
+  await palette.getByRole('button', { name: 'розовый', exact: true }).click()
+  await expect(page.locator('.cm-colorPick .cm-colorSwatch')).toHaveCSS('background-color', 'rgb(236, 64, 122)')
 
   // шаг 4: удар и очко за трубу
   await openQuest(page, 4, 'Открыть «Удар»')
@@ -77,7 +83,7 @@ test('Птичка: вся игра по квестам, взмах, удар и
   // взмах с корпуса — скорость вверх
   await flapButton(page)
   expect(await game<number>(page, 'speedY')).toBeLessThan(0)
-  expect(await game(page, 'pipeSpeed')).toBe(2)
+  expect(await game(page, '[pipeSpeed, pipeColor]')).toEqual([2, '#ec407a'])
 
   // пролетела трубу — очко; упала на землю — «Игра окончена»
   expect(await game(page, 'pipes = [{ x: 20, top: 100, passed: false }]; birdY = 200; checkHit(); score')).toBe(1)

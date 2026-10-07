@@ -17,6 +17,7 @@ export const CATCH_LESSON: Lesson = {
     itemVar: 'itemEmoji',
     scene: 'catch',
   },
+  consoleColor: 'green',
   controls: {
     buttons: [
       { key: 'ArrowLeft', label: 'Влево', icon: 'left' },

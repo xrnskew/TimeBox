@@ -164,3 +164,32 @@ kbd {
   -webkit-box-decoration-break: clone;
   box-decoration-break: clone;
 }
+
+/* ===== Корпус приставки: у каждой игры свой цвет (Lesson.consoleColor) ===== */
+/* --shell-ink — подписи прямо на корпусе, --shell-accent — включённый тумблер. */
+[data-shell='red'] {
+  --shell-hi: var(--apple-hi);
+  --shell: var(--apple);
+  --shell-lo: #c0261e;
+  --shell-glow: rgba(161, 29, 23, 0.55);
+  --shell-ink: #fff;
+  --shell-accent: var(--sun);
+}
+
+[data-shell='green'] {
+  --shell-hi: #6fdc86;
+  --shell: #34b85a;
+  --shell-lo: #229345;
+  --shell-glow: rgba(22, 112, 48, 0.55);
+  --shell-ink: #0c2a15;
+  --shell-accent: var(--sun);
+}
+
+[data-shell='yellow'] {
+  --shell-hi: #ffe27a;
+  --shell: #ffc83a;
+  --shell-lo: #eaa714;
+  --shell-glow: rgba(190, 128, 6, 0.5);
+  --shell-ink: #2b1d00;
+  --shell-accent: #23a447;
+}

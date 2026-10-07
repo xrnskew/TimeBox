@@ -10,6 +10,8 @@ export interface Sim {
   tick(times?: number): void
   key(key: string, down: boolean): void
   drawn: string[]
+  /** Цвет каждого fillRect за последний кадр. */
+  fills: string[]
 }
 
 export function boot(codes: string[]): Sim {
@@ -22,10 +24,13 @@ export function boot(codes: string[]): Sim {
   // холст: Птичка слушает клик по нему
   const canvas = { addEventListener: document.addEventListener }
   const drawn: string[] = []
+  const fills: string[] = []
   const ctx = {
     fillStyle: '',
     font: '',
-    fillRect() {},
+    fillRect() {
+      fills.push(ctx.fillStyle)
+    },
     fillText(text: string) {
       drawn.push(text)
     },
@@ -47,6 +52,7 @@ export function boot(codes: string[]): Sim {
     tick(times = 1) {
       for (let i = 0; i < times; i++) {
         drawn.length = 0
+        fills.length = 0
         const cb = next
         next = null
         cb?.()
@@ -56,5 +62,6 @@ export function boot(codes: string[]): Sim {
       for (const fn of listeners[down ? 'keydown' : 'keyup'] ?? []) fn({ key })
     },
     drawn,
+    fills,
   }
 }

@@ -423,7 +423,8 @@ export function createController(lesson: Lesson, variant: LessonVariant) {
       requestAnimationFrame(() =>
         requestAnimationFrame(() => {
           const rect = ed.coordsAt(to + 1)
-          if (rect && ed.current === task.tab) openPicker(task.tab, { from, to, rect })
+          if (rect && ed.current === task.tab && task.picker)
+            openPicker(task.tab, { from, to, rect, kind: task.picker })
         }),
       )
     }

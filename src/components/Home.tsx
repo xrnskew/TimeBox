@@ -87,7 +87,11 @@ function GameCard({ lesson }: { lesson: Lesson }) {
 
   return (
     <article className={styles.card} aria-labelledby={id}>
-      {lesson.card.scene === 'bird' ? <BirdAttract bird={p.hero} /> : <Attract hero={p.hero} item={p.item ?? '🍎'} />}
+      {lesson.card.scene === 'bird' ? (
+        <BirdAttract color={lesson.consoleColor} bird={p.hero} />
+      ) : (
+        <Attract color={lesson.consoleColor} hero={p.hero} item={p.item ?? '🍎'} />
+      )}
       <div className={styles.info}>
         <h2 id={id}>{lesson.title}</h2>
         <p className={styles.level}>
@@ -130,9 +134,9 @@ function GameCard({ lesson }: { lesson: Lesson }) {
 }
 
 /** Маленькая приставка: экран и кнопки под ним. */
-function Mini({ scene, pad, children }: { scene: string; pad: number; children: ReactNode }) {
+function Mini({ color, scene, pad, children }: { color: string; scene: string; pad: number; children: ReactNode }) {
   return (
-    <div className={styles.console} aria-hidden="true">
+    <div className={styles.console} data-shell={color} aria-hidden="true">
       <div className={styles.bezel}>
         <div className={styles.screen} data-scene={scene}>
           {children}
@@ -148,9 +152,9 @@ function Mini({ scene, pad, children }: { scene: string; pad: number; children: 
 }
 
 /** Catch: игра идёт сама — яблоки падают, герой успевает под каждое. */
-function Attract({ hero, item }: { hero: string; item: string }) {
+function Attract({ color, hero, item }: { color: string; hero: string; item: string }) {
   return (
-    <Mini scene="catch" pad={2}>
+    <Mini color={color} scene="catch" pad={2}>
       {[22, 72, 45].map((x, i) => (
         <span key={i} className={styles.item} style={{ '--x': `${x}%`, '--i': i } as CSSProperties}>
           {item}
@@ -162,11 +166,14 @@ function Attract({ hero, item }: { hero: string; item: string }) {
 }
 
 /** Птичка: трубы едут навстречу, птица подпрыгивает и пролетает в каждую дырку. */
-function BirdAttract({ bird }: { bird: string }) {
+function BirdAttract({ color, bird }: { color: string; bird: string }) {
   return (
-    <Mini scene="bird" pad={1}>
+    <Mini color={color} scene="bird" pad={1}>
       {[24, 30].map((top, i) => (
-        <span key={i} className={styles.pipe} style={{ '--top': `${top}%`, '--i': i } as CSSProperties} />
+        <span key={i} className={styles.pipe} style={{ '--top': `${top}%`, '--i': i } as CSSProperties}>
+          <span className={styles.pipeTop} />
+          <span className={styles.pipeBottom} />
+        </span>
       ))}
       <span className={styles.ground} />
       <span className={styles.bird}>{bird}</span>

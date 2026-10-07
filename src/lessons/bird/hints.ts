@@ -20,6 +20,7 @@ const GLOBALS: Hint[] = [
     kind: 'variable',
     text: 'Раз во сколько кадров появляется новая труба. 60 кадров — одна секунда.',
   },
+  { name: 'pipeColor', kind: 'variable', text: 'Цвет труб, например "#5ec639" или "red". Кнопка «Сменить» — рядом.' },
   { name: 'birdEmoji', kind: 'variable', text: 'Смайлик птицы. Объявлен во вкладке «Птица».' },
   { name: 'coinEmoji', kind: 'variable', text: 'Эмодзи монетки (дополнительное задание).' },
   { name: 'maxSpeed', kind: 'variable', text: 'Быстрее этой скорости трубы не поедут (дополнительное задание).' },
@@ -48,6 +49,12 @@ const GLOBALS: Hint[] = [
   { name: 'movePipes', kind: 'function', detail: '()', text: 'Шаг 3: добавляет новые трубы и двигает их влево.' },
   { name: 'drawPipes', kind: 'function', detail: '()', text: 'Шаг 3: рисует все трубы.' },
   { name: 'checkHit', kind: 'function', detail: '()', text: 'Шаг 4: врезалась ли птица и пролетела ли трубу.' },
+  {
+    name: 'drawPipe',
+    kind: 'function',
+    detail: '(x, from, to)',
+    text: 'Движок: рисует трубу цветом pipeColor от y = from до y = to — с шапкой, бликом и тенью.',
+  },
   { name: 'press', kind: 'function', detail: '()', text: 'Движок: пробел или клик — старт игры и взмах.' },
   {
     name: 'speedUp',

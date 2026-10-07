@@ -204,8 +204,8 @@
     var gap = window.pipeGap
     if (list && list.length && typeof gap === 'number') {
       c.setLineDash([5, 4])
-      c.fillStyle = 'rgba(200, 40, 30, 0.22)'
-      c.strokeStyle = '#b3261e'
+      c.fillStyle = 'rgba(242, 139, 130, 0.18)'
+      c.strokeStyle = 'rgba(242, 139, 130, 0.95)'
       for (var i = 0; i < list.length; i++) {
         var p = list[i]
         if (!p || typeof p.x !== 'number' || typeof p.top !== 'number') continue
@@ -215,21 +215,20 @@
         c.strokeRect(p.x, p.top + gap, 52, 470 - p.top - gap)
       }
     }
-    // небо светлое: рамки тёмные, а не голубые, как в Catch
     c.setLineDash([5, 4])
-    c.strokeStyle = '#123a52'
+    c.strokeStyle = 'rgba(79, 195, 247, 1)'
     c.beginPath()
     c.moveTo(0, 460)
     c.lineTo(380, 460)
     c.stroke()
     c.font = 'bold 12px sans-serif'
-    c.fillStyle = '#123a52'
+    c.fillStyle = 'rgba(79, 195, 247, 1)'
     c.fillText('земля: y = 460', 280, 454)
     c.setLineDash([])
     c.lineWidth = 2
-    c.strokeStyle = '#123a52'
+    c.strokeStyle = '#ffc83a'
     c.strokeRect(bx, by - 26, 34, 26)
-    c.fillStyle = '#123a52'
+    c.fillStyle = '#ffc83a'
     c.beginPath()
     c.arc(bx, by, 3, 0, Math.PI * 2)
     c.fill()

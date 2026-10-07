@@ -30,7 +30,7 @@ export const HERO_PICK_TASK: EditTask = {
   text: `Нажми «Сменить» рядом со смайликом ${HERO_EMOJI} и выбери своего героя — например, 🐱 или 🛸.`,
   tab: 1,
   target: emojiTarget('playerEmoji'),
-  picker: true,
+  picker: 'emoji',
   hint: [
     `Это строка \`var playerEmoji = "${HERO_EMOJI}";\` во вкладке «Герой». Кнопка «Сменить» — прямо рядом с ней. Можно и напечатать смайлик между кавычками самому.`,
   ],
@@ -230,7 +230,7 @@ export const ITEM_TASK: EditTask = {
   text: 'Зайди в «Движок» и нажми «Сменить» рядом с 🍎 — пусть падает что-нибудь другое, например 🍩 или 🐟.',
   tab: 0,
   target: emojiTarget('itemEmoji'),
-  picker: true,
+  picker: 'emoji',
   hint: ['Это строка `var itemEmoji   = "🍎";` в самом начале «Движка». Кнопка «Сменить» — прямо рядом с ней.'],
   isDone(engine) {
     const emoji = emojiOf('itemEmoji', engine)

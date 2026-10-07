@@ -15,6 +15,7 @@ export const BIRD_LESSON: Lesson = {
     heroVar: 'birdEmoji',
     scene: 'bird',
   },
+  consoleColor: 'yellow',
   controls: {
     buttons: [{ key: ' ', label: 'Взмах', icon: 'up', wide: true }],
     keysHint: 'пробел',

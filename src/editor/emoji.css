@@ -1,5 +1,6 @@
 /* «Сменить» у смайлика в коде: маленькая жёлтая клавиша прямо в строке, цвет квестов. */
-.cm-emojiPick {
+.cm-emojiPick,
+.cm-colorPick {
   display: inline-flex;
   align-items: center;
   gap: 5px;
@@ -18,12 +19,22 @@
 }
 
 .cm-emojiPick:hover,
-.cm-emojiPick[aria-expanded='true'] {
+.cm-emojiPick[aria-expanded='true'],
+.cm-colorPick:hover {
   background: var(--sun);
   color: #151a23;
 }
 
-.cm-emojiPick:focus-visible {
+.cm-emojiPick:focus-visible,
+.cm-colorPick:focus-visible {
   outline: 2px solid var(--sun);
   outline-offset: 2px;
+}
+
+/* квадратик текущего цвета на кнопке «Сменить» у переменной …Color */
+.cm-colorSwatch {
+  width: 12px;
+  height: 12px;
+  border: 1px solid rgba(255, 255, 255, 0.55);
+  border-radius: 3px;
 }

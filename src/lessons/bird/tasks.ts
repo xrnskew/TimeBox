@@ -1,6 +1,18 @@
-import { after, append, emojiOf, emojiTarget, has, into, numberAbove0, numberTarget, shell } from '../kit.ts'
+import {
+  after,
+  append,
+  emojiOf,
+  emojiTarget,
+  has,
+  into,
+  numberAbove0,
+  numberTarget,
+  shell,
+  stringOf,
+  stringTarget,
+} from '../kit.ts'
 import type { BuildTask, EditTask, RunTask } from '../types.ts'
-import { BIRD_EMOJI } from './tabs.ts'
+import { BIRD_EMOJI, PIPE_COLOR } from './tabs.ts'
 
 // Квесты Птички. Код шага собирается кнопками «Добавить» по кусочкам и в итоге совпадает с STEP_* из tabs.ts.
 
@@ -29,7 +41,7 @@ export const BIRD_PICK_TASK: EditTask = {
   text: `Нажми «Сменить» рядом со смайликом ${BIRD_EMOJI} и выбери, кто полетит, — например, 🦉 или 🐝.`,
   tab: 1,
   target: emojiTarget('birdEmoji'),
-  picker: true,
+  picker: 'emoji',
   hint: [
     `Это строка \`var birdEmoji = "${BIRD_EMOJI}";\` во вкладке «Птица». Кнопка «Сменить» — прямо рядом с ней. Можно и напечатать смайлик между кавычками самому.`,
   ],
@@ -146,7 +158,7 @@ export const FLAP_POWER_TASK: EditTask = {
   isDone: numberAbove0('flapPower'),
 }
 
-// ===== Шаг 3. Трубы: едут → рисуются → скорость =====
+// ===== Шаг 3. Трубы: едут → рисуются → скорость → свой цвет =====
 
 const FRAME_TICK = /\bframe\s*=\s*frame\s*\+\s*1\s*;/
 
@@ -190,25 +202,32 @@ export const PIPES_MOVE_TASK: BuildTask = {
   doneText: 'Трубы появляются! В «Приборах» растёт pipes. Но их пока не видно — дальше нарисуем.',
 }
 
+/** Труба в цикле по трубам: `var p = pipes[i];` — и в drawPipes, и в checkHit. */
+const VAR_P = /\bvar\s+p\s*=\s*pipes\s*\[\s*i\s*\]/
+const TOP_PIPE = /\bdrawPipe\s*\(\s*p\.x\s*,\s*0\s*,/
+
 export const PIPES_DRAW_TASK: BuildTask = {
   kind: 'build',
   title: 'Нарисуй трубы',
-  text: 'Собери `drawPipes()`: у каждой трубы две части — над дыркой и под ней.',
+  text: 'Собери `drawPipes()`: у каждой трубы две части — над дыркой и под ней. Красивую трубу с шапкой рисует готовая функция движка `drawPipe(x, откуда, докуда)`.',
   tab: 3,
   pieces: [
     shell('drawPipes'),
     {
-      title: 'Зелёный цвет',
-      plan: into('drawPipes', '  ctx.fillStyle = "#5ec639";'),
-      isDone: (code) => has(code, /\bctx\.fillStyle\s*=/),
+      title: 'Перебрать все трубы',
+      plan: into('drawPipes', '  for (var i = 0; i < pipes.length; i++) {\n    var p = pipes[i];\n  }'),
+      isDone: (code) => has(code, VAR_P),
     },
     {
-      title: 'Нарисовать каждую трубу',
-      plan: into(
-        'drawPipes',
-        '\n  for (var i = 0; i < pipes.length; i++) {\n    var p = pipes[i];\n    // верхняя труба — до дырки, нижняя — после неё\n    ctx.fillRect(p.x, 0, 52, p.top);\n    ctx.fillRect(p.x, p.top + pipeGap, 52, 470);\n  }',
-      ),
-      isDone: (code) => has(code, /\bctx\.fillRect\s*\([^)]*pipeGap/),
+      title: 'Верхняя труба — от неба до дырки',
+      plan: (code) =>
+        after(code, VAR_P, '    // верхняя труба — до дырки, нижняя — после неё\n    drawPipe(p.x, 0, p.top);'),
+      isDone: (code) => has(code, TOP_PIPE),
+    },
+    {
+      title: 'Нижняя труба — от дырки до земли',
+      plan: (code) => after(code, TOP_PIPE, '    drawPipe(p.x, p.top + pipeGap, 460);'),
+      isDone: (code) => has(code, /\bdrawPipe\s*\([^)]*pipeGap/),
     },
   ],
   doneText:
@@ -227,10 +246,25 @@ export const PIPE_SPEED_TASK: EditTask = {
   isDone: numberAbove0('pipeSpeed'),
 }
 
+export const PIPE_COLOR_TASK: EditTask = {
+  kind: 'edit',
+  title: 'Цвет труб',
+  text: 'Трубы зелёные, потому что так написано в «Движке»: `pipeColor`. Нажми «Сменить» рядом с цветом и выбери свой, потом «Собрать».',
+  tab: 0,
+  target: stringTarget('pipeColor'),
+  picker: 'color',
+  hint: [
+    `Это строка \`var pipeColor = "${PIPE_COLOR}";\` в «Движке». Кнопка «Сменить» с квадратиком цвета — прямо рядом с ней. Можно напечатать и название цвета по-английски: "red", "gold", "pink".`,
+  ],
+  isDone(engine) {
+    const color = stringOf('pipeColor', engine)
+    return !!color && color.toLowerCase() !== PIPE_COLOR
+  },
+}
+
 // ===== Шаг 4. Удар: собрать checkHit → очко за трубу =====
 
 const HIT_LOOP = /\bfor\s*\(\s*var\s+i\s*=\s*0\s*;\s*i\s*<\s*pipes\.length\b/
-const VAR_P = /\bvar\s+p\s*=\s*pipes\s*\[\s*i\s*\]/
 const RYADOM = /\bvar\s+ryadom\s*=/
 
 export const HIT_TASK: BuildTask = {

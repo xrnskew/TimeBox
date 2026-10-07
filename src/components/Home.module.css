@@ -174,11 +174,11 @@
 .console {
   padding: 12px 12px 10px;
   border-radius: 20px 20px 30px 30px;
-  background: linear-gradient(165deg, var(--apple-hi), var(--apple) 42%, #c0261e);
+  background: linear-gradient(165deg, var(--shell-hi), var(--shell) 42%, var(--shell-lo));
   box-shadow:
     inset 0 2px 0 rgba(255, 255, 255, 0.35),
     inset 0 -4px 0 rgba(0, 0, 0, 0.16),
-    0 20px 36px -16px rgba(161, 29, 23, 0.6);
+    0 20px 36px -16px var(--shell-glow);
   transform: rotate(-3deg);
 }
 
@@ -267,17 +267,14 @@
   }
 }
 
-/* Птичка: небо как в игре, трубы едут справа налево (цикл 4 с, вторая — со сдвигом в полцикла),
-   птица подпрыгивает раз в секунду: быстро вверх, плавно вниз — как от пробела и гравитации. */
-.screen[data-scene='bird'] {
-  background: linear-gradient(#4ec0ca, #86d6dc);
-}
-
+/* Птичка: чёрное небо и белая земля, как в игре; трубы едут справа налево (цикл 4 с, вторая — со сдвигом
+   в полцикла), птица подпрыгивает раз в секунду: быстро вверх, плавно вниз — как от пробела и гравитации. */
 .pad[data-pad='1'] span {
   width: 60px;
 }
 
 .pipe {
+  --pipe: linear-gradient(90deg, #3f8f25, #9be77a 22%, #5ec639 42%, #4aa82e 70%, #2f6e1b);
   position: absolute;
   top: 0;
   bottom: 4%;
@@ -287,27 +284,43 @@
   animation-delay: calc(var(--i) * -2s);
 }
 
-.pipe::before,
-.pipe::after {
+.pipeTop,
+.pipeBottom {
   position: absolute;
   right: 0;
   left: 0;
-  border: 2px solid #3d8c25;
-  background: #5ec639;
-  content: '';
+  background: var(--pipe);
 }
 
-.pipe::before {
-  top: -2px;
+.pipeTop {
+  top: 0;
   height: var(--top);
-  border-radius: 0 0 3px 3px;
 }
 
 /* дырка — 36 % высоты экрана */
-.pipe::after {
+.pipeBottom {
   top: calc(var(--top) + 36%);
-  bottom: -2px;
-  border-radius: 3px 3px 0 0;
+  bottom: 0;
+}
+
+/* шапка трубы — шире самой трубы, с тёмной кромкой; смотрит на дырку */
+.pipeTop::after,
+.pipeBottom::after {
+  position: absolute;
+  right: -14%;
+  left: -14%;
+  height: 9px;
+  border-block: 2px solid rgba(0, 0, 0, 0.35);
+  background: var(--pipe);
+  content: '';
+}
+
+.pipeTop::after {
+  bottom: 0;
+}
+
+.pipeBottom::after {
+  top: 0;
 }
 
 .ground {
@@ -316,8 +329,7 @@
   bottom: 0;
   left: 0;
   height: 4%;
-  background: #ded895;
-  box-shadow: inset 0 2px 0 #b5ae5e;
+  background: #fff;
 }
 
 .bird {

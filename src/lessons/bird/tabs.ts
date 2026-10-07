@@ -4,12 +4,17 @@ import type { LessonVariant, TabDef } from '../types.ts'
 // гравитация каждый кадр прибавляется к скорости speedY, а скорость — к высоте birdY.
 // Гравитация, сила взмаха и скорость труб в учебном движке — 0: их ученик ставит сам в квестах.
 // Строк coinEmoji и maxSpeed нет: их ученик добавляет в дополнительных заданиях.
+// Красивую трубу (шапка, блик, тень) рисует готовая функция движка drawPipe цветом pipeColor —
+// цвет ученик выбирает сам в квесте «Цвет труб».
+export const PIPE_COLOR = '#5ec639'
+
 export const TUTORIAL_ENGINE = `// ===== НАСТРОЙКИ =====
 var gravity   = 0;
 var flapPower = 0;
 var pipeSpeed = 0;
 var pipeGap   = 150;
 var pipeEvery = 90;
+var pipeColor = "${PIPE_COLOR}";
 
 // ===== СОСТОЯНИЕ ИГРЫ =====
 var birdX = 80;
@@ -41,9 +46,31 @@ function movePipes() {}
 function drawPipes() {}
 function checkHit()  {}
 
+// ===== ТРУБА =====
+// Рисует трубу цветом pipeColor от y = from до y = to.
+// Шапка — с того конца, который смотрит на дырку.
+function drawPipe(x, from, to) {
+  var capY = from <= 0 ? to - 24 : from;
+  pipePart(x, from, 52, to - from);
+  pipePart(x - 4, capY, 60, 24);
+  ctx.fillStyle = "rgba(0, 0, 0, 0.35)";
+  ctx.fillRect(x - 4, capY, 60, 3);
+  ctx.fillRect(x - 4, capY + 21, 60, 3);
+}
+
+// кусок трубы: цвет, блик слева и тень справа — так труба выглядит круглой
+function pipePart(x, y, w, h) {
+  ctx.fillStyle = pipeColor;
+  ctx.fillRect(x, y, w, h);
+  ctx.fillStyle = "rgba(255, 255, 255, 0.35)";
+  ctx.fillRect(x + w * 0.14, y, w * 0.16, h);
+  ctx.fillStyle = "rgba(0, 0, 0, 0.28)";
+  ctx.fillRect(x + w * 0.7, y, w * 0.3, h);
+}
+
 // ===== ГЛАВНЫЙ ЦИКЛ =====
 function loop() {
-  ctx.fillStyle = "#4ec0ca";
+  ctx.fillStyle = "#141414";
   ctx.fillRect(0, 0, 380, 470);
 
   if (started && !gameOver) {
@@ -55,7 +82,7 @@ function loop() {
   drawBird();
 
   // земля
-  ctx.fillStyle = "#ded895";
+  ctx.fillStyle = "#ffffff";
   ctx.fillRect(0, 460, 380, 10);
 
   ctx.fillStyle = "#ffffff";
@@ -133,13 +160,11 @@ const MOVE_PIPES = (push: string, extra = '') => `function movePipes() {
 }`
 
 const DRAW_PIPES = (coin = '') => `function drawPipes() {
-  ctx.fillStyle = "#5ec639";
-
   for (var i = 0; i < pipes.length; i++) {
     var p = pipes[i];
     // верхняя труба — до дырки, нижняя — после неё
-    ctx.fillRect(p.x, 0, 52, p.top);
-    ctx.fillRect(p.x, p.top + pipeGap, 52, 470);${coin}
+    drawPipe(p.x, 0, p.top);
+    drawPipe(p.x, p.top + pipeGap, 460);${coin}
   }
 }`
 
@@ -277,6 +302,6 @@ export const FINISHED: LessonVariant = {
     'Пролетел трубу — 1 очко. Врезался в трубу или упал на землю — конец игры.',
     '🪙 Монетка в дырке — плюс 5 очков.',
     'Каждые 10 секунд трубы едут быстрее, но не быстрее maxSpeed.',
-    'Гравитацию, силу взмаха, ширину дырки и смайлики можно менять в «Движке» и «Птице».',
+    'Гравитацию, силу взмаха, ширину дырки, цвет труб и смайлики можно менять в «Движке» и «Птице».',
   ],
 }

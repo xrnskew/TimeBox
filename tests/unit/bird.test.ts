@@ -11,6 +11,7 @@ import {
   FAST_PIPES,
   FINISHED_CODES,
   MAX_SPEED_LINE,
+  PIPE_COLOR,
   STEP_BIRD,
   STEP_FLAP,
   STEP_HIT,
@@ -28,6 +29,7 @@ import {
   FLAP_TASK,
   GRAVITY_TASK,
   HIT_TASK,
+  PIPE_COLOR_TASK,
   PIPE_SPEED_TASK,
   PIPES_DRAW_TASK,
   PIPES_MOVE_TASK,
@@ -39,10 +41,11 @@ import { build } from './build.ts'
 import { boot } from './sim.ts'
 
 /** Движок со своими настройками: по умолчанию всё настроено, как в квестах. */
-const engineWith = (gravity = 0.4, flap = 7, pipes = 2) =>
+const engineWith = (gravity = 0.4, flap = 7, pipes = 2, color = '#e53935') =>
   TUTORIAL_ENGINE.replace('var gravity   = 0;', `var gravity   = ${gravity};`)
     .replace('var flapPower = 0;', `var flapPower = ${flap};`)
     .replace('var pipeSpeed = 0;', `var pipeSpeed = ${pipes};`)
+    .replace(`var pipeColor = "${PIPE_COLOR}";`, `var pipeColor = "${color}";`)
 const birdWith = (emoji: string) => STEP_BIRD.replace(`"${BIRD_EMOJI}"`, `"${emoji}"`)
 const withSetting = (engine: string, name: string, line: string) =>
   applySettingInsert(engine, planSettingInsert(engine, name, line))
@@ -111,6 +114,18 @@ describe('Птичка: квесты «поправь сам»', () => {
     expect(GRAVITY_TASK.isDone(engineWith(0.25))).toBe(true)
   })
 
+  it('«Цвет труб»: окно цветов у pipeColor в «Движке»; засчитан любой цвет, кроме зелёного', () => {
+    expect(PIPE_COLOR_TASK.picker).toBe('color')
+    expect(PIPE_COLOR_TASK.tab).toBe(0)
+    expect(PIPE_COLOR_TASK.isDone(TUTORIAL_ENGINE)).toBe(false)
+    expect(PIPE_COLOR_TASK.isDone(engineWith(0, 0, 0, '#5EC639'))).toBe(false)
+    expect(PIPE_COLOR_TASK.isDone(engineWith(0, 0, 0, '#ec407a'))).toBe(true)
+    expect(PIPE_COLOR_TASK.isDone(engineWith(0, 0, 0, 'gold'))).toBe(true)
+    expect(PIPE_COLOR_TASK.isDone(engineWith(0, 0, 0, ''))).toBe(false)
+    const at = editTarget(TUTORIAL_ENGINE, PIPE_COLOR_TASK.target)!
+    expect(TUTORIAL_ENGINE.split('\n')[at.line - 1].slice(at.from, at.to)).toBe(PIPE_COLOR)
+  })
+
   it('«Собери игру» засчитан по коду последнего запуска', () => {
     const drawn = build(TUTORIAL_CODES[1], BIRD_CREATE_TASK, BIRD_DRAW_TASK)
     expect(BIRD_RUN_TASK.isDone(TUTORIAL_CODES)).toBe(false)
@@ -137,6 +152,8 @@ describe('Птичка: квесты идут по порядку', () => {
     expect(quest(codes)).toEqual({ step: 2, quest: 0 })
     codes[3] = STEP_PIPES
     expect(quest(codes)).toEqual({ step: 2, quest: 2 })
+    codes[0] = engineWith(0.4, 7, 2, PIPE_COLOR)
+    expect(quest(codes)).toEqual({ step: 2, quest: 3 })
     codes[0] = engineWith()
     expect(quest(codes)).toEqual({ step: 3, quest: 0 })
     codes[4] = build(TUTORIAL_CODES[4], HIT_TASK)
@@ -161,6 +178,16 @@ describe('Птичка: квесты идут по порядку', () => {
 })
 
 describe('Птичка: игра', () => {
+  it('фон чёрный, земля белая; трубы рисует drawPipe цветом pipeColor — с шапкой', () => {
+    const sim = boot(fullGame(engineWith(0, 0, 0, '#ec407a')))
+    sim.peek('pipes = [{ x: 200, top: 120, passed: false }]')
+    sim.tick()
+    expect(sim.fills[0]).toBe('#141414')
+    expect(sim.fills).toContain('#ffffff')
+    // две трубы, у каждой — тело и шапка своим цветом
+    expect(sim.fills.filter((f) => f === '#ec407a')).toHaveLength(4)
+  })
+
   it('движок без шагов запускается, ждёт пробела и рисует счёт', () => {
     const sim = boot(TUTORIAL_CODES)
     sim.tick()

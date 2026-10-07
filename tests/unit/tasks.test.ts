@@ -2,7 +2,7 @@ import { describe, expect, it } from 'vitest'
 import { currentQuest, extraStates, levelStates } from '@/core/levels.ts'
 import { checkFinishedPassword } from '@/core/lock.ts'
 import { functionLines } from '@/core/progress.ts'
-import { isEmojiString } from '@/editor/emoji.ts'
+import { isColorString, isEmojiString } from '@/editor/emoji.ts'
 import { GUIDE_EXTRAS, GUIDE_STEPS } from '@/lessons/catch/guide.ts'
 import {
   BOMB_APPLES,
@@ -224,6 +224,15 @@ describe('шаги открываются по очереди', () => {
   it('код бомбы и звезды сохраняет все квесты яблок и поимки', () => {
     const levels = levelStates(GUIDE_STEPS, [engineWith(3, '🍩'), heroWith('🐱'), GOLD_APPLES, GOLD_CATCH])
     expect(levels.every((l) => l.done)).toBe(true)
+  })
+})
+
+describe('кнопка «Сменить» у цвета', () => {
+  it('есть только у переменной …Color, а не у любого кода цвета', () => {
+    expect(isColorString('var pipeColor = ')).toBe(true)
+    expect(isColorString('  pipeColor = ')).toBe(true)
+    expect(isColorString('  ctx.fillStyle = ')).toBe(false)
+    expect(isColorString('var playerEmoji = ')).toBe(false)
   })
 })
 

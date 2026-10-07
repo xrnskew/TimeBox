@@ -52,6 +52,10 @@ export const emojiOf = (name: string, code: string): string | null => {
 /** Что выделить в строке `var name = "…"`: сам смайлик. */
 export const emojiTarget = (name: string) => new RegExp(`var\\s+${name}\\s*=\\s*["'](?<emoji>[^"']*)["']`, 'd')
 
+/** То же для любой строки в кавычках — например, цвета `var pipeColor = "#5ec639"`. */
+export const stringOf = emojiOf
+export const stringTarget = emojiTarget
+
 /** Число в строке `var name = …;`: засчитано, когда оно больше 0. */
 export const numberAbove0 = (name: string) => (code: string) => {
   const m = new RegExp(`^\\s*var\\s+${name}\\s*=\\s*([\\d.]+)\\s*(;|$)`, 'm').exec(stripComments(code))

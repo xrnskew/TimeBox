@@ -61,8 +61,8 @@ export interface EditTask {
   target: RegExp
   hint: Rich[]
   isDone: (code: string) => boolean
-  /** Меняется смайлик: кнопка в гайде сразу открывает окно выбора. */
-  picker?: boolean
+  /** Меняется смайлик или цвет: кнопка в гайде сразу открывает окно выбора. */
+  picker?: 'emoji' | 'color'
 }
 
 /** Кусок функции, который добавляется кнопкой. */
@@ -164,6 +164,8 @@ export interface Lesson {
     scene: 'catch' | 'bird'
   }
   controls: LessonControls
+  /** Цвет корпуса приставки — и в игре, и на карточке в меню. У каждой игры свой. */
+  consoleColor: 'red' | 'green' | 'yellow'
   tutorial: LessonVariant
   finished: LessonVariant
   intro: GuideIntro

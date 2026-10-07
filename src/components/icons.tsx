@@ -246,3 +246,20 @@ export function FaceIcon({ size = 14, className }: IconProps) {
     </svg>
   )
 }
+
+/** Палитра художника: квест «выбери цвет». */
+export function PaletteIcon({ size = 14, className }: IconProps) {
+  return (
+    <svg {...base(size)} className={className}>
+      <path
+        d="M8 1.8a6.2 6.2 0 1 0 0 12.4c.9 0 1.4-.6 1.4-1.3 0-.8-.6-1.1-.6-1.8 0-.7.6-1.2 1.3-1.2h1.5a2.6 2.6 0 0 0 2.6-2.6C14.2 4.3 11.5 1.8 8 1.8Z"
+        stroke="currentColor"
+        strokeWidth="1.5"
+        strokeLinejoin="round"
+      />
+      <circle cx="5" cy="7.6" r="1" fill="currentColor" />
+      <circle cx="6.8" cy="4.8" r="1" fill="currentColor" />
+      <circle cx="10" cy="4.8" r="1" fill="currentColor" />
+    </svg>
+  )
+}
