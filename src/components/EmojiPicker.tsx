@@ -9,6 +9,7 @@ import styles from './EmojiPicker.module.css'
 
 const GROUPS: { title: string; list: string }[] = [
   { title: 'Звери и герои', list: '🐱 🐶 🦊 🐸 🐼 🐵 🐧 🐰 🐻 🐯 🦁 🐷 🦄 🐲 🦖 🐙 🤖 👽 👻 😎 🥷 🧙 🦸 🤠' },
+  { title: 'Летают', list: '🐤 🐦 🦉 🦅 🦆 🐝 🦋 🦇 🐉 🎈 🪁' },
   { title: 'Транспорт', list: '🚀 🛸 🚗 🚲 🛹 ⛵ 🚁 🛶' },
   { title: 'Еда', list: '🍎 🍐 🍊 🍋 🍌 🍉 🍇 🍓 🍒 🥕 🍩 🍪 🍕 🍔 🧁 🍬 🍭 🐟' },
   { title: 'Вещи', list: '🧺 🪣 🎩 ⚽ 🏀 🎁 💎 🪙 💰 ⭐ 🌟 💣 ❤️ 🔥 ⚡ ❄️' },

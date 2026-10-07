@@ -7,7 +7,7 @@ import { findSyntaxError, firstSyntaxError, type SyntaxIssue } from '@/core/synt
 import { createTabEditors, type TabEditors } from '@/editor/createTabEditors.ts'
 import type { EmojiSpot } from '@/editor/emoji.ts'
 import type { SlotSource } from '@/editor/slots.ts'
-import { editTarget } from '@/lessons/catch/tasks.ts'
+import { editTarget } from '@/lessons/kit.ts'
 import type { BuildTask, Lesson, LessonVariant, RunTask } from '@/lessons/types.ts'
 import { runner } from '@/sandbox/harness.ts'
 import {
@@ -23,7 +23,7 @@ import { finishedHref } from './routes.ts'
 import { createStore, type Store } from './store.ts'
 
 export type View = 'guide' | number
-/** running — идёт; over — жизни кончились; stopped — упала с ошибкой; blocked — не запустилась. */
+/** running — идёт; over — игра окончена (жизни кончились или gameOver); stopped — упала с ошибкой; blocked — не запустилась. */
 export type GameStatus = 'running' | 'over' | 'stopped' | 'blocked'
 export type Panel = 'inspector' | 'console'
 
@@ -219,7 +219,7 @@ export function createController(lesson: Lesson, variant: LessonVariant) {
     }
     const s = store.get()
     store.set({
-      doc: runner.buildDoc(codes, { focus: !bad, hitboxes: s.hitboxes }),
+      doc: runner.buildDoc(codes, { focus: !bad, hitboxes: s.hitboxes, game: lesson.id }),
       runId: s.runId + 1,
       ran: codes,
       spotOff: false,
@@ -357,7 +357,9 @@ export function createController(lesson: Lesson, variant: LessonVariant) {
       store.set({ best: score })
       saveBest(key, score)
     }
-    if (s.game === 'running' && typeof lives === 'number' && lives <= 0) store.set({ game: 'over', lastScore: score })
+    // конец игры: кончились жизни (Catch) или движок поднял флаг gameOver (Птичка)
+    const over = w.gameOver === true || (typeof lives === 'number' && lives <= 0)
+    if (s.game === 'running' && over) store.set({ game: 'over', lastScore: score })
   }
 
   // ===== Гайд: квесты =====
@@ -385,7 +387,7 @@ export function createController(lesson: Lesson, variant: LessonVariant) {
   /** Подсказка, где следующий квест. */
   function whatNext(levels: LevelState[], step: number): string {
     const next = currentQuest(lesson.steps, levels)
-    if (!next) return levels.every((l) => l.done) ? ' Игра собрана! Бомба и звезда — в «Гайде».' : ''
+    if (!next) return levels.every((l) => l.done) ? ` Игра собрана! ${lesson.extrasTitle} — в «Гайде».` : ''
     if (next.step !== step) return ` Шаг ${next.step + 1} открыт — он в «Гайде».`
     const task = questAt(next.step, next.quest)
     if (task.kind === 'build' && task.tab === editors?.current) return ' Дальше — жми «Добавить» прямо в коде.'
@@ -524,7 +526,7 @@ export function createController(lesson: Lesson, variant: LessonVariant) {
     snapshot()
   }
 
-  /** Бомбу и звезду можно добавить, только когда основная игра собрана: три шага с заданиями. */
+  /** Дополнительные задания (бомба и звезда…) открываются, только когда основная игра собрана: все шаги с квестами. */
   function extraLocked(extraIndex: number): boolean {
     const codes = codesNow()
     const allDone = levelsOf(codes).every((l) => l.done)
@@ -533,12 +535,12 @@ export function createController(lesson: Lesson, variant: LessonVariant) {
     toast(
       allDone
         ? `Сначала добавь «${lesson.extras[extraIndex - 1].title}».`
-        : 'Сначала собери игру: пройди три шага вместе с заданиями.',
+        : 'Сначала собери игру: пройди все шаги вместе с квестами.',
     )
     return true
   }
 
-  /** Бомба и звезда, кнопка 1: одна строка в «Движок». Целиком «Движок» не заменяем. */
+  /** Дополнительное задание, кнопка 1: одна строка в «Движок». Целиком «Движок» не заменяем. */
   function insertExtraSetting(extraIndex: number) {
     const { setting } = lesson.extras[extraIndex]
     if (!editors || extraLocked(extraIndex)) return
@@ -557,7 +559,7 @@ export function createController(lesson: Lesson, variant: LessonVariant) {
     )
   }
 
-  /** Бомба и звезда, кнопка 2: код сразу в несколько вкладок — одной правкой в каждой. */
+  /** Дополнительное задание, кнопка 2: код сразу в несколько вкладок — одной правкой в каждой. */
   function insertExtraCode(extraIndex: number) {
     const extra = lesson.extras[extraIndex]
     if (!editors || extraLocked(extraIndex)) return
@@ -739,7 +741,7 @@ export function levelsDone(c: Controller, codes: string[], ran: string[]): boole
   return levelStates(c.lesson.steps, codes, ran).map((l) => l.done)
 }
 
-/** Бомба и звезда: добавлены ли (и переменная, и код). */
+/** Дополнительные задания: добавлены ли (и переменная, и код). */
 export function extrasDone(c: Controller, codes: string[], ran: string[]): boolean[] {
   const levels = levelStates(c.lesson.steps, codes, ran)
   return extraStates(

@@ -1,5 +1,5 @@
 // Запуск кода вкладок без браузера: заглушки document, ctx и requestAnimationFrame.
-// Так проверяется логика игры — ловля, жизни, бомба, звезда, ускорение.
+// Так проверяется логика игры — ловля, жизни, бомба, звезда, ускорение, полёт птицы.
 
 type Listener = (e: { key: string }) => void
 
@@ -19,6 +19,8 @@ export function boot(codes: string[]): Sim {
       ;(listeners[type] ??= []).push(fn)
     },
   }
+  // холст: Птичка слушает клик по нему
+  const canvas = { addEventListener: document.addEventListener }
   const drawn: string[] = []
   const ctx = {
     fillStyle: '',
@@ -34,7 +36,12 @@ export function boot(codes: string[]): Sim {
     return 1
   }
   const body = `${codes.join('\n')}\nreturn function (expr) { return eval(expr); };`
-  const peek = new Function('document', 'ctx', 'requestAnimationFrame', body)(document, ctx, requestAnimationFrame)
+  const peek = new Function('document', 'canvas', 'ctx', 'requestAnimationFrame', body)(
+    document,
+    canvas,
+    ctx,
+    requestAnimationFrame,
+  )
   return {
     peek,
     tick(times = 1) {

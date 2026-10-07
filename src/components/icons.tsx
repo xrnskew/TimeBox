@@ -198,14 +198,12 @@ export function BulbIcon({ size = 14, className }: IconProps) {
   )
 }
 
-export function TriangleIcon({ dir, size = 18 }: { dir: 'left' | 'right'; size?: number }) {
+const TRIANGLES = { left: 'M11 3v10L3.5 8 11 3Z', right: 'M5 3v10l7.5-5L5 3Z', up: 'M3 11h10L8 3.5 3 11Z' }
+
+export function TriangleIcon({ dir, size = 18 }: { dir: 'left' | 'right' | 'up'; size?: number }) {
   return (
     <svg width={size} height={size} viewBox="0 0 16 16" aria-hidden="true" focusable="false">
-      <path
-        d={dir === 'left' ? 'M11 3v10L3.5 8 11 3Z' : 'M5 3v10l7.5-5L5 3Z'}
-        fill="currentColor"
-        strokeLinejoin="round"
-      />
+      <path d={TRIANGLES[dir]} fill="currentColor" strokeLinejoin="round" />
     </svg>
   )
 }

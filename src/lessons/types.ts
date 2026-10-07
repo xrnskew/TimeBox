@@ -134,6 +134,16 @@ export interface HintSet {
   watch: string[]
 }
 
+/** Кнопки на корпусе приставки и подписи про управление. */
+export interface LessonControls {
+  /** Кнопки шлют в игру нажатие клавиши `key` — и мышью, и пальцем. */
+  buttons: { key: string; label: string; icon: 'left' | 'right' | 'up'; wide?: boolean }[]
+  /** Какие клавиши жать — у лампочки на рамке: «жми ← →». */
+  keysHint: string
+  /** Подсказка у тумблера «Границы»: что он показывает. */
+  hitboxes: string
+}
+
 export interface Lesson {
   /** Адрес игры: `?game=<id>`. */
   id: string
@@ -146,17 +156,22 @@ export interface Lesson {
     blurb: string
     /** Смайлики на экране карточки, если ученик ещё не выбрал своих. */
     hero: string
-    item: string
+    item?: string
     /** Переменные со смайликами ученика: если он их поменял, карточка показывает его героя. */
     heroVar: string
-    itemVar: string
+    itemVar?: string
+    /** Что показывает экран карточки: падающие предметы или полёт между трубами. */
+    scene: 'catch' | 'bird'
   }
+  controls: LessonControls
   tutorial: LessonVariant
   finished: LessonVariant
   intro: GuideIntro
   steps: GuideStep[]
   extras: GuideExtra[]
-  /** Предупреждение под бомбой и звездой. */
+  /** Заголовок раздела дополнительных заданий в гайде: «Бомба и звезда». */
+  extrasTitle: string
+  /** Предупреждение под дополнительными заданиями. */
   extrasNote: Rich
   hints: HintSet
 }

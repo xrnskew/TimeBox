@@ -47,7 +47,7 @@ function GameScreen() {
         key={runId}
         ref={setFrame}
         srcDoc={doc}
-        title="Игра Catch"
+        title={`Игра ${c.lesson.title}`}
         className={styles.iframe}
         onLoad={onFrameLoad}
       />
@@ -102,20 +102,23 @@ function GameOver() {
 
 /** Лампочка на рамке экрана: горит, когда игра слушает клавиши. */
 function FocusLed() {
+  const c = useController()
   const focused = useApp((s) => s.gameFocused)
+  const keys = c.lesson.controls.keysHint
   return (
     <p className={styles.led} data-on={focused} aria-live="polite">
       <span className={styles.ledDot} aria-hidden="true" />
-      {focused ? 'Играем: жми ← →' : 'Кликни по экрану, потом жми ← →'}
+      {focused ? `Играем: жми ${keys}` : `Кликни по экрану, потом жми ${keys}`}
     </p>
   )
 }
 
-/** Кнопки на корпусе: ← → двигают корзину (и мышью, и пальцем), тумблер — зона поимки. */
+/** Кнопки на корпусе — у каждой игры свои (Catch: ← →, Птичка: «Взмах»), и мышью, и пальцем; тумблер — «Границы». */
 function Controls() {
   const c = useController()
   const hitboxes = useApp((s) => s.hitboxes)
   const game = useApp((s) => s.game)
+  const { buttons } = c.lesson.controls
 
   // Фокус остаётся у игры: иначе кнопка забирает его, и поверх экрана всплывает «Кликни, чтобы играть».
   const hold = (k: string) => ({
@@ -137,13 +140,20 @@ function Controls() {
 
   return (
     <div className={styles.controls}>
-      <div className={styles.dpad} role="group" aria-label="Стрелки">
-        <button type="button" className={styles.arrow} aria-label="Влево" {...hold('ArrowLeft')}>
-          <TriangleIcon dir="left" />
-        </button>
-        <button type="button" className={styles.arrow} aria-label="Вправо" {...hold('ArrowRight')}>
-          <TriangleIcon dir="right" />
-        </button>
+      <div className={styles.dpad} role="group" aria-label="Кнопки игры">
+        {buttons.map((b) => (
+          <button
+            key={b.key}
+            type="button"
+            className={styles.arrow}
+            data-wide={b.wide === true}
+            aria-label={b.label}
+            {...hold(b.key)}
+          >
+            <TriangleIcon dir={b.icon} />
+            {b.wide && <span className={styles.arrowLabel}>{b.label}</span>}
+          </button>
+        ))}
       </div>
 
       <button
@@ -153,7 +163,7 @@ function Controls() {
         className={styles.switch}
         onClick={c.toggleHitboxes}
         disabled={game === 'blocked'}
-        title="Показать зону поимки и точки, которые проверяет checkCatch"
+        title={c.lesson.controls.hitboxes}
       >
         <span className={styles.track} aria-hidden="true">
           <span className={styles.thumb} />

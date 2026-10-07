@@ -1,0 +1,282 @@
+import type { LessonVariant, TabDef } from '../types.ts'
+
+// Птичка (как Flappy Bird). Новое по сравнению с Catch — скорость, а не только позиция:
+// гравитация каждый кадр прибавляется к скорости speedY, а скорость — к высоте birdY.
+// Гравитация, сила взмаха и скорость труб в учебном движке — 0: их ученик ставит сам в квестах.
+// Строк coinEmoji и maxSpeed нет: их ученик добавляет в дополнительных заданиях.
+export const TUTORIAL_ENGINE = `// ===== НАСТРОЙКИ =====
+var gravity   = 0;
+var flapPower = 0;
+var pipeSpeed = 0;
+var pipeGap   = 150;
+var pipeEvery = 90;
+
+// ===== СОСТОЯНИЕ ИГРЫ =====
+var birdX = 80;
+var birdY = 220;
+var speedY = 0;
+var pipes = [];
+var score = 0;
+var frame = 0;
+var started = false;
+var gameOver = false;
+
+// ===== КЛАВИШИ =====
+// пробел, стрелка вверх или клик по экрану — взмах
+function press() {
+  started = true;
+  if (!gameOver) flap();
+}
+document.addEventListener("keydown", function (e) {
+  if ((e.key === " " || e.key === "ArrowUp") && !e.repeat) press();
+});
+canvas.addEventListener("pointerdown", press);
+
+// ===== ЗАГОТОВКИ =====
+// Пока пустые. Твои функции из других вкладок их заменят.
+function drawBird()  {}
+function moveBird()  {}
+function flap()      {}
+function movePipes() {}
+function drawPipes() {}
+function checkHit()  {}
+
+// ===== ГЛАВНЫЙ ЦИКЛ =====
+function loop() {
+  ctx.fillStyle = "#4ec0ca";
+  ctx.fillRect(0, 0, 380, 470);
+
+  if (started && !gameOver) {
+    moveBird();
+    movePipes();
+    checkHit();
+  }
+  drawPipes();
+  drawBird();
+
+  // земля
+  ctx.fillStyle = "#ded895";
+  ctx.fillRect(0, 460, 380, 10);
+
+  ctx.fillStyle = "#ffffff";
+  ctx.font = "bold 17px sans-serif";
+  ctx.fillText("Счёт: " + score, 12, 26);
+
+  if (!started) {
+    ctx.font = "bold 20px sans-serif";
+    ctx.fillText("Жми пробел!", 128, 320);
+  }
+  if (gameOver) {
+    ctx.font = "bold 26px sans-serif";
+    ctx.fillText("Игра окончена", 78, 240);
+  }
+  requestAnimationFrame(loop);
+}
+loop();`
+
+export const COIN_LINE = 'var coinEmoji = "🪙";'
+export const MAX_SPEED_LINE = 'var maxSpeed  = 5;'
+
+// ===== Код шагов гайда — базовая версия: без монеток, скорость труб постоянная =====
+// Каждый шаг собирается кнопками по кусочкам (tasks.ts) и в итоге совпадает с этим кодом.
+
+/** Смайлик птицы, с которого начинают. Квест «Выбери птицу» — поменять его на свой. */
+export const BIRD_EMOJI = '🐤'
+
+export const STEP_BIRD = `// птица — любой смайлик
+var birdEmoji = "${BIRD_EMOJI}";
+
+function drawBird() {
+  ctx.font = "34px serif";
+  ctx.fillText(birdEmoji, birdX, birdY);
+}
+
+function moveBird() {
+  // гравитация разгоняет птицу вниз
+  speedY = speedY + gravity;
+  // скорость двигает птицу
+  birdY = birdY + speedY;
+
+  // не даём птице провалиться под землю и улететь выше неба
+  if (birdY > 460) {
+    birdY = 460;
+    speedY = 0;
+  }
+  if (birdY < 30) {
+    birdY = 30;
+    speedY = 0;
+  }
+}`
+
+export const STEP_FLAP = `function flap() {
+  // взмах: скорость сразу вверх (вверх — это минус)
+  speedY = -flapPower;
+}`
+
+const MOVE_PIPES = (push: string, extra = '') => `function movePipes() {
+  frame = frame + 1;${extra}
+
+  // раз в pipeEvery кадров — новая труба справа, дырка на случайной высоте
+  if (frame % pipeEvery === 0) {
+    pipes.push(${push});
+  }
+
+  // все трубы едут влево
+  for (var i = 0; i < pipes.length; i++) {
+    pipes[i].x = pipes[i].x - pipeSpeed;
+  }
+
+  // труба уехала за левый край — убираем её
+  if (pipes.length > 0 && pipes[0].x < -60) {
+    pipes.shift();
+  }
+}`
+
+const DRAW_PIPES = (coin = '') => `function drawPipes() {
+  ctx.fillStyle = "#5ec639";
+
+  for (var i = 0; i < pipes.length; i++) {
+    var p = pipes[i];
+    // верхняя труба — до дырки, нижняя — после неё
+    ctx.fillRect(p.x, 0, 52, p.top);
+    ctx.fillRect(p.x, p.top + pipeGap, 52, 470);${coin}
+  }
+}`
+
+export const STEP_PIPES = `${MOVE_PIPES('{ x: 380, top: 60 + Math.random() * 200, passed: false }')}
+
+${DRAW_PIPES()}`
+
+const CHECK_HIT = (coin = '') => `function checkHit() {
+  // упал на землю — конец игры
+  if (birdY >= 460) gameOver = true;
+
+  for (var i = 0; i < pipes.length; i++) {
+    var p = pipes[i];
+
+    // пролетел трубу — плюс очко
+    if (!p.passed && p.x + 52 < birdX) {
+      p.passed = true;
+      score = score + 1;
+    }
+${coin}
+    // птица над трубой по горизонтали?
+    var ryadom = birdX + 34 > p.x && birdX < p.x + 52;
+
+    if (ryadom && (birdY - 26 < p.top || birdY > p.top + pipeGap)) {
+      // врезался в трубу — конец игры
+      gameOver = true;
+    }
+  }
+}`
+
+export const STEP_HIT = CHECK_HIT()
+
+// ===== Монетки и «Всё быстрее»: основа — код после всех шагов =====
+
+const COIN_PUSH = '{ x: 380, top: 60 + Math.random() * 200, passed: false, coin: Math.random() < 0.5 }'
+
+const COIN_DRAW = `
+
+    // монетка — посередине дырки
+    if (p.coin) {
+      ctx.font = "34px serif";
+      ctx.fillText(coinEmoji, p.x + 9, p.top + pipeGap / 2 + 12);
+    }`
+
+export const COIN_PIPES = `${MOVE_PIPES(COIN_PUSH)}
+
+${DRAW_PIPES(COIN_DRAW)}`
+
+export const COIN_HIT = CHECK_HIT(`
+    // схватил монетку — плюс 5 очков
+    if (p.coin && Math.abs(birdX - (p.x + 9)) < 30 && Math.abs(birdY - (p.top + pipeGap / 2 + 12)) < 30) {
+      p.coin = false;
+      score = score + 5;
+    }
+`)
+
+export const SPEEDUP_FN = `// каждые 10 секунд трубы едут быстрее, но не быстрее maxSpeed
+function speedUp() {
+  if (frame % 600 === 0 && pipeSpeed < maxSpeed) {
+    pipeSpeed = pipeSpeed + 0.5;
+  }
+}`
+
+export const FAST_PIPES = `${MOVE_PIPES(COIN_PUSH, '\n  speedUp();')}
+
+${DRAW_PIPES(COIN_DRAW)}
+
+${SPEEDUP_FN}`
+
+// ===== Готовая версия (?finished): монетки, ускорение, всё настроено =====
+
+const FINISHED_ENGINE = TUTORIAL_ENGINE.replace('var gravity   = 0;', 'var gravity   = 0.4;')
+  .replace('var flapPower = 0;', 'var flapPower = 7;')
+  .replace('var pipeSpeed = 0;', 'var pipeSpeed = 2;')
+  .replace('// ===== НАСТРОЙКИ =====', `// ===== НАСТРОЙКИ =====\n${COIN_LINE}\n${MAX_SPEED_LINE}`)
+
+const FINISHED_BIRD = STEP_BIRD.replace(`"${BIRD_EMOJI}"`, '"🐦"')
+
+// ===== Вкладки =====
+
+const placeholder = (step: number, what: string) =>
+  `// Шаг ${step}. ${what}\n// Не знаешь, с чего начать? Открой вкладку «Гайд».`
+
+export const TUTORIAL_TABS: TabDef[] = [
+  {
+    id: 'engine',
+    title: 'Движок',
+    note: 'Готовый движок: настройки, состояние игры и главный цикл. Настройки сверху можно менять.',
+  },
+  {
+    id: 'bird',
+    title: 'Птица',
+    step: 1,
+    note: 'Шаг 1: птица — смайлик. Гравитация разгоняет её вниз.',
+  },
+  { id: 'flap', title: 'Взмах', step: 2, note: 'Шаг 2: пробел — взмах, птица подлетает вверх.' },
+  { id: 'pipes', title: 'Трубы', step: 3, note: 'Шаг 3: трубы с дыркой едут навстречу птице.' },
+  { id: 'hit', title: 'Удар', step: 4, note: 'Шаг 4: врезался — конец игры, пролетел трубу — очко.' },
+]
+
+export const TUTORIAL_CODES: string[] = [
+  TUTORIAL_ENGINE,
+  placeholder(1, 'Здесь будет твоя птица: смайлик, drawBird и moveBird.'),
+  placeholder(2, 'Здесь будет функция flap — взмах.'),
+  placeholder(3, 'Здесь будут функции movePipes и drawPipes.'),
+  placeholder(4, 'Здесь будет функция checkHit.'),
+]
+
+export const FINISHED_TABS: TabDef[] = [
+  { id: 'engine', title: 'Движок', note: 'Настройки, состояние игры и главный цикл. Числа и смайлики можно менять.' },
+  { id: 'bird', title: 'Птица', note: 'Птица: смайлик, отрисовка и полёт с гравитацией.' },
+  { id: 'flap', title: 'Взмах', note: 'Пробел, стрелка вверх или клик — взмах.' },
+  { id: 'pipes', title: 'Трубы', note: 'Трубы с дыркой и монетками. Каждые 10 секунд едут быстрее.' },
+  { id: 'hit', title: 'Удар', note: 'Земля и трубы — конец игры. Труба — 1 очко, монетка — 5.' },
+]
+
+export const FINISHED_CODES: string[] = [FINISHED_ENGINE, FINISHED_BIRD, STEP_FLAP, FAST_PIPES, COIN_HIT]
+
+export const TUTORIAL: LessonVariant = {
+  id: 'tutorial',
+  storageKey: 'bird-sandbox-v1',
+  tabs: TUTORIAL_TABS,
+  initial: TUTORIAL_CODES,
+  hasGuide: true,
+}
+
+export const FINISHED: LessonVariant = {
+  id: 'finished',
+  storageKey: 'bird-sandbox-finished-v1',
+  tabs: FINISHED_TABS,
+  initial: FINISHED_CODES,
+  hasGuide: false,
+  features: [
+    'Пробел, стрелка вверх или клик по экрану — взмах.',
+    'Пролетел трубу — 1 очко. Врезался в трубу или упал на землю — конец игры.',
+    '🪙 Монетка в дырке — плюс 5 очков.',
+    'Каждые 10 секунд трубы едут быстрее, но не быстрее maxSpeed.',
+    'Гравитацию, силу взмаха, ширину дырки и смайлики можно менять в «Движке» и «Птице».',
+  ],
+}

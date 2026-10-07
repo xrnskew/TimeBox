@@ -131,7 +131,7 @@
         report(String(e), lineOf(e))
       }
     }
-    if (ctl.hitboxes) drawHitboxes()
+    if (ctl.hitboxes) (HITBOXES[cfg.game] || drawCatchHitboxes)()
     if (failed && !queue.length) post({ type: 'stopped' })
     schedule()
   }
@@ -156,8 +156,9 @@
     }
   })
 
-  // ===== Границы: зона поимки из шага 3 и точки, которые проверяет checkCatch =====
-  function drawHitboxes() {
+  // ===== Границы: то, что проверяет код столкновений, — у каждой игры своё =====
+  // Catch: зона поимки из шага 3 и точки, которые проверяет checkCatch.
+  function drawCatchHitboxes() {
     var c = window.ctx
     var px = window.playerX
     var py = window.playerY
@@ -190,6 +191,52 @@
     }
     c.restore()
   }
+
+  // Птичка: рамка птицы, трубы и земля — то, что проверяет checkHit.
+  function drawBirdHitboxes() {
+    var c = window.ctx
+    var bx = window.birdX
+    var by = window.birdY
+    if (!c || typeof bx !== 'number' || typeof by !== 'number') return
+    c.save()
+    c.lineWidth = 1.5
+    var list = window.pipes
+    var gap = window.pipeGap
+    if (list && list.length && typeof gap === 'number') {
+      c.setLineDash([5, 4])
+      c.fillStyle = 'rgba(200, 40, 30, 0.22)'
+      c.strokeStyle = '#b3261e'
+      for (var i = 0; i < list.length; i++) {
+        var p = list[i]
+        if (!p || typeof p.x !== 'number' || typeof p.top !== 'number') continue
+        c.fillRect(p.x, 0, 52, p.top)
+        c.strokeRect(p.x, 0, 52, p.top)
+        c.fillRect(p.x, p.top + gap, 52, 470 - p.top - gap)
+        c.strokeRect(p.x, p.top + gap, 52, 470 - p.top - gap)
+      }
+    }
+    // небо светлое: рамки тёмные, а не голубые, как в Catch
+    c.setLineDash([5, 4])
+    c.strokeStyle = '#123a52'
+    c.beginPath()
+    c.moveTo(0, 460)
+    c.lineTo(380, 460)
+    c.stroke()
+    c.font = 'bold 12px sans-serif'
+    c.fillStyle = '#123a52'
+    c.fillText('земля: y = 460', 280, 454)
+    c.setLineDash([])
+    c.lineWidth = 2
+    c.strokeStyle = '#123a52'
+    c.strokeRect(bx, by - 26, 34, 26)
+    c.fillStyle = '#123a52'
+    c.beginPath()
+    c.arc(bx, by, 3, 0, Math.PI * 2)
+    c.fill()
+    c.restore()
+  }
+
+  var HITBOXES = { catch: drawCatchHitboxes, bird: drawBirdHitboxes }
 
   // ===== Консоль: console.log попадает в панель под игрой =====
   var logBuf = []

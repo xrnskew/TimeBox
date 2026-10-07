@@ -2,7 +2,6 @@ import { describe, expect, it } from 'vitest'
 import { currentQuest, extraStates, levelStates } from '@/core/levels.ts'
 import { checkFinishedPassword } from '@/core/lock.ts'
 import { functionLines } from '@/core/progress.ts'
-import { findSyntaxError } from '@/core/syntax.ts'
 import { isEmojiString } from '@/editor/emoji.ts'
 import { GUIDE_EXTRAS, GUIDE_STEPS } from '@/lessons/catch/guide.ts'
 import {
@@ -21,7 +20,6 @@ import {
 } from '@/lessons/catch/tabs.ts'
 import {
   CATCH_TASK,
-  editTarget,
   HERO_CREATE_TASK,
   HERO_DRAW_TASK,
   HERO_MOVE_TASK,
@@ -35,29 +33,9 @@ import {
   SPEEDUP_TASK,
   TEN_POINTS_TASK,
 } from '@/lessons/catch/tasks.ts'
-import type { BuildTask, InsertPlan } from '@/lessons/types.ts'
+import { editTarget } from '@/lessons/kit.ts'
+import { apply, build } from './build.ts'
 import { boot } from './sim.ts'
-
-/** То же, что делает редактор: вставить текст после строки plan.after. */
-function apply(code: string, plan: InsertPlan): string {
-  const lines = code.split('\n')
-  lines.splice(plan.after, 0, ...plan.text.split('\n'))
-  return lines.join('\n')
-}
-
-/** Собрать все части по порядку, как кнопками «Добавить». Каждая промежуточная версия — без ошибок. */
-function build(code: string, ...tasks: BuildTask[]): string {
-  for (const task of tasks)
-    for (const piece of task.pieces) {
-      expect(piece.isDone(code), piece.title).toBe(false)
-      const plan = piece.plan(code)
-      expect(plan, piece.title).not.toBeNull()
-      code = apply(code, plan!)
-      expect(piece.isDone(code), piece.title).toBe(true)
-      expect(findSyntaxError(code), piece.title).toBeNull()
-    }
-  return code
-}
 
 /** Движок со своими настройками; яблоки по умолчанию падают со скоростью 3. */
 const engineWith = (speed = 0, item = '🍎', fall = 3) =>

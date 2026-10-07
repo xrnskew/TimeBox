@@ -1,57 +1,9 @@
-import { functionLines, stripComments } from '../../core/progress.ts'
-import type { BuildPiece, BuildTask, EditTask, InsertPlan, RunTask } from '../types.ts'
+import { after, append, decl, emojiOf, emojiTarget, has, into, numberAbove0, numberTarget, shell } from '../kit.ts'
+import type { BuildTask, EditTask, RunTask } from '../types.ts'
 import { HERO_EMOJI } from './tabs.ts'
 
-// Квесты шагов. Чистые функции: проверяют код и говорят, куда вставить кусок.
-// Совпадения ищутся в коде без комментариев, а номера строк — те же, что в исходном.
-// Код шага собирается кнопками «Добавить» по кусочкам и в итоге совпадает с STEP_* из tabs.ts.
-
-const linesOf = (code: string) => stripComments(code).split('\n')
-
-/** Номер строки (с 1), где впервые совпало; 0 — нигде. */
-function lineOf(code: string, re: RegExp): number {
-  return linesOf(code).findIndex((l) => re.test(l)) + 1
-}
-
-const has = (code: string, re: RegExp) => re.test(stripComments(code))
-
-/** Кусок — под строкой, где совпало `re`; null — такой строки ещё нет. */
-function after(code: string, re: RegExp, text: string): InsertPlan | null {
-  const line = lineOf(code, re)
-  return line ? { after: line, text } : null
-}
-
-/** Новая функция или переменная — в конец вкладки, через пустую строку. */
-const append =
-  (text: string) =>
-  (code: string): InsertPlan => ({ after: code.split('\n').length, text: `\n${text}` })
-
-/** Кусок — в конец тела функции `name`, перед её закрывающей }. */
-const into =
-  (name: string, text: string) =>
-  (code: string): InsertPlan | null => {
-    const f = functionLines(code, name)
-    // функция на одной строке, `function f() {}`: места внутри нет
-    return f && f.close > f.open ? { after: f.close - 1, text } : null
-  }
-
-const decl = (name: string) => new RegExp(`\\bfunction\\s+${name}\\s*\\(\\s*\\)\\s*\\{`)
-
-/** Пустая функция — первая часть любой сборки. */
-const shell = (name: string): BuildPiece => ({
-  title: `Пустая функция ${name}`,
-  plan: append(`function ${name}() {\n}`),
-  isDone: (code) => has(code, decl(name)),
-})
-
-/** Строка `var name = "смайлик"` — смайлик между кавычками. */
-const emojiOf = (name: string, code: string): string | null => {
-  const m = new RegExp(`^\\s*var\\s+${name}\\s*=\\s*(["'])(.*?)\\1`, 'm').exec(stripComments(code))
-  return m ? m[2].trim() : null
-}
-
-/** Что выделить в строке `var name = "…"`: сам смайлик. */
-const emojiTarget = (name: string) => new RegExp(`var\\s+${name}\\s*=\\s*["'](?<emoji>[^"']*)["']`, 'd')
+// Квесты шагов Catch. Код шага собирается кнопками «Добавить» по кусочкам и в итоге совпадает с STEP_* из tabs.ts.
+// Помощники (куда вставить кусок, как проверить) — общие для всех игр, в lessons/kit.ts.
 
 // ===== Шаг 1. Герой: создать смайлик → выбрать → нарисовать → собрать → движение → скорость =====
 
@@ -152,15 +104,6 @@ export const HERO_MOVE_TASK: BuildTask = {
   doneText: 'Движение готово! Но герой пока стоит: в «Движке» скорость playerSpeed — 0. Следующий квест — в «Гайде».',
 }
 
-/** Число в строке `var name = …;` движка: засчитано, когда оно больше 0. */
-const speedAbove0 = (name: string) => (engine: string) => {
-  const m = new RegExp(`^\\s*var\\s+${name}\\s*=\\s*([\\d.]+)\\s*(;|$)`, 'm').exec(stripComments(engine))
-  return !!m && Number(m[1]) > 0
-}
-
-/** Что выделить в строке `var name = …;` движка: само число. */
-const numberTarget = (name: string) => new RegExp(`var\\s+${name}\\s*=\\s*(?<n>[^;\\s]*)`, 'd')
-
 export const SPEED_TASK: EditTask = {
   kind: 'edit',
   title: 'Дай герою скорость',
@@ -170,7 +113,7 @@ export const SPEED_TASK: EditTask = {
   hint: [
     'Это первая строка «Движка»: `var playerSpeed = 0;`. Это сколько пикселей герой проезжает за кадр: 5 — спокойно, 7 — шустро. Попробуй разные!',
   ],
-  isDone: speedAbove0('playerSpeed'),
+  isDone: numberAbove0('playerSpeed'),
 }
 
 // ===== Шаг 2. Яблоки: падают → рисуются → скорость → «Всё быстрее» → «Не только яблоки» =====
@@ -243,7 +186,7 @@ export const FALL_SPEED_TASK: EditTask = {
   hint: [
     'Это вторая строка «Движка»: `var fallSpeed   = 0;`. Это сколько пикселей яблоко пролетает за кадр. 3 — в самый раз, больше — ловить труднее.',
   ],
-  isDone: speedAbove0('fallSpeed'),
+  isDone: numberAbove0('fallSpeed'),
 }
 
 const SPEEDUP_DECL = decl('speedUp')
@@ -339,15 +282,4 @@ export const TEN_POINTS_TASK: EditTask = {
   target: /score\s*=\s*score\s*\+\s*(?<points>\d+)/d,
   hint: ['Найди строку `score = score + 1;` и поменяй 1 на 10.'],
   isDone: (code) => has(code, /\bscore\s*(=\s*score\s*\+|\+=)\s*10\b/),
-}
-
-/** Что выделить для задания «поправь сам»: строка (с 1) и столбцы [from, to). */
-export function editTarget(code: string, target: RegExp): { line: number; from: number; to: number } | null {
-  const lines = code.split('\n')
-  for (let i = 0; i < lines.length; i++) {
-    const m = new RegExp(target.source, target.flags.includes('d') ? target.flags : `${target.flags}d`).exec(lines[i])
-    const span = m?.indices?.[1]
-    if (span) return { line: i + 1, from: span[0], to: span[1] }
-  }
-  return null
 }

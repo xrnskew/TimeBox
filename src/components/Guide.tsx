@@ -53,11 +53,11 @@ export function Guide() {
       </ol>
 
       <section className={styles.section} aria-labelledby="guide-extras">
-        <h2 id="guide-extras">Бомба и звезда</h2>
+        <h2 id="guide-extras">{lesson.extrasTitle}</h2>
         <p className={styles.sub}>
           {allDone
-            ? 'Две кнопки на каждую: сначала переменная, потом код.'
-            : 'Сначала собери игру: пройди три шага вместе с заданиями — тогда откроются.'}
+            ? 'Две кнопки на каждое: сначала переменная, потом код.'
+            : 'Сначала собери игру: пройди все шаги вместе с квестами — тогда откроются.'}
         </p>
         <div className={styles.extras}>
           {lesson.extras.map((x, i) => (

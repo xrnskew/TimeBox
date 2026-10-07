@@ -15,12 +15,22 @@ export const CATCH_LESSON: Lesson = {
     item: '🍎',
     heroVar: 'playerEmoji',
     itemVar: 'itemEmoji',
+    scene: 'catch',
+  },
+  controls: {
+    buttons: [
+      { key: 'ArrowLeft', label: 'Влево', icon: 'left' },
+      { key: 'ArrowRight', label: 'Вправо', icon: 'right' },
+    ],
+    keysHint: '← →',
+    hitboxes: 'Показать зону поимки и точки, которые проверяет checkCatch',
   },
   tutorial: TUTORIAL,
   finished: FINISHED,
   intro: GUIDE_INTRO,
   steps: GUIDE_STEPS,
   extras: GUIDE_EXTRAS,
+  extrasTitle: 'Бомба и звезда',
   extrasNote: GUIDE_EXTRAS_NOTE,
   hints: CATCH_HINTS,
 }

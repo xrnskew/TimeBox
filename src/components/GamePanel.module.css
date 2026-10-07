@@ -198,6 +198,20 @@
     box-shadow 0.06s;
 }
 
+/* одна широкая кнопка с подписью — «Взмах» у Птички */
+.arrow[data-wide='true'] {
+  grid-auto-flow: column;
+  gap: 8px;
+  width: auto;
+  padding: 0 22px 0 18px;
+  font-size: 15px;
+  font-weight: 700;
+}
+
+.arrowLabel {
+  line-height: 1;
+}
+
 .arrow:active {
   box-shadow:
     0 0 0 #0b0d12,

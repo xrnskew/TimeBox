@@ -1,4 +1,4 @@
-import { type CSSProperties, useMemo } from 'react'
+import { type CSSProperties, type ReactNode, useMemo } from 'react'
 import { extraStates, levelStates } from '@/core/levels.ts'
 import { stripComments } from '@/core/progress.ts'
 import { gameHref } from '@/app/routes.ts'
@@ -48,7 +48,7 @@ interface Progress {
   started: boolean
   marks: { kind: 'step' | 'extra'; done: boolean }[]
   hero: string
-  item: string
+  item: string | null
 }
 
 /** Смайлик из последнего объявления `var name = "…"` во всех вкладках (поздние вкладки побеждают). */
@@ -75,7 +75,7 @@ function progressOf(lesson: Lesson): Progress {
       ...extras.map((x) => ({ kind: 'extra' as const, done: x.done })),
     ],
     hero: emojiOf(codes, lesson.card.heroVar) ?? lesson.card.hero,
-    item: emojiOf(codes, lesson.card.itemVar) ?? lesson.card.item,
+    item: (lesson.card.itemVar && emojiOf(codes, lesson.card.itemVar)) ?? lesson.card.item ?? null,
   }
 }
 
@@ -87,7 +87,7 @@ function GameCard({ lesson }: { lesson: Lesson }) {
 
   return (
     <article className={styles.card} aria-labelledby={id}>
-      <Attract hero={p.hero} item={p.item} />
+      {lesson.card.scene === 'bird' ? <BirdAttract bird={p.hero} /> : <Attract hero={p.hero} item={p.item ?? '🍎'} />}
       <div className={styles.info}>
         <h2 id={id}>{lesson.title}</h2>
         <p className={styles.level}>
@@ -129,24 +129,47 @@ function GameCard({ lesson }: { lesson: Lesson }) {
   )
 }
 
-/** Маленькая приставка: игра идёт сама — яблоки падают, герой успевает под каждое. */
-function Attract({ hero, item }: { hero: string; item: string }) {
+/** Маленькая приставка: экран и кнопки под ним. */
+function Mini({ scene, pad, children }: { scene: string; pad: number; children: ReactNode }) {
   return (
     <div className={styles.console} aria-hidden="true">
       <div className={styles.bezel}>
-        <div className={styles.screen}>
-          {[22, 72, 45].map((x, i) => (
-            <span key={i} className={styles.item} style={{ '--x': `${x}%`, '--i': i } as CSSProperties}>
-              {item}
-            </span>
-          ))}
-          <span className={styles.hero}>{hero}</span>
+        <div className={styles.screen} data-scene={scene}>
+          {children}
         </div>
       </div>
-      <div className={styles.pad}>
-        <span />
-        <span />
+      <div className={styles.pad} data-pad={pad}>
+        {Array.from({ length: pad }, (_, i) => (
+          <span key={i} />
+        ))}
       </div>
     </div>
+  )
+}
+
+/** Catch: игра идёт сама — яблоки падают, герой успевает под каждое. */
+function Attract({ hero, item }: { hero: string; item: string }) {
+  return (
+    <Mini scene="catch" pad={2}>
+      {[22, 72, 45].map((x, i) => (
+        <span key={i} className={styles.item} style={{ '--x': `${x}%`, '--i': i } as CSSProperties}>
+          {item}
+        </span>
+      ))}
+      <span className={styles.hero}>{hero}</span>
+    </Mini>
+  )
+}
+
+/** Птичка: трубы едут навстречу, птица подпрыгивает и пролетает в каждую дырку. */
+function BirdAttract({ bird }: { bird: string }) {
+  return (
+    <Mini scene="bird" pad={1}>
+      {[24, 30].map((top, i) => (
+        <span key={i} className={styles.pipe} style={{ '--top': `${top}%`, '--i': i } as CSSProperties} />
+      ))}
+      <span className={styles.ground} />
+      <span className={styles.bird}>{bird}</span>
+    </Mini>
   )
 }
