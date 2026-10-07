@@ -54,7 +54,7 @@ const fullGame = (engine = engineWith()) => [engine, birdWith('🦉'), STEP_FLAP
 
 describe('Птичка в меню', () => {
   it('стоит второй, после Корзинки, и открывается по ?game=bird', () => {
-    expect(LESSONS.map((l) => l.id)).toEqual(['catch', 'bird'])
+    expect(LESSONS.map((l) => l.id)).toEqual(['catch', 'bird', 'space'])
     expect(lessonById('bird')?.title).toBe('Птичка')
   })
 })

@@ -1,7 +1,11 @@
 import { describe, expect, it } from 'vitest'
 import { applySettingInsert, planSettingInsert } from '@/core/insert.ts'
+import { currentQuest, extraStates, levelStates } from '@/core/levels.ts'
 import { findSyntaxError } from '@/core/syntax.ts'
+import { LESSONS, lessonById } from '@/lessons/index.ts'
 import { editTarget } from '@/lessons/kit.ts'
+import { GUIDE_EXTRAS, GUIDE_STEPS } from '@/lessons/space/guide.ts'
+import { SPACE_HINTS } from '@/lessons/space/hints.ts'
 import {
   BOOM_ENEMIES,
   BOOM_HITS,
@@ -9,6 +13,7 @@ import {
   BULLET_COLOR,
   ENEMY_EMOJI,
   FAST_ENEMIES,
+  FINISHED,
   FINISHED_CODES,
   MAX_SPEED_LINE,
   SHIP_EMOJI,
@@ -487,5 +492,136 @@ describe('Космос: квесты «нажми «Собрать»»', () => {
     sim.key(' ', true)
     sim.tick(20)
     expect(n(sim, 'bullets.length')).toBe(20)
+  })
+})
+
+describe('Космос в меню', () => {
+  it('стоит третьей, после Корзинки и Птички, и открывается по ?game=space', () => {
+    expect(LESSONS.map((l) => l.id)).toEqual(['catch', 'bird', 'space'])
+    const lesson = lessonById('space')!
+    expect(lesson.title).toBe('Космос')
+    expect(lesson.card).toMatchObject({ level: 'Сложно', levelBars: 4, scene: 'space', hero: '🚀', item: '👾' })
+    expect(lesson.consoleColor).toBe('red')
+  })
+
+  it('на корпусе ← →, и «Огонь» шлёт пробел', () => {
+    const { buttons } = lessonById('space')!.controls
+    expect(buttons.map((b) => [b.key, b.label])).toEqual([
+      ['ArrowLeft', 'Влево'],
+      ['ArrowRight', 'Вправо'],
+      [' ', 'Огонь'],
+    ])
+    expect(buttons[2].wide).toBe(true)
+  })
+
+  it('свои ключи сохранения — ни с какой другой игрой не совпадают', () => {
+    const keys = LESSONS.flatMap((l) => [l.tutorial.storageKey, l.finished.storageKey])
+    expect(new Set(keys).size).toBe(keys.length)
+    expect(FINISHED.hasGuide).toBe(false)
+    expect(FINISHED.features!.length).toBeGreaterThan(0)
+  })
+
+  it('21 квест в 4 шагах; функции шага — в своей вкладке', () => {
+    expect(GUIDE_STEPS.map((s) => s.quests.length)).toEqual([6, 8, 4, 3])
+    for (const step of GUIDE_STEPS)
+      for (const fn of step.fns) expect(step.code, fn).toMatch(new RegExp(`\\bfunction\\s+${fn}\\s*\\(`))
+  })
+
+  it('у каждого имени движка, корабля и заданий есть подсказка', () => {
+    const src = [TUTORIAL_ENGINE, STEP_SHIP, BOOM_LINE, MAX_SPEED_LINE].join('\n')
+    const names = [...src.matchAll(/^(?:var|function)\s+(\w+)/gm)].map((m) => m[1])
+    const hinted = new Set(SPACE_HINTS.globals.map((h) => h.name))
+    for (const name of names) expect(hinted.has(name), name).toBe(true)
+    for (const name of SPACE_HINTS.watch) expect(hinted.has(name), name).toBe(true)
+  })
+})
+
+describe('Космос: квесты идут по порядку', () => {
+  const quest = (codes: string[], ran = codes) => currentQuest(GUIDE_STEPS, levelStates(GUIDE_STEPS, codes, ran))
+  /** «Движок» после квестов: скорости, перезарядка, цвет пуль и пришелец. */
+  const engine = (ship = 0, bullet = 0, reload = 0, enemy = 0, color = BULLET_COLOR, alien = ENEMY_EMOJI) =>
+    engineWith(ship, bullet, reload, enemy)
+      .replace(`"${BULLET_COLOR}"`, `"${color}"`)
+      .replace(`"${ENEMY_EMOJI}"`, `"${alien}"`)
+
+  it('от создания корабля до последнего квеста', () => {
+    const codes = [...TUTORIAL_CODES]
+    expect(quest(codes)).toEqual({ step: 0, quest: 0 })
+    codes[1] = build(codes[1], SHIP_CREATE_TASK)
+    expect(quest(codes)).toEqual({ step: 0, quest: 1 })
+    codes[1] = build(codes[1].replace(SHIP_EMOJI, '🛸'), SHIP_DRAW_TASK)
+    // «Собери игру» ждёт запуска
+    expect(quest(codes, TUTORIAL_CODES)).toEqual({ step: 0, quest: 3 })
+    codes[1] = build(codes[1], SHIP_MOVE_TASK)
+    expect(quest(codes)).toEqual({ step: 0, quest: 5 })
+    codes[0] = engine(6)
+    expect(quest(codes)).toEqual({ step: 1, quest: 0 })
+
+    codes[2] = build(codes[2], SHOOT_TASK)
+    expect(quest(codes)).toEqual({ step: 1, quest: 1 })
+    codes[2] = build(codes[2], BULLETS_MOVE_TASK)
+    expect(quest(codes)).toEqual({ step: 1, quest: 2 })
+    codes[2] = build(codes[2], BULLETS_DRAW_TASK)
+    expect(quest(codes)).toEqual({ step: 1, quest: 3 })
+    const beforeSpeed = [...codes]
+    codes[0] = engine(6, 9)
+    // «Сплошной луч» ждёт запуска с летящими пулями
+    expect(quest(codes, beforeSpeed)).toEqual({ step: 1, quest: 4 })
+    expect(quest(codes)).toEqual({ step: 1, quest: 5 })
+    codes[2] = build(codes[2], RELOAD_TASK)
+    expect(quest(codes)).toEqual({ step: 1, quest: 6 })
+    codes[0] = engine(6, 9, 15)
+    expect(quest(codes)).toEqual({ step: 1, quest: 7 })
+    codes[0] = engine(6, 9, 15, 0, '#ec407a')
+    expect(quest(codes)).toEqual({ step: 2, quest: 0 })
+
+    codes[3] = build(codes[3], WAVE_TASK)
+    expect(quest(codes)).toEqual({ step: 2, quest: 1 })
+    codes[3] = build(codes[3], ENEMIES_DRAW_TASK)
+    expect(quest(codes)).toEqual({ step: 2, quest: 2 })
+    codes[0] = engine(6, 9, 15, 0.5, '#ec407a')
+    expect(quest(codes)).toEqual({ step: 2, quest: 3 })
+    codes[0] = engine(6, 9, 15, 0.5, '#ec407a', '👽')
+    expect(quest(codes)).toEqual({ step: 3, quest: 0 })
+
+    codes[4] = build(codes[4], HITS_TASK)
+    expect(quest(codes)).toEqual({ step: 3, quest: 1 })
+    codes[4] = build(codes[4], SCORE_TASK)
+    expect(quest(codes)).toEqual({ step: 3, quest: 2 })
+    codes[4] = build(codes[4], BREACH_TASK)
+    expect(quest(codes)).toBeNull()
+    expect(levelStates(GUIDE_STEPS, codes).every((l) => l.done)).toBe(true)
+  })
+
+  it('следующий шаг закрыт, пока не пройден предыдущий', () => {
+    const levels = levelStates(GUIDE_STEPS, TUTORIAL_CODES)
+    expect(levels.map((l) => l.unlocked)).toEqual([true, false, false, false])
+  })
+
+  it('взрывы и волны закрыты до сборки игры; их код сохраняет все квесты', () => {
+    expect(extraStates(GUIDE_EXTRAS, false, TUTORIAL_CODES).map((x) => x.unlocked)).toEqual([false, false])
+    expect(extraStates(GUIDE_EXTRAS, true, TUTORIAL_CODES).map((x) => x.unlocked)).toEqual([true, false])
+    const base = engine(6, 9, 15, 0.5, '#ec407a', '👽')
+    const done = [base, STEP_SHIP.replace(SHIP_EMOJI, '🛸'), STEP_BULLETS, STEP_ENEMIES, STEP_HITS]
+    expect(levelStates(GUIDE_STEPS, done).every((l) => l.done)).toBe(true)
+    expect(extraStates(GUIDE_EXTRAS, true, done).map((x) => x.done)).toEqual([false, false])
+
+    const booms = boomGame(base)
+    booms[1] = done[1]
+    expect(extraStates(GUIDE_EXTRAS, true, booms).map((x) => x.done)).toEqual([true, false])
+    expect(levelStates(GUIDE_STEPS, booms).every((l) => l.done)).toBe(true)
+
+    const fast = fastGame(base)
+    fast[1] = done[1]
+    expect(extraStates(GUIDE_EXTRAS, true, fast).map((x) => x.done)).toEqual([true, true])
+    expect(levelStates(GUIDE_STEPS, fast).every((l) => l.done)).toBe(true)
+  })
+
+  it('готовая версия засчитывает все шаги и оба задания', () => {
+    const finished = [...FINISHED_CODES]
+    finished[1] = finished[1].replace(SHIP_EMOJI, '🛸')
+    finished[0] = finished[0].replace(`"${BULLET_COLOR}"`, '"#ec407a"').replace(`"${ENEMY_EMOJI}"`, '"👽"')
+    expect(levelStates(GUIDE_STEPS, finished).every((l) => l.done)).toBe(true)
+    expect(extraStates(GUIDE_EXTRAS, true, FINISHED_CODES).map((x) => x.done)).toEqual([true, true])
   })
 })
