@@ -1,10 +1,13 @@
 import { describe, expect, it } from 'vitest'
 import { applySettingInsert, planSettingInsert } from '@/core/insert.ts'
 import { findSyntaxError } from '@/core/syntax.ts'
+import { editTarget } from '@/lessons/kit.ts'
 import {
   BOOM_ENEMIES,
   BOOM_HITS,
   BOOM_LINE,
+  BULLET_COLOR,
+  ENEMY_EMOJI,
   FAST_ENEMIES,
   FINISHED_CODES,
   MAX_SPEED_LINE,
@@ -16,6 +19,31 @@ import {
   TUTORIAL_CODES,
   TUTORIAL_ENGINE,
 } from '@/lessons/space/tabs.ts'
+import {
+  BEAM_RUN_TASK,
+  BREACH_TASK,
+  BULLET_COLOR_TASK,
+  BULLET_SPEED_TASK,
+  BULLETS_DRAW_TASK,
+  BULLETS_MOVE_TASK,
+  ENEMIES_DRAW_TASK,
+  ENEMY_PICK_TASK,
+  ENEMY_SPEED_TASK,
+  HITS_TASK,
+  RELOAD_TASK,
+  RELOAD_TIME_TASK,
+  SCORE_TASK,
+  SHIP_CREATE_TASK,
+  SHIP_DRAW_TASK,
+  SHIP_MOVE_TASK,
+  SHIP_PICK_TASK,
+  SHIP_RUN_TASK,
+  SHIP_SPEED_TASK,
+  SHOOT_TASK,
+  WAVE_TASK,
+} from '@/lessons/space/tasks.ts'
+import type { BuildTask, EditTask } from '@/lessons/types.ts'
+import { apply, build } from './build.ts'
 import { boot, type Sim } from './sim.ts'
 
 /** Движок со своими настройками: по умолчанию всё настроено, как в квестах. */
@@ -327,5 +355,137 @@ describe('Космос: взрывы, «Волна за волной» и гот
     expect(n(sim, 'score')).toBeGreaterThan(30)
     expect(n(sim, 'wave')).toBeGreaterThan(6)
     expect(n(sim, 'enemySpeed')).toBe(2)
+  })
+})
+
+describe('Космос: сборка по кусочкам даёт код шагов', () => {
+  it('шаг 1: создать → нарисовать → полёт', () => {
+    const start = TUTORIAL_CODES[1]
+    expect(build(start, SHIP_CREATE_TASK, SHIP_DRAW_TASK, SHIP_MOVE_TASK)).toBe(`${start}\n\n${STEP_SHIP}`)
+  })
+
+  it('шаг 2: выстрел → полёт → отрисовка → перезарядка', () => {
+    const start = TUTORIAL_CODES[2]
+    expect(build(start, SHOOT_TASK, BULLETS_MOVE_TASK, BULLETS_DRAW_TASK, RELOAD_TASK)).toBe(
+      `${start}\n\n${STEP_BULLETS}`,
+    )
+  })
+
+  it('шаг 3: волна → отрисовка', () => {
+    const start = TUTORIAL_CODES[3]
+    expect(build(start, WAVE_TASK, ENEMIES_DRAW_TASK)).toBe(`${start}\n\n${STEP_ENEMIES}`)
+  })
+
+  it('шаг 4: вложенный цикл → очко → прорыв', () => {
+    const start = TUTORIAL_CODES[4]
+    expect(build(start, HITS_TASK, SCORE_TASK, BREACH_TASK)).toBe(`${start}\n\n${STEP_HITS}`)
+  })
+
+  it('куски, которым некуда встать, ждут своей очереди', () => {
+    // перезарядку некуда вставить, пока нет shoot с выстрелом
+    expect(RELOAD_TASK.pieces[0].plan(TUTORIAL_CODES[2])).toBeNull()
+    expect(
+      RELOAD_TASK.pieces[1].plan(build(TUTORIAL_CODES[2], { ...SHOOT_TASK, pieces: SHOOT_TASK.pieces.slice(0, 1) })),
+    ).toBeNull()
+    // волну некуда вставить, пока нет if
+    expect(
+      WAVE_TASK.pieces[2].plan(build(TUTORIAL_CODES[3], { ...WAVE_TASK, pieces: WAVE_TASK.pieces.slice(0, 1) })),
+    ).toBeNull()
+    // очко некуда добавить, пока нет if (popal)
+    const noIf = build(TUTORIAL_CODES[4], { ...HITS_TASK, pieces: HITS_TASK.pieces.slice(0, 4) })
+    expect(SCORE_TASK.pieces[0].plan(noIf)).toBeNull()
+  })
+
+  it('каждая промежуточная версия игры работает: кадры идут без ошибок', () => {
+    const steps: [number, BuildTask[]][] = [
+      [1, [SHIP_CREATE_TASK, SHIP_DRAW_TASK, SHIP_MOVE_TASK]],
+      [2, [SHOOT_TASK, BULLETS_MOVE_TASK, BULLETS_DRAW_TASK, RELOAD_TASK]],
+      [3, [WAVE_TASK, ENEMIES_DRAW_TASK]],
+      [4, [HITS_TASK, SCORE_TASK, BREACH_TASK]],
+    ]
+    // остальные вкладки — уже готовые: так проверяется и работа куска вместе со всей игрой
+    for (const [tab, tasks] of steps) {
+      let code = TUTORIAL_CODES[tab]
+      for (const task of tasks)
+        for (const piece of task.pieces) {
+          code = apply(code, piece.plan(code)!)
+          const codes = fullGame()
+          codes[tab] = code
+          const sim = boot(codes)
+          sim.key(' ', true)
+          sim.key('ArrowRight', true)
+          expect(() => sim.tick(120), piece.title).not.toThrow()
+        }
+    }
+  })
+})
+
+describe('Космос: квесты «поправь сам»', () => {
+  it('«Выбери корабль» и «Свой пришелец»: засчитано, только когда смайлик другой; кнопка выделяет смайлик', () => {
+    const ship = build(TUTORIAL_CODES[1], SHIP_CREATE_TASK)
+    for (const [task, code, emoji] of [
+      [SHIP_PICK_TASK, ship, SHIP_EMOJI],
+      [ENEMY_PICK_TASK, TUTORIAL_ENGINE, ENEMY_EMOJI],
+    ] as const) {
+      expect(task.picker).toBe('emoji')
+      expect(task.isDone(code)).toBe(false)
+      expect(task.isDone(code.replace(`"${emoji}"`, '"🛸"'))).toBe(true)
+      expect(task.isDone(code.replace(`"${emoji}"`, '""'))).toBe(false)
+      const at = editTarget(code, task.target)!
+      expect(code.split('\n')[at.line - 1].slice(at.from, at.to)).toBe(emoji)
+    }
+  })
+
+  it('скорости и перезарядка — 0 в движке; засчитано любое число больше 0, кнопка выделяет число', () => {
+    const tasks: [EditTask, string][] = [
+      [SHIP_SPEED_TASK, 'shipSpeed'],
+      [BULLET_SPEED_TASK, 'bulletSpeed'],
+      [RELOAD_TIME_TASK, 'reloadTime'],
+      [ENEMY_SPEED_TASK, 'enemySpeed'],
+    ]
+    for (const [task, name] of tasks) {
+      expect(task.tab, name).toBe(0)
+      expect(task.isDone(TUTORIAL_ENGINE), name).toBe(false)
+      expect(task.isDone(engineWith()), name).toBe(true)
+      const at = editTarget(TUTORIAL_ENGINE, task.target)!
+      const line = TUTORIAL_ENGINE.split('\n')[at.line - 1]
+      expect(line, name).toContain(name)
+      expect(line.slice(at.from, at.to), name).toBe('0')
+    }
+    expect(ENEMY_SPEED_TASK.isDone(engineWith(6, 9, 15, 0.25))).toBe(true)
+  })
+
+  it('«Цвет пуль»: окно цветов у bulletColor; засчитан любой цвет, кроме исходного жёлтого', () => {
+    expect(BULLET_COLOR_TASK.picker).toBe('color')
+    const withColor = (c: string) => TUTORIAL_ENGINE.replace(`"${BULLET_COLOR}"`, `"${c}"`)
+    expect(BULLET_COLOR_TASK.isDone(TUTORIAL_ENGINE)).toBe(false)
+    expect(BULLET_COLOR_TASK.isDone(withColor('#FFD54A'))).toBe(false)
+    expect(BULLET_COLOR_TASK.isDone(withColor(''))).toBe(false)
+    expect(BULLET_COLOR_TASK.isDone(withColor('#ec407a'))).toBe(true)
+    expect(BULLET_COLOR_TASK.isDone(withColor('cyan'))).toBe(true)
+    const at = editTarget(TUTORIAL_ENGINE, BULLET_COLOR_TASK.target)!
+    expect(TUTORIAL_ENGINE.split('\n')[at.line - 1].slice(at.from, at.to)).toBe(BULLET_COLOR)
+  })
+})
+
+describe('Космос: квесты «нажми «Собрать»»', () => {
+  it('«Собери игру» засчитан по коду последнего запуска', () => {
+    const drawn = build(TUTORIAL_CODES[1], SHIP_CREATE_TASK, SHIP_DRAW_TASK)
+    expect(SHIP_RUN_TASK.isDone(TUTORIAL_CODES)).toBe(false)
+    expect(SHIP_RUN_TASK.isDone([TUTORIAL_ENGINE, drawn])).toBe(true)
+  })
+
+  it('«Сплошной луч»: в запуске пули стреляют, летят и рисуются, а bulletSpeed больше 0', () => {
+    const bullets = build(TUTORIAL_CODES[2], SHOOT_TASK, BULLETS_MOVE_TASK, BULLETS_DRAW_TASK)
+    const ran = (engine: string, tab2: string) => [engine, STEP_SHIP, tab2]
+    expect(BEAM_RUN_TASK.isDone(TUTORIAL_CODES)).toBe(false)
+    expect(BEAM_RUN_TASK.isDone(ran(engineWith(6, 0), bullets))).toBe(false)
+    expect(BEAM_RUN_TASK.isDone(ran(engineWith(6, 9), TUTORIAL_CODES[2]))).toBe(false)
+    expect(BEAM_RUN_TASK.isDone(ran(engineWith(6, 9, 0), bullets))).toBe(true)
+    // и луч правда сплошной: пуля каждый кадр
+    const sim = boot([engineWith(6, 9, 0), STEP_SHIP, bullets, ...TUTORIAL_CODES.slice(3)])
+    sim.key(' ', true)
+    sim.tick(20)
+    expect(n(sim, 'bullets.length')).toBe(20)
   })
 })
