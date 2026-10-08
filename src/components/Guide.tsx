@@ -2,7 +2,6 @@ import { memo, useMemo, useState } from 'react'
 import { useApp, useController } from '@/app/context.ts'
 import { type ExtraState, type LevelState, lessonProgress } from '@/core/levels.ts'
 import { type FnState, stepStates } from '@/core/progress.ts'
-import { chosenPic } from '@/lessons/kit.ts'
 import type { BuildTask, EditTask, GuideExtra, GuideStep, RunTask, StepTask } from '@/lessons/types.ts'
 import { CodeBlock } from './CodeBlock.tsx'
 import {
@@ -31,8 +30,6 @@ export function Guide() {
   const ran = useApp((s) => s.ran)
   const { lesson } = c
   const { levels, extras, allDone } = useMemo(() => lessonProgress(lesson, codes, ran), [lesson, codes, ran])
-  // пока героя не выбрали, на карте стоит тот, с кого начинают: рисунок первого шага
-  const hero = chosenPic(codes, lesson.card.heroVar) ?? lesson.steps[0].pic
 
   return (
     <article className={styles.guide}>
@@ -50,7 +47,7 @@ export function Guide() {
         </ul>
       </header>
 
-      <Roadmap lesson={lesson} levels={levels} extras={extras} hero={hero} />
+      <Roadmap lesson={lesson} levels={levels} extras={extras} />
 
       <ol className={styles.track} aria-label="Шаги">
         {lesson.steps.map((step, i) => (

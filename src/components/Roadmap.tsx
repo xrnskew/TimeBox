@@ -1,12 +1,13 @@
 import { type CSSProperties, useEffect, useRef } from 'react'
 import type { ExtraState, LevelState } from '@/core/levels.ts'
+import { INK } from '@/core/pictures.ts'
 import type { Lesson } from '@/lessons/types.ts'
 import { CheckIcon, LockIcon } from './icons.tsx'
 import { Pic } from './Pic.tsx'
 import styles from './Roadmap.module.css'
 
 // Карта игры над гайдом — как карта уровней в настоящих играх. Дорога петляет от станции к станции: шаги,
-// бонусные задания и финиш с подарком. Пройденный кусок дороги жёлтый, на текущей станции стоит герой ученика.
+// бонусные задания и финиш с подарком. Пройденный кусок дороги жёлтый, текущая станция пульсирует, над ней — стрелка.
 // Нажал станцию — гайд прокручивается к ней. Всё считается по тем же квестам, что и гайд.
 
 type State = 'done' | 'now' | 'open' | 'locked'
@@ -65,6 +66,19 @@ function stations(lesson: Lesson, levels: LevelState[], extras: ExtraState[]): S
   return list
 }
 
+/** Стрелка «ты здесь» по клеткам: k — контур, y — жёлтая. */
+const ARROW = [
+  '..kkkkk..',
+  '..kyyyk..',
+  '..kyyyk..',
+  'kkkyyykkk',
+  'kyyyyyyyk',
+  '.kyyyyyk.',
+  '..kyyyk..',
+  '...kyk...',
+  '....k....',
+]
+
 /** Где станция на карте, в процентах: дорога идёт слева направо волной — вверх, вниз, вверх… */
 function spot(i: number, count: number) {
   const pad = 9
@@ -83,18 +97,7 @@ function road(points: { x: number; y: number }[]) {
     .join('')
 }
 
-export function Roadmap({
-  lesson,
-  levels,
-  extras,
-  hero,
-}: {
-  lesson: Lesson
-  levels: LevelState[]
-  extras: ExtraState[]
-  /** Рисунок героя ученика — он стоит на текущей станции. */
-  hero: string
-}) {
+export function Roadmap({ lesson, levels, extras }: { lesson: Lesson; levels: LevelState[]; extras: ExtraState[] }) {
   const list = stations(lesson, levels, extras)
   const points = list.map((_, i) => spot(i, list.length))
   const here = Math.max(
@@ -187,15 +190,22 @@ export function Roadmap({
             ))}
           </ol>
 
-          {/* герой ученика стоит на текущей станции; станция сменилась — он перебегает туда по дороге */}
-          <span
-            className={styles.hero}
-            data-row={at % 2 ? 'top' : 'bottom'}
+          {/* пиксельная стрелка над текущей станцией; станция сменилась — стрелка переезжает туда */}
+          <svg
+            className={styles.arrow}
+            viewBox="0 0 9 9"
+            shapeRendering="crispEdges"
             style={{ '--x': `${points[at].x}%`, '--y': `${points[at].y}%` } as CSSProperties}
             aria-hidden="true"
           >
-            <Pic name={hero} />
-          </span>
+            {ARROW.flatMap((row, y) =>
+              [...row].map((ch, x) =>
+                ch === '.' ? null : (
+                  <rect key={`${x}-${y}`} x={x} y={y} width="1" height="1" fill={ch === 'k' ? INK : 'var(--sun)'} />
+                ),
+              ),
+            )}
+          </svg>
         </div>
       </div>
     </nav>

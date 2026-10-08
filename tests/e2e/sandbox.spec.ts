@@ -621,23 +621,20 @@ test('лишних кнопок нет: «Поделиться», «Вид», п
     await expect(page.getByRole('button', { name, exact: true })).toHaveCount(0)
 })
 
-test('карта игры: герой стоит на текущей станции, станции ведут к шагам', async ({ page }) => {
+test('карта игры: текущая станция со стрелкой, станции ведут к шагам', async ({ page }) => {
   await open(page)
   const map = page.getByRole('navigation', { name: 'Карта игры' })
   await expect(map).toContainText('Ты здесь: шаг 1 «Герой»')
   await expect(map.locator('[aria-current="step"]')).toHaveAccessibleName('Шаг 1: Герой — ты здесь')
   await expect(map.getByRole('button', { name: 'Бонус: Бомба — закрыто' })).toBeVisible()
   await expect(map.getByRole('button', { name: 'Финиш — закрыто' })).toBeVisible()
-  // пока героя не выбрали, на карте стоит колобок
-  await expect(map.locator('[data-pic="колобок"]')).toHaveCount(2)
 
-  // шаг 1 пройден: дорога ведёт к шагу 2, герой — тот, кого выбрали
+  // шаг 1 пройден: «ты здесь» переехало на шаг 2
   await buildHero(page)
   await tab(page, 'Гайд')
   await expect(map.locator('[aria-current="step"]')).toHaveAccessibleName('Шаг 2: Яблоки падают — ты здесь')
   await expect(map.getByRole('button', { name: 'Шаг 1: Герой — пройдено' })).toBeVisible()
   await expect(map).toContainText('квест 1 из 4')
-  await expect(map.locator('[data-pic="кот"]')).toHaveCount(1)
 
   // станция прокручивает гайд к своему блоку
   await map.getByRole('button', { name: 'Бонус: Звезда — закрыто' }).click()
