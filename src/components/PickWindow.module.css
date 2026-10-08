@@ -64,10 +64,6 @@
     transform 0.08s;
 }
 
-.pic img {
-  image-rendering: pixelated;
-}
-
 .pic:hover {
   background: var(--keycap-hover);
   transform: scale(1.12);

@@ -73,7 +73,7 @@ function drawSpace() {
   // большая луна из набора картинок; save и restore: полупрозрачная только она, картинки после неё — яркие
   ctx.save();
   ctx.globalAlpha = 0.5;
-  ctx.drawImage(picture("луна"), 252, 64, 102, 102);
+  ctx.drawImage(picture("луна", 102), 252, 64, 102, 102);
   ctx.restore();
 }
 

@@ -368,38 +368,44 @@
   })
 
   // ===== Картинки: picture("ракета") — рисунок из набора TimeBox =====
-  // Данные — в __TB_PICS (строка перед обвязкой): у каждого рисунка 17 строк по 17 клеток, '.' — пусто.
-  // Холст рисунка — по 2 пикселя на клетку, а на чётком экране (HiDPI) — больше, чтобы клетки не расплывались.
-  var PICS = window.__TB_PICS || { palette: {}, grids: {}, unknown: '?' }
+  // Данные — в __TB_PICS (строка перед обвязкой): у каждого рисунка адрес SVG-картинки.
+  // picture(name, size) — холст size × size (по умолчанию 34), а на чётком экране (HiDPI) — крупнее, чтобы
+  // рисунок не расплывался. SVG грузится не сразу: до этого холст пустой и дорисуется сам.
+  var PICS = window.__TB_PICS || { urls: {}, unknown: '?' }
   var picScale = 1
+  var picImages = {}
   var picCache = {}
   var picWarned = {}
-  function picture(name) {
+  function picImage(key) {
+    if (!picImages[key]) {
+      picImages[key] = new Image()
+      picImages[key].src = PICS.urls[key] || ''
+    }
+    return picImages[key]
+  }
+  Object.keys(PICS.urls).forEach(picImage)
+  function picture(name, size) {
     var key = String(name)
-    if (picCache[key]) return picCache[key]
-    var grid = PICS.grids[key]
-    if (!grid) {
+    if (!PICS.urls[key]) {
       if (!picWarned[key]) {
         picWarned[key] = 1
         console.warn('Нет картинки «' + key + '» — вместо неё знак вопроса. Проверь имя: кнопка «Сменить» покажет все.')
       }
-      grid = PICS.grids[PICS.unknown]
+      key = PICS.unknown
     }
-    var cell = Math.max(2, Math.round(2 * picScale))
-    var c = document.createElement('canvas')
-    c.width = 17 * cell
-    c.height = 17 * cell
-    var g = c.getContext('2d')
-    var rows = grid ? grid.split('|') : []
-    for (var y = 0; y < rows.length; y++) {
-      for (var x = 0; x < rows[y].length; x++) {
-        var color = PICS.palette[rows[y][x]]
-        if (!color) continue
-        g.fillStyle = color
-        g.fillRect(x * cell, y * cell, cell, cell)
+    var px = Math.min(1024, Math.max(1, Math.round((Number(size) || 34) * picScale)))
+    var c = picCache[key + '@' + px]
+    if (!c) {
+      c = picCache[key + '@' + px] = document.createElement('canvas')
+      c.width = c.height = px
+    }
+    if (!c.ready) {
+      var img = picImage(key)
+      if (img.complete && img.naturalWidth) {
+        c.getContext('2d').drawImage(img, 0, 0, px, px)
+        c.ready = true
       }
     }
-    picCache[key] = c
     return c
   }
   window.picture = picture
@@ -414,8 +420,6 @@
     setupCanvas: function (canvas, ctx) {
       var ratio = (window.devicePixelRatio || 1) * ((window.innerWidth || 380) / 380)
       var s = Math.min(3, Math.max(1, ratio))
-      // клетки рисунков — чёткими квадратами, без размытия при увеличении
-      ctx.imageSmoothingEnabled = false
       picScale = s
       if (s < 1.05) return
       var proto = window.HTMLCanvasElement.prototype
@@ -428,8 +432,6 @@
         wd.set.call(canvas, Math.round(w * s))
         hd.set.call(canvas, Math.round(h * s))
         ctx.setTransform(s, 0, 0, s, 0, 0)
-        // новая ширина холста сбрасывает настройки кисти
-        ctx.imageSmoothingEnabled = false
       }
       Object.defineProperty(canvas, 'width', {
         configurable: true,

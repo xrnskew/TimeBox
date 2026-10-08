@@ -16,8 +16,8 @@ const COMMON_GLOBALS: Hint[] = [
   {
     name: 'picture',
     kind: 'function',
-    detail: '(name)',
-    text: 'Картинка из набора TimeBox по имени: "ракета", "кот", "яблоко"… Неизвестное имя — знак вопроса.',
+    detail: '(name, size)',
+    text: 'Картинка из набора TimeBox по имени: "ракета", "кот", "яблоко"… size — размер, по умолчанию 34. Неизвестное имя — знак вопроса.',
   },
   {
     name: 'requestAnimationFrame',

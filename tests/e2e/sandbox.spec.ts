@@ -140,6 +140,12 @@ test('шаг 1 по квестам: картинка из окна, подсве
   await expect(picker).toBeVisible()
   // колобок, с которого начинают, в окне отмечен
   await expect(picker.getByRole('button', { pressed: true })).toHaveAccessibleName('колобок')
+  // все рисунки в окне — настоящие картинки: SVG разобрался и загрузился
+  const pics = picker.locator('img')
+  await expect(pics).toHaveCount(31)
+  await expect
+    .poll(() => pics.evaluateAll((imgs) => imgs.filter((i) => (i as HTMLImageElement).naturalWidth > 0).length))
+    .toBe(31)
   await pick(page, 'лиса')
   await expect(picker).toHaveCount(0)
   expect((await savedCodes(page))[1]).toContain('var playerPic = "лиса";')
@@ -158,6 +164,12 @@ test('шаг 1 по квестам: картинка из окна, подсве
   // 4. собрать: герой на экране, изменений нет
   await run(page)
   await expect(page.getByRole('status')).toContainText('Вот твой герой')
+  // рисунок героя в игре загрузился: середина его холста не прозрачная
+  await expect
+    .poll(() =>
+      game(page, 'var c = picture("лиса"); c.getContext("2d").getImageData(c.width >> 1, c.height >> 1, 1, 1).data[3]'),
+    )
+    .toBeGreaterThan(0)
   await expect(runButton(page)).toHaveAttribute('data-dirty', 'false')
   await expect(runButton(page)).toHaveAttribute('data-spot', 'false')
 

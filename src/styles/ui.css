@@ -208,11 +208,10 @@ kbd {
   --shell-text: var(--sun);
 }
 
-/* Рисунок из набора TimeBox (компонент Pic): размером со строку текста, клетки без размытия */
+/* Рисунок из набора TimeBox (компонент Pic): размером со строку текста */
 .pic {
   display: inline-block;
   width: 1em;
   height: 1em;
-  image-rendering: pixelated;
   vertical-align: middle;
 }

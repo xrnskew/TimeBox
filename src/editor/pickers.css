@@ -27,12 +27,11 @@
   outline-offset: 2px;
 }
 
-/* миниатюра рисунка, который стоит сейчас: клетки чёткие, без размытия */
+/* миниатюра рисунка, который стоит сейчас */
 .cm-pickPic {
   width: 17px;
   height: 17px;
   background: center / contain no-repeat;
-  image-rendering: pixelated;
 }
 
 /* квадратик текущего цвета у переменной …Color */

@@ -1,7 +1,7 @@
 import { syntaxTree } from '@codemirror/language'
 import type { EditorState, Range } from '@codemirror/state'
 import { Decoration, type DecorationSet, EditorView, ViewPlugin, type ViewUpdate, WidgetType } from '@codemirror/view'
-import { pictureUrl } from '@/app/pictureUrl.ts'
+import { pictureUrl } from '@/core/pictures.ts'
 
 // Кнопка «Сменить» рядом со значением переменной: у `var shipPic = "ракета";` — с миниатюрой рисунка,
 // у `var pipeColor = "#5ec639";` — с квадратиком цвета. Клик открывает окно выбора; имя рисунка или код
@@ -85,7 +85,7 @@ class PickWidget extends WidgetType {
       btn.title = 'Выбрать картинку'
       btn.setAttribute('aria-label', 'Сменить картинку')
       preview.className = 'cm-pickPic'
-      preview.style.backgroundImage = `url(${pictureUrl(this.value, 2)})`
+      preview.style.backgroundImage = `url(${pictureUrl(this.value)})`
     }
     btn.append(preview, Object.assign(document.createElement('span'), { textContent: 'Сменить' }))
     // не даём редактору забрать фокус и сдвинуть курсор

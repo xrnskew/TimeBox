@@ -1,7 +1,7 @@
 import { useEffect, useLayoutEffect, useRef, useState } from 'react'
 import { useApp, useController } from '@/app/context.ts'
 import type { Picker } from '@/app/controller.ts'
-import { pictureUrl } from '@/app/pictureUrl.ts'
+import { pictureUrl } from '@/core/pictures.ts'
 import { PICTURE_GROUPS } from '@/core/pictures.ts'
 import { CloseIcon } from './icons.tsx'
 import styles from './PickWindow.module.css'
