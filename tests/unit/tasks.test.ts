@@ -26,7 +26,6 @@ import {
   HERO_PICK_TASK,
   HERO_RUN_TASK,
   FALL_SPEED_TASK,
-  ITEM_TASK,
   ITEMS_DRAW_TASK,
   ITEMS_MOVE_TASK,
   SPEED_TASK,
@@ -160,14 +159,6 @@ describe('шаг 2: яблоки по кусочкам', () => {
     sim.tick(900 * 10)
     expect(sim.peek('fallSpeed')).toBe(8)
   })
-
-  it('«Не только яблоки»: засчитано, только когда яблоко заменили', () => {
-    expect(ITEM_TASK.isDone(TUTORIAL_ENGINE)).toBe(false)
-    expect(ITEM_TASK.isDone(engineWith(3, 'пончик'))).toBe(true)
-    expect(ITEM_TASK.isDone(engineWith(3, ' '))).toBe(false)
-    const at = editTarget(TUTORIAL_ENGINE, ITEM_TASK.target)!
-    expect(TUTORIAL_ENGINE.split('\n')[at.line - 1].slice(at.from, at.to)).toBe('яблоко')
-  })
 })
 
 describe('шаг 3: поимка по кусочкам', () => {
@@ -202,11 +193,10 @@ describe('шаги открываются по очереди', () => {
 
   it('шаг 2 пройден, только когда выполнены все его квесты', () => {
     const codes = [step1[0], step1[1], GOLD_APPLES, TUTORIAL_CODES[3]]
-    expect(levelStates(GUIDE_STEPS, codes)[1]).toMatchObject({
-      questsDone: [true, true, true, true, false],
-      done: false,
-    })
-    codes[0] = engineWith(3, 'рыба')
+    // яблоки без скорости: квест «Дай яблокам скорость» не выполнен
+    codes[0] = engineWith(6, 'яблоко', 0)
+    expect(levelStates(GUIDE_STEPS, codes)[1]).toMatchObject({ questsDone: [true, true, false, true], done: false })
+    codes[0] = engineWith(6)
     expect(levelStates(GUIDE_STEPS, codes)[1].done).toBe(true)
     expect(levelStates(GUIDE_STEPS, codes)[2].unlocked).toBe(true)
   })

@@ -116,12 +116,6 @@ export async function completeSpeedUp(page: Page) {
   await expect(page.locator('.cm-editor').getByRole('button', { name: /^Добавить:/ })).toHaveCount(0)
 }
 
-/** Шаг 2, квест 4: кнопка в гайде открывает окно картинок у яблока в «Движке». */
-export async function completeItem(page: Page, pic = 'пончик') {
-  await openQuest(page, 2, 'Выбрать картинку в «Движок»')
-  await pick(page, pic)
-}
-
 /** Шаг 3: собрать checkCatch и дать 10 очков — кнопка выделяет «1», печатаем «10». */
 export async function buildCatch(page: Page) {
   await openQuest(page, 3, 'Открыть «Поимка»')
@@ -135,7 +129,6 @@ export async function buildGame(page: Page) {
   await buildHero(page)
   await buildApples(page)
   await completeSpeedUp(page)
-  await completeItem(page)
   await buildCatch(page)
   await tab(page, 'Гайд')
 }

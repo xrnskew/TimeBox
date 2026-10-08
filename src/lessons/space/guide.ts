@@ -52,6 +52,7 @@ export const GUIDE_INTRO: GuideIntro = {
 export const GUIDE_STEPS: GuideStep[] = [
   {
     step: 1,
+    pic: 'ракета',
     tab: 1,
     title: 'Корабль',
     lead: 'Создай корабль-картинку, нарисуй его и научи летать стрелками.',
@@ -67,6 +68,7 @@ export const GUIDE_STEPS: GuideStep[] = [
   },
   {
     step: 2,
+    pic: 'комета',
     tab: 2,
     title: 'Пули',
     lead: 'Пробел — выстрел. Пули летят вверх, а между выстрелами — перезарядка.',
@@ -91,6 +93,7 @@ export const GUIDE_STEPS: GuideStep[] = [
   },
   {
     step: 3,
+    pic: 'пришелец',
     tab: 3,
     title: 'Пришельцы',
     lead: 'Сверху волнами летят пришельцы — вниз и зигзагом. Кончились — летит новая волна.',
@@ -107,6 +110,7 @@ export const GUIDE_STEPS: GuideStep[] = [
   },
   {
     step: 4,
+    pic: 'взрыв',
     tab: 4,
     title: 'Попадание',
     lead: 'Пуля попала в пришельца — он сбит. Долетел до корабля — минус жизнь.',

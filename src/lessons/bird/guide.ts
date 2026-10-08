@@ -39,6 +39,7 @@ export const GUIDE_INTRO: GuideIntro = {
 export const GUIDE_STEPS: GuideStep[] = [
   {
     step: 1,
+    pic: 'цыплёнок',
     tab: 1,
     title: 'Птица',
     lead: 'Создай птицу-картинку, нарисуй её и включи гравитацию.',
@@ -54,6 +55,7 @@ export const GUIDE_STEPS: GuideStep[] = [
   },
   {
     step: 2,
+    pic: 'птичка',
     tab: 2,
     title: 'Взмах',
     lead: 'Пробел — взмах: птица подлетает, а потом снова падает.',
@@ -69,6 +71,7 @@ export const GUIDE_STEPS: GuideStep[] = [
   },
   {
     step: 3,
+    pic: 'труба',
     tab: 3,
     title: 'Трубы',
     lead: 'Справа появляются трубы с дыркой и едут навстречу.',
@@ -85,6 +88,7 @@ export const GUIDE_STEPS: GuideStep[] = [
   },
   {
     step: 4,
+    pic: 'звезда',
     tab: 4,
     title: 'Удар и счёт',
     lead: 'Врезался — конец игры, пролетел трубу — очко.',

@@ -2,7 +2,7 @@ import { type CSSProperties, type ReactNode, useMemo } from 'react'
 import { lessonProgress } from '@/core/levels.ts'
 import { gameHref } from '@/app/routes.ts'
 import { LESSONS } from '@/lessons/index.ts'
-import { quoted } from '@/lessons/kit.ts'
+import { chosenPic } from '@/lessons/kit.ts'
 import type { Lesson } from '@/lessons/types.ts'
 import { loadCodes } from '@/sandbox/storage.ts'
 import { CheckIcon, LockIcon, LogoCube, PlayIcon } from './icons.tsx'
@@ -51,13 +51,6 @@ interface Progress {
   hero: string
   item: string | null
 }
-
-/** Смайлик ученика из `var name = "…"`: в склеенном скрипте побеждает объявление из поздней вкладки. */
-const chosenPic = (codes: string[], name: string) =>
-  codes
-    .map((code) => quoted(name, code))
-    .filter(Boolean)
-    .at(-1) ?? null
 
 function progressOf(lesson: Lesson): Progress {
   const v = lesson.tutorial

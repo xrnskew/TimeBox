@@ -49,6 +49,13 @@ export const quoted = (name: string, code: string): string | null => {
   return m ? m[2].trim() : null
 }
 
+/** Рисунок ученика из `var name = "…"`: в склеенном скрипте побеждает объявление из поздней вкладки. */
+export const chosenPic = (codes: string[], name: string): string | null =>
+  codes
+    .map((code) => quoted(name, code))
+    .filter(Boolean)
+    .at(-1) ?? null
+
 /** Что выделить в строке `var name = "…"`: то, что между кавычками. */
 export const quotedTarget = (name: string) => new RegExp(`var\\s+${name}\\s*=\\s*["'](?<value>[^"']*)["']`, 'd')
 

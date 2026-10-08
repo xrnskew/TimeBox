@@ -5,7 +5,6 @@ import {
   buildApples,
   buildGame,
   buildHero,
-  completeItem,
   drawHero,
   game,
   moveHero,
@@ -142,10 +141,10 @@ test('шаг 1 по квестам: картинка из окна, подсве
   await expect(picker.getByRole('button', { pressed: true })).toHaveAccessibleName('колобок')
   // все рисунки в окне — настоящие картинки: SVG разобрался и загрузился
   const pics = picker.locator('img')
-  await expect(pics).toHaveCount(31)
+  await expect(pics).toHaveCount(53)
   await expect
     .poll(() => pics.evaluateAll((imgs) => imgs.filter((i) => (i as HTMLImageElement).naturalWidth > 0).length))
-    .toBe(31)
+    .toBe(53)
   await pick(page, 'лиса')
   await expect(picker).toHaveCount(0)
   expect((await savedCodes(page))[1]).toContain('var playerPic = "лиса";')
@@ -306,19 +305,12 @@ test('«Всё быстрее»: части функции всплывают в
   expect(apples).toContain(
     'function speedUp() {\n  if (frame % 900 === 0 && fallSpeed < 8) {\n    fallSpeed = fallSpeed + 1;\n  }\n}',
   )
-  // второй квест открылся только теперь; шаг 3 ждёт его
+  // «Всё быстрее» — последний квест шага 2: шаг пройден, открылся шаг 3, а падают по-прежнему яблоки
   await tab(page, 'Гайд')
-  const step2 = page.locator('#guide-step-2')
-  await expect(step2).toHaveAttribute('data-state', 'active')
-  await expect(step2.getByRole('region', { name: 'Квест: Не только яблоки' })).toContainText('Квест 5 из 5')
-  await expect(page.locator('#guide-step-3')).toHaveAttribute('data-state', 'locked')
-  await completeItem(page, 'рыба')
-  expect((await savedCodes(page))[0]).toContain('var itemPic     = "рыба";')
-  await tab(page, 'Гайд')
-  await expect(step2).toHaveAttribute('data-state', 'done')
+  await expect(page.locator('#guide-step-2')).toHaveAttribute('data-state', 'done')
   await expect(page.locator('#guide-step-3')).toHaveAttribute('data-state', 'active')
   await run(page)
-  expect(await game(page, 'itemPic')).toBe('рыба')
+  expect(await game(page, 'itemPic')).toBe('яблоко')
   await game(page, 'frame = 899; moveItems()')
   expect(await game(page, 'fallSpeed')).toBe(4)
   await game(page, 'fallSpeed = 8; frame = 1799; moveItems()')
@@ -451,7 +443,7 @@ test('8. бомба и звезда: закрыты до сборки игры, 
   let codes = await savedCodes(page)
   const lines = codes[0].split('\n')
   expect(lines[5]).toBe('var bombPic     = "бомба";')
-  expect(lines[4]).toBe('var itemPic     = "пончик";')
+  expect(lines[4]).toBe('var itemPic     = "яблоко";')
   await expect(page.getByRole('status')).toContainText('Остальные настройки на месте')
 
   // повторно — «уже есть», без кнопки отмены
@@ -608,10 +600,13 @@ test('консоль, «Приборы», 60 кадров и «Границы»'
   await expect(page.locator('#tool-panel')).toContainText('lives')
   await expect(page.locator('#tool-panel dd').nth(1)).toHaveText('3')
 
-  // не больше 60 кадров в секунду
-  const a = await game<number>(page, 'frame')
-  await page.waitForTimeout(1000)
-  const perSecond = (await game<number>(page, 'frame')) - a
+  // не больше 60 кадров в секунду: кадры делим на настоящее время — под нагрузкой секунда ожидания растягивается
+  const perSecond = await page.evaluate(async () => {
+    const w = document.querySelector('iframe')!.contentWindow as Window & { frame: number }
+    const [f0, t0] = [w.frame, performance.now()]
+    await new Promise((r) => setTimeout(r, 1000))
+    return ((w.frame - f0) * 1000) / (performance.now() - t0)
+  })
   expect(perSecond).toBeGreaterThan(30)
   expect(perSecond).toBeLessThan(66)
 
@@ -624,6 +619,29 @@ test('лишних кнопок нет: «Поделиться», «Вид», п
   await open(page)
   for (const name of ['Поделиться', 'Вид', 'Пауза', 'Кадр', 'Замедлить'])
     await expect(page.getByRole('button', { name, exact: true })).toHaveCount(0)
+})
+
+test('карта игры: герой стоит на текущей станции, станции ведут к шагам', async ({ page }) => {
+  await open(page)
+  const map = page.getByRole('navigation', { name: 'Карта игры' })
+  await expect(map).toContainText('Ты здесь: шаг 1 «Герой»')
+  await expect(map.locator('[aria-current="step"]')).toHaveAccessibleName('Шаг 1: Герой — ты здесь')
+  await expect(map.getByRole('button', { name: 'Бонус: Бомба — закрыто' })).toBeVisible()
+  await expect(map.getByRole('button', { name: 'Финиш — закрыто' })).toBeVisible()
+  // пока героя не выбрали, на карте стоит колобок
+  await expect(map.locator('[data-pic="колобок"]')).toHaveCount(2)
+
+  // шаг 1 пройден: дорога ведёт к шагу 2, герой — тот, кого выбрали
+  await buildHero(page)
+  await tab(page, 'Гайд')
+  await expect(map.locator('[aria-current="step"]')).toHaveAccessibleName('Шаг 2: Яблоки падают — ты здесь')
+  await expect(map.getByRole('button', { name: 'Шаг 1: Герой — пройдено' })).toBeVisible()
+  await expect(map).toContainText('квест 1 из 4')
+  await expect(map.locator('[data-pic="кот"]')).toHaveCount(1)
+
+  // станция прокручивает гайд к своему блоку
+  await map.getByRole('button', { name: 'Бонус: Звезда — закрыто' }).click()
+  await expect(page.locator('#guide-task-5')).toBeInViewport()
 })
 
 test('гайд: код, объяснение и подсказка открываются кнопками', async ({ page }) => {

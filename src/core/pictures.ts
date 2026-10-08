@@ -6,11 +6,26 @@
 
 /** Группы в окне выбора — в таком порядке. */
 export const PICTURE_GROUPS: { title: string; names: string[] }[] = [
-  { title: 'Герои', names: ['колобок', 'кот', 'лиса', 'лягушка', 'робот', 'пингвин', 'корзинка'] },
-  { title: 'Еда', names: ['яблоко', 'груша', 'вишня', 'клубника', 'пончик', 'рыба'] },
-  { title: 'Вещи', names: ['бомба', 'звезда', 'монетка', 'сердце', 'молния'] },
-  { title: 'Летают', names: ['цыплёнок', 'птичка', 'сова', 'пчела', 'мышь', 'дракон'] },
-  { title: 'Космос', names: ['ракета', 'тарелка', 'пришелец', 'осьминог', 'астероид', 'взрыв', 'луна'] },
+  {
+    title: 'Герои',
+    names: ['колобок', 'кот', 'собака', 'лиса', 'заяц', 'мишка', 'панда', 'лягушка', 'робот', 'пингвин', 'корзинка'],
+  },
+  {
+    title: 'Еда',
+    names: ['яблоко', 'груша', 'вишня', 'клубника', 'банан', 'арбуз', 'морковка', 'пончик', 'пицца', 'конфета', 'рыба'],
+  },
+  {
+    title: 'Вещи',
+    names: ['бомба', 'звезда', 'монетка', 'сердце', 'молния', 'алмаз', 'ключ', 'гриб', 'подарок', 'мяч', 'труба'],
+  },
+  {
+    title: 'Летают',
+    names: ['цыплёнок', 'птичка', 'сова', 'пчела', 'бабочка', 'божья коровка', 'мышь', 'дракон', 'призрак', 'шарик'],
+  },
+  {
+    title: 'Космос',
+    names: ['ракета', 'тарелка', 'пришелец', 'осьминог', 'астероид', 'комета', 'планета', 'спутник', 'взрыв', 'луна'],
+  },
 ]
 
 /** Все имена рисунков, которые можно выбрать. */
@@ -128,16 +143,20 @@ class Px {
   /**
    * Залить фигуру. С контуром (`line`, по умолчанию) вокруг неё встаёт рамка в одну клетку — поверх того, что
    * нарисовано раньше. Без контура заливка не трогает клетки контура: так рисуются пятна, животики, полоски.
-   * Тень — где фигура кончается в `depth` клетках вниз-вправо, кайма — где кончается в клетке вверх-влево.
+   * Тень — где фигура (или `body`) кончается в `depth` клетках вниз-вправо, кайма — где кончается в клетке
+   * вверх-влево.
    */
-  fill(s: Shape, paint: Paint, { line = true, depth = 2 } = {}) {
-    const inside = (x: number, y: number) => x >= 0 && y >= 0 && x < N && y < N && s(x + 0.5, y + 0.5)
+  fill(s: Shape, paint: Paint, { line = true, depth = 2, body = s } = {}) {
+    const at = (f: Shape) => (x: number, y: number) => x >= 0 && y >= 0 && x < N && y < N && f(x + 0.5, y + 0.5)
+    const inside = at(s)
+    // свет и тень считаются по `body`: полоски и клинья на шаре берут объём всего шара
+    const solid = at(body)
     const [light, base, dark] = typeof paint === 'string' ? [paint, paint, paint] : paint
     for (let y = 0; y < N; y++)
       for (let x = 0; x < N; x++) {
         if (!inside(x, y) || (!line && this.get(x, y) === INK)) continue
-        const shadow = !inside(x + 1, y + 1) || !inside(x + depth, y + depth)
-        const lit = !inside(x - 1, y - 1)
+        const shadow = !solid(x + 1, y + 1) || !solid(x + depth, y + depth)
+        const lit = !solid(x - 1, y - 1)
         this.set(x, y, shadow && !lit ? dark : lit && !shadow ? light : base)
       }
     if (!line) return this
@@ -208,6 +227,21 @@ const CRATER: Paint = ['#544a40', '#74685b', '#b6ab9b']
 const GLASS: Paint = ['#ecfbff', '#8fe0f5', '#3fa9d6']
 const FIRE: Paint = ['#ffd26a', '#ff9a2e', '#e0601a']
 const GREY: Paint = ['#b8bed0', '#8a91aa', '#5c6380']
+const TAN: Paint = ['#f7d3a1', '#e0a464', '#a8672e']
+const BROWN: Paint = ['#c98a5a', '#9a5f34', '#5e361a']
+const SNOW: Paint = ['#ffffff', '#f1f1f6', '#b9bccc']
+const SOOT: Paint = ['#5a5a6c', '#2e2e3c', '#17171f']
+const BANANA: Paint = ['#fff59a', '#ffd93b', '#d9a21a']
+const MELON: Paint = ['#ff9a9a', '#ff4b5c', '#c2263b']
+const CARROT: Paint = ['#ffb35c', '#ff8a1f', '#c95a12']
+const CHEESE: Paint = ['#fff2a0', '#ffd04a', '#e0a024']
+const CANDY: Paint = ['#ffd1e6', '#ff6fb0', '#c43a7a']
+const GEM: Paint = ['#e2fcff', '#5ce1f5', '#1f9ac9']
+const WING: Paint = ['#ffd27a', '#ffa630', '#d0661a']
+const GHOST: Paint = ['#ffffff', '#eef0ff', '#a9b0d6']
+const SATURN: Paint = ['#ffd6a0', '#f4a24a', '#b8662a']
+const RING: Paint = ['#fff3c4', '#e8d07a', '#b09a4a']
+const SOLAR: Paint = ['#8fbaff', '#3a66e0', '#1f3a9a']
 
 /** Глаз-бусинка 2×3 с бликом. */
 const BEAD = ['wk', 'kk', 'kk']
@@ -539,6 +573,236 @@ const ART: Record<string, (p: Px) => unknown> = {
       .dots(INK, [4, 11], [5, 10], [6, 11])
       .dots(BLUSH, [4, 13], [5, 13])
       .dots(INK, [6, 15], [7, 16], [8, 16], [9, 15]),
+
+  собака: (p) =>
+    p
+      .fill(ellipse(12, 12.5, 9, 8.6), TAN)
+      .fill(ellipse(16, 9.6, 3, 2.6), '#a8672e', { line: false })
+      .fill(ellipse(12, 16.6, 5.2, 3.6), CREAM, { line: false })
+      .fill(pair(ellipse(3.7, 12.5, 2.9, 6.2)), BROWN, { depth: 1 })
+      .stamp2(7, 9, BEAD)
+      .stamp(10, 14, ['kwkk', '.kk.'])
+      .dots2(INK, [10, 17])
+      .dots(INK, [11, 16], [12, 16])
+      .dots('#ff7aa5', [11, 18], [12, 18]),
+
+  заяц: (p) =>
+    p
+      .fill(pair(ellipse(8.2, 7, 2.7, 6)), SNOW, { depth: 1 })
+      .fill(pair(ellipse(8.2, 7.6, 1.1, 4)), '#ffb3cd', { line: false })
+      .fill(ellipse(12, 16, 9, 7.2), SNOW)
+      .stamp2(7, 13, BEAD)
+      .dots2(BLUSH, [5, 17], [6, 17])
+      .dots2('#ff7aa5', [11, 17])
+      .dots2(INK, [11, 18], [10, 19]),
+
+  мишка: (p) =>
+    p
+      .fill(pair(circle(5, 5, 3.4)), BROWN)
+      .fill(pair(circle(5, 5, 1.6)), '#e0a464', { line: false })
+      .fill(ellipse(12, 13.5, 10, 8.8), BROWN)
+      .fill(ellipse(12, 17.2, 4.8, 3.4), '#f2cf9e', { line: false })
+      .stamp2(7, 10, BEAD)
+      .stamp(10, 15, ['kwkk', '.kk.'])
+      .dots2(INK, [11, 17], [10, 18]),
+
+  панда: (p) =>
+    p
+      .fill(pair(circle(4.6, 4.8, 3.4)), SOOT)
+      .fill(ellipse(12, 13, 10, 9), SNOW)
+      .fill(pair(ellipse(7.8, 12, 2.7, 3.3)), '#2e2e3c', { line: false })
+      .stamp2(7, 11, ['ww', 'wk'])
+      .dots(INK, [11, 15], [12, 15])
+      .dots2(INK, [11, 16], [10, 17])
+      .dots2(BLUSH, [4, 16], [5, 16]),
+
+  банан: (p) =>
+    p
+      .fill(stroke(5.4, [5.5, 5.5], [6.5, 12], [10.5, 17], [19.5, 19]), BANANA)
+      .fill(stroke(1.6, [7.5, 6], [8.5, 12], [12, 15.5]), '#fff9c8', { line: false })
+      .fill(box(4, 1.2, 6.6, 4.4), '#8a6a2a')
+      .dots(INK, [21, 19]),
+
+  арбуз: (p) =>
+    p
+      .fill(
+        and(circle(12, 6.5, 11), (_x, y) => y > 6.5),
+        GREEN,
+      )
+      .fill(
+        and(circle(12, 6.5, 9.7), (_x, y) => y > 6.5),
+        '#eaffd2',
+        { line: false },
+      )
+      .fill(
+        and(circle(12, 6.5, 8.6), (_x, y) => y > 6.5),
+        MELON,
+        { line: false },
+      )
+      .dots(INK, [7, 9], [11, 10], [15, 9], [9, 13], [14, 13], [12, 15]),
+
+  морковка: (p) =>
+    p
+      .fill(or(ellipse(10, 5, 1.8, 4.4), ellipse(14, 5, 1.8, 4.4), ellipse(12, 4, 1.8, 3.8)), LEAF, { depth: 1 })
+      .fill(poly([6.5, 8.5], [17.5, 8.5], [13.2, 20.5], [11.5, 22.8], [10.8, 20.5]), CARROT)
+      .dots('#c95a12', [9, 12], [10, 12], [13, 15], [14, 15], [10, 18], [11, 18]),
+
+  пицца: (p) =>
+    p
+      .fill(poly([3, 5], [21, 5], [12, 22.8]), CHEESE)
+      .fill(box(2, 2, 22, 6.8, 2.4), DOUGH)
+      .fill(circle(9, 10.5, 2.3), RED, { line: false, depth: 1 })
+      .fill(circle(15, 10, 2.3), RED, { line: false, depth: 1 })
+      .fill(circle(12, 15.5, 2.1), RED, { line: false, depth: 1 })
+      .dots('#7fbf4a', [6, 8], [17, 13], [11, 19]),
+
+  конфета: (p) =>
+    p
+      .fill(pair(poly([1.2, 6.8], [7.5, 10.2], [7.5, 13.8], [1.2, 17.2])), CANDY, { depth: 1 })
+      .fill(ellipse(12, 12, 6.4, 5.6), CANDY)
+      .fill(
+        and(ellipse(12, 12, 6.4, 5.6), (x, y) => (x + y) % 4 < 1.6),
+        WHITE,
+        { line: false },
+      )
+      .dots2('#ffe6f0', [3, 9], [3, 10]),
+
+  алмаз: (p) =>
+    p
+      .fill(poly([7, 4], [17, 4], [22.2, 9.5], [12, 21.8], [1.8, 9.5]), GEM)
+      .fill(poly([9, 4.5], [15, 4.5], [16.5, 9], [7.5, 9]), '#c9f8ff', { line: false })
+      .dots('#2bb3d9', ...[3, 4, 5, 6, 7, 8, 9, 10, 11, 12, 13, 14, 15, 16, 17, 18, 19, 20].map((x) => [x, 9] as Pt))
+      .dots('#2bb3d9', [11, 11], [11, 12], [11, 13], [12, 14], [12, 15], [12, 16])
+      .dots(WHITE, [5, 7], [6, 6]),
+
+  ключ: (p) =>
+    p
+      .fill(or(box(10, 9.8, 22, 12.6), box(16.6, 12, 18.8, 16), box(20, 12, 22, 15)), GOLD, { depth: 1 })
+      .fill(and(circle(7, 11.2, 5.8), not(circle(7, 11.2, 2.2))), GOLD)
+      .dots('#fffbe0', [4, 8], [5, 7]),
+
+  гриб: (p) =>
+    p
+      .fill(box(7.5, 11, 16.5, 22, 3), ['#ffffff', '#fff1dc', '#d9c2a0'])
+      .fill(and(ellipse(12, 11.5, 10.8, 9.5), above(12.5)), RED)
+      .fill(circle(7.5, 7, 1.9), WHITE, { line: false })
+      .fill(circle(14.5, 5, 1.7), WHITE, { line: false })
+      .fill(circle(18, 9.5, 1.6), WHITE, { line: false })
+      .fill(circle(11, 9.5, 1.3), WHITE, { line: false })
+      .stamp2(9, 15, BEAD)
+      .dots2(BLUSH, [8, 19]),
+
+  подарок: (p) =>
+    p
+      .fill(pair(poly([12, 7], [6.5, 1.6], [4.2, 4.5], [7.5, 7])), GOLD, { depth: 1 })
+      .fill(box(3, 10, 21, 22.2), RED)
+      .fill(box(1.6, 6.5, 22.4, 10.5), RED)
+      .fill(box(10.4, 6.5, 13.6, 22.2), GOLD, { line: false, body: box(1.6, 6.5, 22.4, 22.2) })
+      .dots(INK, [10, 10], [11, 10], [12, 10], [13, 10]),
+
+  мяч: (p) =>
+    p
+      .fill(circle(12, 12, 10.6), SNOW)
+      .fill(
+        and(
+          circle(12, 12, 10.6),
+          (x, y) => Math.floor(((Math.atan2(y - 12, x - 12) + Math.PI) / Math.PI) * 3) % 3 === 0,
+        ),
+        RED,
+        { line: false, body: circle(12, 12, 10.6) },
+      )
+      .fill(
+        and(
+          circle(12, 12, 10.6),
+          (x, y) => Math.floor(((Math.atan2(y - 12, x - 12) + Math.PI) / Math.PI) * 3) % 3 === 1,
+        ),
+        SOLAR,
+        { line: false, body: circle(12, 12, 10.6) },
+      )
+      .fill(circle(12, 12, 2.2), SNOW, { line: false })
+      .dots(WHITE, [6, 5], [5, 6]),
+
+  труба: (p) =>
+    p
+      .fill(box(6, 8, 18, 22.6), GREEN)
+      .fill(box(8, 9, 9.6, 22.6), '#c9f7a8', { line: false })
+      .fill(box(3.4, 2.4, 20.6, 8.6, 1), GREEN)
+      .fill(box(5.4, 3.6, 7, 7.6), '#c9f7a8', { line: false }),
+
+  бабочка: (p) =>
+    p
+      .fill(pair(ellipse(6.4, 8, 5.6, 5.6)), WING)
+      .fill(pair(ellipse(7.6, 16.2, 4.2, 4.6)), WING)
+      .fill(pair(circle(5.5, 7.5, 1.2)), WHITE, { line: false })
+      .fill(pair(circle(7, 16.5, 1.3)), '#7a3f12', { line: false })
+      .fill(ellipse(12, 13, 1.8, 8), SOOT)
+      .fill(circle(12, 5.2, 2), SOOT)
+      .dots2(INK, [10, 2], [9, 1])
+      .dots2(WHITE, [11, 5]),
+
+  'божья коровка': (p) =>
+    p
+      .fill(circle(12, 6, 4.6), SOOT)
+      .fill(circle(12, 13.6, 9), RED)
+      .fill(box(11.4, 4.8, 12.6, 22.6), INK, { line: false })
+      .fill(pair(circle(7, 11, 1.9)), INK, { line: false })
+      .fill(pair(circle(8, 17, 1.6)), INK, { line: false })
+      .dots2(WHITE, [10, 4])
+      .dots(WHITE, [6, 8], [5, 9]),
+
+  призрак: (p) =>
+    p
+      .fill(
+        or(
+          and(circle(12, 10.5, 8.6), above(10.5)),
+          box(3.4, 10, 20.6, 18.5),
+          poly([3.4, 18], [3.4, 22], [6.3, 19.5], [9, 22], [12, 19.5], [15, 22], [17.7, 19.5], [20.6, 22], [20.6, 18]),
+        ),
+        GHOST,
+      )
+      .stamp2(7, 9, EYE)
+      .stamp(11, 15, ['kk', 'kk'])
+      .dots2(BLUSH, [6, 15]),
+
+  шарик: (p) =>
+    p
+      .fill(ellipse(12, 9.4, 8, 8.8), RED)
+      .fill(poly([10.6, 18.4], [13.4, 18.4], [12, 20.2]), RED, { depth: 1 })
+      .dots('#d0d0dc', [12, 21], [11, 22])
+      .fill(ellipse(8, 6, 1.6, 2.6), '#ffd3cb', { line: false }),
+
+  комета: (p) =>
+    p
+      .fill(poly([13, 5.5], [1.5, 20.5], [4, 22.5], [19, 12]), ['#e8fbff', '#8fe0f5', '#3fa9d6'], { depth: 1 })
+      .fill(poly([14, 8], [5, 19], [16, 11]), '#e8fbff', { line: false })
+      .fill(circle(16.5, 7.5, 5), ['#ffffff', '#fff6c4', '#ffc632'])
+      .dots(WHITE, [14, 5], [15, 4]),
+
+  планета: (p) =>
+    p
+      .fill(and(ellipse(12, 12.5, 11.6, 3.6), not(ellipse(12, 12.5, 8.4, 1.8))), RING, { depth: 1 })
+      .fill(circle(12, 12, 7.8), SATURN)
+      .fill(
+        and(circle(12, 12, 7.8), (_x, y) => y > 14 && y < 16),
+        '#d98a3a',
+        { line: false },
+      )
+      .fill(
+        and(ellipse(12, 12.5, 11.6, 3.6), not(ellipse(12, 12.5, 8.4, 1.8)), (_x, y) => y > 12.5),
+        RING,
+        { depth: 1 },
+      )
+      .dots('#fff1dc', [8, 7], [9, 6]),
+
+  спутник: (p) =>
+    p
+      .fill(pair(box(1.2, 8.5, 7.4, 15.5)), SOLAR, { depth: 1 })
+      .dots2('#1f3a9a', [4, 9], [4, 10], [4, 11], [4, 12], [4, 13], [4, 14], [2, 12], [3, 12], [5, 12], [6, 12])
+      .fill(box(7, 11.2, 17, 12.8), GREY)
+      .fill(box(9, 7.5, 15, 16.5, 1.5), METAL)
+      .fill(circle(12, 11, 1.8), GLASS, { depth: 1 })
+      .fill(box(11.4, 3, 12.6, 7), GREY)
+      .fill(circle(12, 2.4, 1.5), RED, { depth: 1 }),
 
   '?': (p) =>
     p

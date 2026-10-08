@@ -29,6 +29,8 @@ export type Rich = string
 
 export interface GuideStep {
   step: number
+  /** Картинка станции на карте гайда — из набора TimeBox. */
+  pic: string
   /** Индекс вкладки, куда вставляется код. */
   tab: number
   title: string

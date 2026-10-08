@@ -2,6 +2,7 @@ import { memo, useMemo, useState } from 'react'
 import { useApp, useController } from '@/app/context.ts'
 import { type ExtraState, type LevelState, lessonProgress } from '@/core/levels.ts'
 import { type FnState, stepStates } from '@/core/progress.ts'
+import { chosenPic } from '@/lessons/kit.ts'
 import type { BuildTask, EditTask, GuideExtra, GuideStep, RunTask, StepTask } from '@/lessons/types.ts'
 import { CodeBlock } from './CodeBlock.tsx'
 import {
@@ -18,6 +19,7 @@ import {
 } from './icons.tsx'
 import { Pic } from './Pic.tsx'
 import { Rich } from './Rich.tsx'
+import { Roadmap } from './Roadmap.tsx'
 import styles from './Guide.module.css'
 
 // Гайд заменяет презентацию: ученик идёт в своём темпе. Шаг — цепочка квестов: код собирается
@@ -29,6 +31,8 @@ export function Guide() {
   const ran = useApp((s) => s.ran)
   const { lesson } = c
   const { levels, extras, allDone } = useMemo(() => lessonProgress(lesson, codes, ran), [lesson, codes, ran])
+  // пока героя не выбрали, на карте стоит тот, с кого начинают: рисунок первого шага
+  const hero = chosenPic(codes, lesson.card.heroVar) ?? lesson.steps[0].pic
 
   return (
     <article className={styles.guide}>
@@ -45,6 +49,8 @@ export function Guide() {
           ))}
         </ul>
       </header>
+
+      <Roadmap lesson={lesson} levels={levels} extras={extras} hero={hero} />
 
       <ol className={styles.track} aria-label="Шаги">
         {lesson.steps.map((step, i) => (
@@ -72,7 +78,7 @@ export function Guide() {
         </p>
       </section>
 
-      <footer className={styles.footer}>
+      <footer id="guide-finish" className={styles.footer}>
         <button type="button" className="key key--l" onClick={() => c.openDialog({ kind: 'unlock' })}>
           <LockIcon size={16} />
           Открыть готовую игру

@@ -18,7 +18,6 @@ import {
   HERO_MOVE_TASK,
   HERO_PICK_TASK,
   HERO_RUN_TASK,
-  ITEM_TASK,
   ITEMS_DRAW_TASK,
   ITEMS_MOVE_TASK,
   SPEED_TASK,
@@ -40,6 +39,7 @@ export const GUIDE_INTRO: GuideIntro = {
 export const GUIDE_STEPS: GuideStep[] = [
   {
     step: 1,
+    pic: 'колобок',
     tab: 1,
     title: 'Герой',
     lead: 'Создай героя-картинку, нарисуй его и научи ездить стрелками.',
@@ -55,6 +55,7 @@ export const GUIDE_STEPS: GuideStep[] = [
   },
   {
     step: 2,
+    pic: 'яблоко',
     tab: 2,
     title: 'Яблоки падают',
     lead: 'Раз в секунду сверху появляется яблоко и летит вниз.',
@@ -66,10 +67,11 @@ export const GUIDE_STEPS: GuideStep[] = [
     code: STEP_APPLES,
     checks: ['Яблоки падают', 'В «Приборах» растёт `items`'],
     fns: ['moveItems', 'drawItems'],
-    quests: [ITEMS_MOVE_TASK, ITEMS_DRAW_TASK, FALL_SPEED_TASK, SPEEDUP_TASK, ITEM_TASK],
+    quests: [ITEMS_MOVE_TASK, ITEMS_DRAW_TASK, FALL_SPEED_TASK, SPEEDUP_TASK],
   },
   {
     step: 3,
+    pic: 'корзинка',
     tab: 3,
     title: 'Поймал или уронил',
     lead: 'Поймал — очко, уронил — минус жизнь.',

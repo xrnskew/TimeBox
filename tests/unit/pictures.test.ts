@@ -12,10 +12,10 @@ import {
 } from '@/core/pictures.ts'
 
 describe('Рисунки', () => {
-  it('31 рисунок в пяти группах, имена не повторяются; «?» — не в окне выбора', () => {
+  it('53 рисунка в пяти группах, имена не повторяются; «?» — не в окне выбора', () => {
     expect(PICTURE_GROUPS.map((g) => g.title)).toEqual(['Герои', 'Еда', 'Вещи', 'Летают', 'Космос'])
-    expect(PICTURE_NAMES).toHaveLength(31)
-    expect(new Set(PICTURE_NAMES).size).toBe(31)
+    expect(PICTURE_NAMES).toHaveLength(53)
+    expect(new Set(PICTURE_NAMES).size).toBe(53)
     for (const name of PICTURE_NAMES) expect(isPicture(name), name).toBe(true)
     expect(isPicture(UNKNOWN_PICTURE)).toBe(false)
     expect(PICTURE_NAMES).not.toContain(UNKNOWN_PICTURE)
