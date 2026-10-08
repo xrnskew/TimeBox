@@ -34,11 +34,11 @@ test('Птичка: вся игра по квестам, взмах, удар и
   // шаг 1: птица
   await openQuest(page, 1, 'Открыть «Птица»')
   await addPieces(page, 1)
-  await page.locator('.cm-emojiPick').first().click()
-  await pick(page, '🦉')
-  await addPieces(page, 3)
+  await page.locator('.cm-pick').first().click()
+  await pick(page, 'сова')
+  await addPieces(page, 2)
   await run(page)
-  expect(await game(page, 'birdEmoji')).toBe('🦉')
+  expect(await game(page, 'birdPic')).toBe('сова')
   await openQuest(page, 1, 'Открыть «Птица»', 'Птица падает')
   await addPieces(page, 4)
   await openQuest(page, 1, 'Открыть «Движок»', 'Включи гравитацию')
@@ -70,7 +70,7 @@ test('Птичка: вся игра по квестам, взмах, удар и
   const palette = page.getByRole('dialog', { name: 'Выбери цвет' })
   await expect(palette.getByRole('button', { name: 'зелёный', exact: true })).toHaveAttribute('aria-pressed', 'true')
   await palette.getByRole('button', { name: 'розовый', exact: true }).click()
-  await expect(page.locator('.cm-colorPick .cm-colorSwatch')).toHaveCSS('background-color', 'rgb(236, 64, 122)')
+  await expect(page.locator('.cm-pick .cm-pickSwatch')).toHaveCSS('background-color', 'rgb(236, 64, 122)')
 
   // шаг 4: удар и очко за трубу
   await openQuest(page, 4, 'Открыть «Удар»')
@@ -115,7 +115,7 @@ test('Птичка: вся игра по квестам, взмах, удар и
   await fast.getByRole('button', { name: 'Вставить код в «Трубы»' }).click()
   await expect(progress(page)).toContainText('6/6')
   await run(page)
-  expect(await game(page, '[coinEmoji, maxSpeed, typeof speedUp]')).toEqual(['🪙', 5, 'function'])
+  expect(await game(page, '[coinPic, maxSpeed, typeof speedUp]')).toEqual(['монетка', 5, 'function'])
   expect(errors).toEqual([])
 })
 
@@ -127,7 +127,7 @@ test('Птичка: готовая версия под паролем', async ({
   await waitGame(page)
   await expect(page).toHaveTitle('TimeBox — готовая игра Птичка')
   await expect(page.getByRole('heading', { name: 'Что тут есть' })).toBeVisible()
-  expect(await game(page, '[gravity, flapPower, pipeSpeed, birdEmoji]')).toEqual([0.4, 7, 2, '🐦'])
+  expect(await game(page, '[gravity, flapPower, pipeSpeed, birdPic]')).toEqual([0.4, 7, 2, 'птичка'])
   await flapButton(page)
   expect(await game(page, 'started')).toBe(true)
   expect(await game<number>(page, 'speedY')).toBeLessThan(0)

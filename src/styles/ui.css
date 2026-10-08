@@ -207,3 +207,12 @@ kbd {
   --shell-accent: #23a447;
   --shell-text: var(--sun);
 }
+
+/* Рисунок из набора TimeBox (компонент Pic): размером со строку текста, клетки без размытия */
+.pic {
+  display: inline-block;
+  width: 1em;
+  height: 1em;
+  image-rendering: pixelated;
+  vertical-align: middle;
+}

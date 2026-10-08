@@ -1,13 +1,15 @@
+import { DRAW_PIC } from '../engine.ts'
 import type { LessonVariant, TabDef } from '../types.ts'
 
-// Движок учебной версии — из ТЗ, с отличиями: смайлик героя ученик создаёт сам во вкладке «Герой»,
-// а скорости героя и яблок — 0: их ученик ставит сам в квестах после движения и после яблок. Строк bombEmoji
-// и goldEmoji тоже нет: их ученик добавляет в заданиях про бомбу и звезду.
+// Движок учебной версии — из ТЗ, с отличиями: картинку героя ученик создаёт сам во вкладке «Герой»,
+// а скорости героя и яблок — 0: их ученик ставит сам в квестах после движения и после яблок. Строк bombPic
+// и goldPic тоже нет: их ученик добавляет в заданиях про бомбу и звезду. Рисует всё готовая функция drawPic —
+// картинки из набора TimeBox вместо смайликов.
 export const TUTORIAL_ENGINE = `// ===== НАСТРОЙКИ =====
 var playerSpeed = 0;
 var fallSpeed   = 0;
 var spawnEvery  = 60;
-var itemEmoji   = "🍎";
+var itemPic     = "яблоко";
 
 // ===== СОСТОЯНИЕ ИГРЫ =====
 var playerX = 170;
@@ -29,6 +31,8 @@ function drawPlayer() {}
 function moveItems()  {}
 function drawItems()  {}
 function checkCatch() {}
+
+${DRAW_PIC}
 
 // ===== ГЛАВНЫЙ ЦИКЛ =====
 function loop() {
@@ -56,21 +60,20 @@ function loop() {
 }
 loop();`
 
-export const BOMB_LINE = 'var bombEmoji   = "💣";'
-export const GOLD_LINE = 'var goldEmoji   = "🌟";'
+export const BOMB_LINE = 'var bombPic     = "бомба";'
+export const GOLD_LINE = 'var goldPic     = "звезда";'
 
 // ===== Код шагов гайда — базовая версия: только яблоки, +1 очко, скорость постоянная =====
 // Каждый шаг собирается кнопками по кусочкам (tasks.ts) и в итоге совпадает с этим кодом.
 
-/** Смайлик героя, с которого начинают. Квест «Выбери героя» — поменять его на свой. */
-export const HERO_EMOJI = '🙂'
+/** Картинка героя, с которой начинают. Квест «Выбери героя» — поменять её на свою. */
+export const HERO_PIC = 'колобок'
 
-export const STEP_HERO = `// герой — любой смайлик
-var playerEmoji = "${HERO_EMOJI}";
+export const STEP_HERO = `// герой — любая картинка
+var playerPic = "${HERO_PIC}";
 
 function drawPlayer() {
-  ctx.font = "34px serif";
-  ctx.fillText(playerEmoji, playerX, playerY);
+  drawPic(playerPic, playerX, playerY);
 }
 
 function movePlayer() {
@@ -97,10 +100,8 @@ export const STEP_APPLES = `function moveItems() {
 }
 
 function drawItems() {
-  ctx.font = "34px serif";
-
   for (var i = 0; i < items.length; i++) {
-    ctx.fillText(itemEmoji, items[i].x, items[i].y);
+    drawPic(itemPic, items[i].x, items[i].y);
   }
 }`
 
@@ -157,12 +158,10 @@ function makeItem() {
 ${moveItemsWith('makeItem()')}
 
 function drawItems() {
-  ctx.font = "34px serif";
-
   for (var i = 0; i < items.length; i++) {
-    var emoji = itemEmoji;
-    if (items[i].kind === "bomb") emoji = bombEmoji;
-    ctx.fillText(emoji, items[i].x, items[i].y);
+    var pic = itemPic;
+    if (items[i].kind === "bomb") pic = bombPic;
+    drawPic(pic, items[i].x, items[i].y);
   }
 }
 
@@ -202,13 +201,11 @@ function makeItem() {
 ${moveItemsWith('makeItem()')}
 
 function drawItems() {
-  ctx.font = "34px serif";
-
   for (var i = 0; i < items.length; i++) {
-    var emoji = itemEmoji;
-    if (items[i].kind === "bomb") emoji = bombEmoji;
-    if (items[i].kind === "gold") emoji = goldEmoji;
-    ctx.fillText(emoji, items[i].x, items[i].y);
+    var pic = itemPic;
+    if (items[i].kind === "bomb") pic = bombPic;
+    if (items[i].kind === "gold") pic = goldPic;
+    drawPic(pic, items[i].x, items[i].y);
   }
 }
 
@@ -243,9 +240,9 @@ export const GOLD_CATCH = `function checkCatch() {
 
 const FINISHED_ENGINE = TUTORIAL_ENGINE.replace('var playerSpeed = 0;', 'var playerSpeed = 6;')
   .replace('var fallSpeed   = 0;', 'var fallSpeed   = 3;')
-  .replace('var itemEmoji   = "🍎";', `var itemEmoji   = "🍎";\n${BOMB_LINE}\n${GOLD_LINE}`)
+  .replace('var itemPic     = "яблоко";', `var itemPic     = "яблоко";\n${BOMB_LINE}\n${GOLD_LINE}`)
 
-const FINISHED_HERO = STEP_HERO.replace(`"${HERO_EMOJI}"`, '"🧺"')
+const FINISHED_HERO = STEP_HERO.replace(`"${HERO_PIC}"`, '"корзинка"')
 
 // ===== Вкладки =====
 
@@ -262,7 +259,7 @@ export const TUTORIAL_TABS: TabDef[] = [
     id: 'hero',
     title: 'Герой',
     step: 1,
-    note: 'Шаг 1: герой — смайлик, который рисуется на холсте и ездит стрелками.',
+    note: 'Шаг 1: герой — картинка, которая рисуется на холсте и ездит стрелками.',
   },
   { id: 'apples', title: 'Яблоки', step: 2, note: 'Шаг 2: яблоки появляются сверху и падают вниз.' },
   { id: 'catch', title: 'Поимка', step: 3, note: 'Шаг 3: поймал — очко, уронил — минус жизнь.' },
@@ -270,14 +267,18 @@ export const TUTORIAL_TABS: TabDef[] = [
 
 export const TUTORIAL_CODES: string[] = [
   TUTORIAL_ENGINE,
-  placeholder(1, 'Здесь будет твой герой: смайлик, drawPlayer и movePlayer.'),
+  placeholder(1, 'Здесь будет твой герой: картинка, drawPlayer и movePlayer.'),
   placeholder(2, 'Здесь будут функции moveItems и drawItems.'),
   placeholder(3, 'Здесь будет функция checkCatch.'),
 ]
 
 export const FINISHED_TABS: TabDef[] = [
-  { id: 'engine', title: 'Движок', note: 'Настройки, состояние игры и главный цикл. Эмодзи и скорости можно менять.' },
-  { id: 'hero', title: 'Герой', note: 'Корзина: смайлик, отрисовка и движение стрелками.' },
+  {
+    id: 'engine',
+    title: 'Движок',
+    note: 'Настройки, состояние игры и главный цикл. Картинки и скорости можно менять.',
+  },
+  { id: 'hero', title: 'Герой', note: 'Корзина: картинка, отрисовка и движение стрелками.' },
   { id: 'apples', title: 'Яблоки', note: 'Предметы: яблоко, бомба или звезда. Каждые 15 секунд всё падает быстрее.' },
   { id: 'catch', title: 'Поимка', note: 'Яблоко — 10 очков, бомба — минус жизнь, звезда — плюс жизнь.' },
 ]
@@ -286,7 +287,8 @@ export const FINISHED_CODES: string[] = [FINISHED_ENGINE, FINISHED_HERO, GOLD_AP
 
 export const TUTORIAL: LessonVariant = {
   id: 'tutorial',
-  storageKey: 'catch-sandbox-v1',
+  // v2: игры рисуют картинками, а не смайликами — старый код с fillText квесты бы не засчитали
+  storageKey: 'catch-sandbox-v2',
   tabs: TUTORIAL_TABS,
   initial: TUTORIAL_CODES,
   hasGuide: true,
@@ -294,15 +296,15 @@ export const TUTORIAL: LessonVariant = {
 
 export const FINISHED: LessonVariant = {
   id: 'finished',
-  storageKey: 'catch-sandbox-finished-v1',
+  storageKey: 'catch-sandbox-finished-v2',
   tabs: FINISHED_TABS,
   initial: FINISHED_CODES,
   hasGuide: false,
   features: [
-    '🍎 Яблоко даёт 10 очков. Уронил — минус жизнь.',
-    '💣 Бомба: поймал — минус жизнь, упустил — ничего страшного.',
-    '🌟 Звезда: поймал — плюс жизнь.',
+    'Яблоко даёт 10 очков. Уронил — минус жизнь.',
+    'Бомба: поймал — минус жизнь, упустил — ничего страшного.',
+    'Звезда: поймал — плюс жизнь.',
     'Каждые 15 секунд всё падает быстрее, но не быстрее скорости 8.',
-    'Скорости, частоту появления и смайлики можно менять в «Движке» и «Герое».',
+    'Скорости, частоту появления и картинки можно менять в «Движке» и «Герое».',
   ],
 }

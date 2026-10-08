@@ -1,7 +1,7 @@
 import type { Lesson } from '../types.ts'
 import { GUIDE_EXTRAS, GUIDE_EXTRAS_NOTE, GUIDE_INTRO, GUIDE_STEPS } from './guide.ts'
 import { BIRD_HINTS } from './hints.ts'
-import { BIRD_EMOJI, FINISHED, TUTORIAL } from './tabs.ts'
+import { BIRD_PIC, FINISHED, TUTORIAL } from './tabs.ts'
 
 export const BIRD_LESSON: Lesson = {
   id: 'bird',
@@ -11,8 +11,8 @@ export const BIRD_LESSON: Lesson = {
     levelBars: 2,
     blurb:
       'Птица падает, пробел — взмах, навстречу едут трубы с дыркой. Новое: у птицы есть скорость, и гравитация меняет её каждый кадр.',
-    hero: BIRD_EMOJI,
-    heroVar: 'birdEmoji',
+    hero: BIRD_PIC,
+    heroVar: 'birdPic',
     scene: 'bird',
   },
   consoleColor: 'green',

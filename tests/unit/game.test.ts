@@ -21,7 +21,7 @@ describe('учебная версия', () => {
     const sim = boot(TUTORIAL_CODES)
     sim.tick()
     expect(sim.drawn).toEqual(['Счёт: 0', 'Жизни: 3'])
-    expect(TUTORIAL_ENGINE).not.toMatch(/bombEmoji|goldEmoji|playerEmoji/)
+    expect(TUTORIAL_ENGINE).not.toMatch(/bombPic|goldPic|playerPic/)
     expect(sim.peek('playerSpeed')).toBe(0)
     expect(sim.peek('fallSpeed')).toBe(0)
   })
@@ -71,7 +71,7 @@ describe('учебная версия', () => {
 
 describe('бомба и звезда', () => {
   it('бомба: поймал — минус жизнь, упустил — не страшно', () => {
-    const engine = withSetting(TUTORIAL_ENGINE, 'bombEmoji', BOMB_LINE)
+    const engine = withSetting(TUTORIAL_ENGINE, 'bombPic', BOMB_LINE)
     const sim = boot([engine, STEP_HERO, BOMB_APPLES, BOMB_CATCH])
     sim.peek('items = [{ x: playerX, y: playerY, kind: "bomb" }]')
     sim.tick()
@@ -87,12 +87,12 @@ describe('бомба и звезда', () => {
 
     sim.peek('items = [{ x: 10, y: 100, kind: "bomb" }]')
     sim.tick()
-    expect(sim.drawn).toContain('💣')
+    expect(sim.drawn).toContain('бомба')
   })
 
   it('звезда: поймал — плюс жизнь, упустил — не страшно', () => {
-    let engine = withSetting(TUTORIAL_ENGINE, 'bombEmoji', BOMB_LINE)
-    engine = withSetting(engine, 'goldEmoji', GOLD_LINE)
+    let engine = withSetting(TUTORIAL_ENGINE, 'bombPic', BOMB_LINE)
+    engine = withSetting(engine, 'goldPic', GOLD_LINE)
     const sim = boot([engine, STEP_HERO, GOLD_APPLES, GOLD_CATCH])
     sim.peek('items = [{ x: playerX, y: playerY, kind: "gold" }]')
     sim.tick()
@@ -104,12 +104,12 @@ describe('бомба и звезда', () => {
 
     sim.peek('items = [{ x: 10, y: 100, kind: "gold" }]')
     sim.tick()
-    expect(sim.drawn).toContain('🌟')
+    expect(sim.drawn).toContain('звезда')
   })
 
   it('makeItem делит случайное число на бомбу, звезду и яблоко', () => {
-    let engine = withSetting(TUTORIAL_ENGINE, 'bombEmoji', BOMB_LINE)
-    engine = withSetting(engine, 'goldEmoji', GOLD_LINE)
+    let engine = withSetting(TUTORIAL_ENGINE, 'bombPic', BOMB_LINE)
+    engine = withSetting(engine, 'goldPic', GOLD_LINE)
     const sim = boot([engine, STEP_HERO, GOLD_APPLES, GOLD_CATCH])
     const kindAt = (r: number) =>
       sim.peek(
@@ -125,7 +125,7 @@ describe('готовая версия', () => {
   it('+10 очков, бомба, звезда; корзина ездит', () => {
     const sim = boot(FINISHED_CODES)
     sim.tick()
-    expect(sim.drawn).toContain('🧺')
+    expect(sim.drawn).toContain('корзинка')
     sim.key('ArrowLeft', true)
     sim.tick()
     expect(sim.peek('playerX')).toBe(164)

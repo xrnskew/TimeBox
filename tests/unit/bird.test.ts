@@ -1,9 +1,10 @@
 import { describe, expect, it } from 'vitest'
 import { currentQuest, extraStates, levelStates } from '@/core/levels.ts'
+import { isPicture } from '@/core/pictures.ts'
 import { findSyntaxError } from '@/core/syntax.ts'
 import { GUIDE_EXTRAS, GUIDE_STEPS } from '@/lessons/bird/guide.ts'
 import {
-  BIRD_EMOJI,
+  BIRD_PIC,
   COIN_HIT,
   COIN_LINE,
   COIN_PIPES,
@@ -45,9 +46,9 @@ const engineWith = (gravity = 0.4, flap = 7, pipes = 2, color = '#e53935') =>
     .replace('var flapPower = 0;', `var flapPower = ${flap};`)
     .replace('var pipeSpeed = 0;', `var pipeSpeed = ${pipes};`)
     .replace(`var pipeColor = "${PIPE_COLOR}";`, `var pipeColor = "${color}";`)
-const birdWith = (emoji: string) => STEP_BIRD.replace(`"${BIRD_EMOJI}"`, `"${emoji}"`)
+const birdWith = (emoji: string) => STEP_BIRD.replace(`"${BIRD_PIC}"`, `"${emoji}"`)
 /** Вся игра без дополнительных заданий. */
-const fullGame = (engine = engineWith()) => [engine, birdWith('🦉'), STEP_FLAP, STEP_PIPES, STEP_HIT]
+const fullGame = (engine = engineWith()) => [engine, birdWith('сова'), STEP_FLAP, STEP_PIPES, STEP_HIT]
 
 describe('Птичка в меню', () => {
   it('стоит второй, после Корзинки, и открывается по ?game=bird', () => {
@@ -90,9 +91,9 @@ describe('Птичка: квесты «поправь сам»', () => {
   it('«Выбери птицу»: засчитано, только когда смайлик другой; кнопка выделяет смайлик', () => {
     const bird = build(TUTORIAL_CODES[1], BIRD_CREATE_TASK)
     expect(BIRD_PICK_TASK.isDone(bird)).toBe(false)
-    expect(BIRD_PICK_TASK.isDone(bird.replace(BIRD_EMOJI, '🦉'))).toBe(true)
+    expect(BIRD_PICK_TASK.isDone(bird.replace(BIRD_PIC, 'сова'))).toBe(true)
     const at = editTarget(bird, BIRD_PICK_TASK.target)!
-    expect(bird.split('\n')[at.line - 1].slice(at.from, at.to)).toBe(BIRD_EMOJI)
+    expect(bird.split('\n')[at.line - 1].slice(at.from, at.to)).toBe(BIRD_PIC)
   })
 
   it('гравитация, сила взмаха и скорость труб — 0 в движке; засчитано любое число больше 0', () => {
@@ -136,7 +137,7 @@ describe('Птичка: квесты идут по порядку', () => {
   it('от создания птицы до последнего квеста', () => {
     const codes = [...TUTORIAL_CODES]
     expect(quest(codes)).toEqual({ step: 0, quest: 0 })
-    codes[1] = build(codes[1], BIRD_CREATE_TASK).replace(BIRD_EMOJI, '🦉')
+    codes[1] = build(codes[1], BIRD_CREATE_TASK).replace(BIRD_PIC, 'сова')
     codes[1] = build(codes[1], BIRD_DRAW_TASK)
     expect(quest(codes, TUTORIAL_CODES)).toEqual({ step: 0, quest: 3 })
     codes[1] = build(codes[1], BIRD_FALL_TASK)
@@ -163,12 +164,12 @@ describe('Птичка: квесты идут по порядку', () => {
   it('монетки и скорость закрыты до сборки игры; их код сохраняет все квесты', () => {
     expect(extraStates(GUIDE_EXTRAS, false, TUTORIAL_CODES).map((x) => x.unlocked)).toEqual([false, false])
     expect(extraStates(GUIDE_EXTRAS, true, TUTORIAL_CODES).map((x) => x.unlocked)).toEqual([true, false])
-    let engine = withSetting(engineWith(), 'coinEmoji', COIN_LINE)
-    const coins = [engine, birdWith('🦉'), STEP_FLAP, COIN_PIPES, COIN_HIT]
+    let engine = withSetting(engineWith(), 'coinPic', COIN_LINE)
+    const coins = [engine, birdWith('сова'), STEP_FLAP, COIN_PIPES, COIN_HIT]
     expect(extraStates(GUIDE_EXTRAS, true, coins).map((x) => x.done)).toEqual([true, false])
     expect(levelStates(GUIDE_STEPS, coins).every((l) => l.done)).toBe(true)
     engine = withSetting(engine, 'maxSpeed', MAX_SPEED_LINE)
-    const fast = [engine, birdWith('🦉'), STEP_FLAP, FAST_PIPES, COIN_HIT]
+    const fast = [engine, birdWith('сова'), STEP_FLAP, FAST_PIPES, COIN_HIT]
     expect(extraStates(GUIDE_EXTRAS, true, fast).map((x) => x.done)).toEqual([true, true])
     expect(levelStates(GUIDE_STEPS, fast).every((l) => l.done)).toBe(true)
   })
@@ -186,14 +187,15 @@ describe('Птичка: игра', () => {
   })
 
   it('после труб кисть непрозрачная: птица и монетки не затемняются', () => {
-    const engine = withSetting(engineWith(0, 7, 0), 'coinEmoji', COIN_LINE)
-    for (const codes of [fullGame(), [engine, birdWith('🦉'), STEP_FLAP, COIN_PIPES, COIN_HIT], FINISHED_CODES]) {
+    const engine = withSetting(engineWith(0, 7, 0), 'coinPic', COIN_LINE)
+    for (const codes of [fullGame(), [engine, birdWith('сова'), STEP_FLAP, COIN_PIPES, COIN_HIT], FINISHED_CODES]) {
       const sim = boot(codes)
       sim.peek('pipes = [{ x: 200, top: 120, passed: false, coin: true }]')
       sim.tick()
-      const emoji = sim.drawn.flatMap((t, i) => (/\p{Extended_Pictographic}/u.test(t) ? [sim.textFills[i]] : []))
-      expect(emoji.length).toBeGreaterThan(0)
-      for (const fill of emoji) expect(fill).not.toMatch(/rgba/)
+      // картинки — то, что нарисовано не текстом: имена из набора
+      const pics = sim.drawn.flatMap((t, i) => (isPicture(t) ? [sim.textFills[i]] : []))
+      expect(pics.length).toBeGreaterThan(0)
+      for (const fill of pics) expect(fill).not.toMatch(/rgba/)
     }
   })
 
@@ -208,10 +210,10 @@ describe('Птичка: игра', () => {
   })
 
   it('до пробела птица висит, даже с гравитацией', () => {
-    const sim = boot([engineWith(), birdWith('🦉'), ...TUTORIAL_CODES.slice(2)])
+    const sim = boot([engineWith(), birdWith('сова'), ...TUTORIAL_CODES.slice(2)])
     sim.tick(30)
     expect(sim.peek('birdY')).toBe(220)
-    expect(sim.drawn).toContain('🦉')
+    expect(sim.drawn).toContain('сова')
   })
 
   it('гравитация прибавляется к скорости, скорость — к высоте; внизу экрана птица останавливается', () => {
@@ -309,22 +311,22 @@ describe('Птичка: игра', () => {
 
 describe('Птичка: монетки, скорость и готовая версия', () => {
   it('монетка в дырке даёт 5 очков, один раз', () => {
-    const engine = withSetting(engineWith(0, 7, 0), 'coinEmoji', COIN_LINE)
+    const engine = withSetting(engineWith(0, 7, 0), 'coinPic', COIN_LINE)
     const sim = boot([engine, STEP_BIRD, STEP_FLAP, COIN_PIPES, COIN_HIT])
     sim.key(' ', true)
     sim.peek('speedY = 0; pipes = [{ x: 75, top: 150, passed: false, coin: true }]; birdY = 150 + pipeGap / 2 + 12')
     sim.tick()
     expect(sim.peek('score')).toBe(5)
-    expect(sim.drawn).not.toContain('🪙')
+    expect(sim.drawn).not.toContain('монетка')
     sim.tick()
     expect(sim.peek('score')).toBe(5)
     sim.peek('pipes = [{ x: 200, top: 150, passed: false, coin: true }]')
     sim.tick()
-    expect(sim.drawn).toContain('🪙')
+    expect(sim.drawn).toContain('монетка')
   })
 
   it('каждые 10 секунд трубы едут быстрее, до maxSpeed', () => {
-    let engine = withSetting(engineWith(0, 7, 2), 'coinEmoji', COIN_LINE)
+    let engine = withSetting(engineWith(0, 7, 2), 'coinPic', COIN_LINE)
     engine = withSetting(engine, 'maxSpeed', MAX_SPEED_LINE)
     const sim = boot([engine, STEP_BIRD, STEP_FLAP, FAST_PIPES, COIN_HIT])
     sim.key(' ', true)
@@ -340,11 +342,11 @@ describe('Птичка: монетки, скорость и готовая ве�
   it('готовая версия: всё настроено, птица летает, есть монетки и ускорение', () => {
     const sim = boot(FINISHED_CODES)
     sim.tick()
-    expect(sim.drawn).toContain('🐦')
+    expect(sim.drawn).toContain('птичка')
     sim.key(' ', true)
     expect(sim.peek('speedY')).toBe(-7)
     expect(sim.peek('pipeSpeed')).toBe(2)
-    expect(sim.peek('coinEmoji')).toBe('🪙')
+    expect(sim.peek('coinPic')).toBe('монетка')
     expect(sim.peek('maxSpeed')).toBe(5)
     expect(sim.peek('typeof speedUp')).toBe('function')
   })

@@ -1,9 +1,11 @@
+import { DRAW_PIC } from '../engine.ts'
 import type { LessonVariant, TabDef } from '../types.ts'
 
 // Птичка (как Flappy Bird). Новое по сравнению с «Корзинкой» — скорость, а не только позиция:
 // гравитация каждый кадр прибавляется к скорости speedY, а скорость — к высоте birdY.
 // Гравитация, сила взмаха и скорость труб в учебном движке — 0: их ученик ставит сам в квестах.
-// Строк coinEmoji и maxSpeed нет: их ученик добавляет в дополнительных заданиях.
+// Строк coinPic и maxSpeed нет: их ученик добавляет в дополнительных заданиях. Птицу и монетки рисует
+// готовая функция drawPic — картинками из набора TimeBox.
 // Красивую трубу (шапка, блик, тень) рисует готовая функция движка drawPipe цветом pipeColor —
 // цвет ученик выбирает сам в квесте «Цвет труб».
 export const PIPE_COLOR = '#5ec639'
@@ -46,12 +48,14 @@ function movePipes() {}
 function drawPipes() {}
 function checkHit()  {}
 
+${DRAW_PIC}
+
 // ===== ТРУБА =====
 // Рисует трубу цветом pipeColor от y = from до y = to.
 // Шапка — с того конца, который смотрит на дырку.
 function drawPipe(x, from, to) {
   // save и restore: после трубы кисточка станет как была,
-  // иначе полупрозрачная тень зальёт и смайлики
+  // а не полупрозрачной, как у тени
   ctx.save();
   var capY = from <= 0 ? to - 24 : from;
   pipePart(x, from, 52, to - from);
@@ -101,21 +105,20 @@ function loop() {
 }
 loop();`
 
-export const COIN_LINE = 'var coinEmoji = "🪙";'
+export const COIN_LINE = 'var coinPic = "монетка";'
 export const MAX_SPEED_LINE = 'var maxSpeed  = 5;'
 
 // ===== Код шагов гайда — базовая версия: без монеток, скорость труб постоянная =====
 // Каждый шаг собирается кнопками по кусочкам (tasks.ts) и в итоге совпадает с этим кодом.
 
 /** Смайлик птицы, с которого начинают. Квест «Выбери птицу» — поменять его на свой. */
-export const BIRD_EMOJI = '🐤'
+export const BIRD_PIC = 'цыплёнок'
 
-export const STEP_BIRD = `// птица — любой смайлик
-var birdEmoji = "${BIRD_EMOJI}";
+export const STEP_BIRD = `// птица — любая картинка
+var birdPic = "${BIRD_PIC}";
 
 function drawBird() {
-  ctx.font = "34px serif";
-  ctx.fillText(birdEmoji, birdX, birdY);
+  drawPic(birdPic, birdX, birdY);
 }
 
 function moveBird() {
@@ -205,8 +208,7 @@ const COIN_DRAW = `
 
     // монетка — посередине дырки
     if (p.coin) {
-      ctx.font = "34px serif";
-      ctx.fillText(coinEmoji, p.x + 9, p.top + pipeGap / 2 + 12);
+      drawPic(coinPic, p.x + 9, p.top + pipeGap / 2 + 12);
     }`
 
 export const COIN_PIPES = `${MOVE_PIPES(COIN_PUSH)}
@@ -241,7 +243,7 @@ const FINISHED_ENGINE = TUTORIAL_ENGINE.replace('var gravity   = 0;', 'var gravi
   .replace('var pipeSpeed = 0;', 'var pipeSpeed = 2;')
   .replace('// ===== НАСТРОЙКИ =====', `// ===== НАСТРОЙКИ =====\n${COIN_LINE}\n${MAX_SPEED_LINE}`)
 
-const FINISHED_BIRD = STEP_BIRD.replace(`"${BIRD_EMOJI}"`, '"🐦"')
+const FINISHED_BIRD = STEP_BIRD.replace(`"${BIRD_PIC}"`, '"птичка"')
 
 // ===== Вкладки =====
 
@@ -258,7 +260,7 @@ export const TUTORIAL_TABS: TabDef[] = [
     id: 'bird',
     title: 'Птица',
     step: 1,
-    note: 'Шаг 1: птица — смайлик. Гравитация разгоняет её вниз.',
+    note: 'Шаг 1: птица — картинка. Гравитация разгоняет её вниз.',
   },
   { id: 'flap', title: 'Взмах', step: 2, note: 'Шаг 2: пробел — взмах, птица подлетает вверх.' },
   { id: 'pipes', title: 'Трубы', step: 3, note: 'Шаг 3: трубы с дыркой едут навстречу птице.' },
@@ -267,15 +269,15 @@ export const TUTORIAL_TABS: TabDef[] = [
 
 export const TUTORIAL_CODES: string[] = [
   TUTORIAL_ENGINE,
-  placeholder(1, 'Здесь будет твоя птица: смайлик, drawBird и moveBird.'),
+  placeholder(1, 'Здесь будет твоя птица: картинка, drawBird и moveBird.'),
   placeholder(2, 'Здесь будет функция flap — взмах.'),
   placeholder(3, 'Здесь будут функции movePipes и drawPipes.'),
   placeholder(4, 'Здесь будет функция checkHit.'),
 ]
 
 export const FINISHED_TABS: TabDef[] = [
-  { id: 'engine', title: 'Движок', note: 'Настройки, состояние игры и главный цикл. Числа и смайлики можно менять.' },
-  { id: 'bird', title: 'Птица', note: 'Птица: смайлик, отрисовка и полёт с гравитацией.' },
+  { id: 'engine', title: 'Движок', note: 'Настройки, состояние игры и главный цикл. Числа и картинки можно менять.' },
+  { id: 'bird', title: 'Птица', note: 'Птица: картинка, отрисовка и полёт с гравитацией.' },
   { id: 'flap', title: 'Взмах', note: 'Пробел, стрелка вверх или клик — взмах.' },
   { id: 'pipes', title: 'Трубы', note: 'Трубы с дыркой и монетками. Каждые 10 секунд едут быстрее.' },
   { id: 'hit', title: 'Удар', note: 'Земля и трубы — конец игры. Труба — 1 очко, монетка — 5.' },
@@ -285,7 +287,8 @@ export const FINISHED_CODES: string[] = [FINISHED_ENGINE, FINISHED_BIRD, STEP_FL
 
 export const TUTORIAL: LessonVariant = {
   id: 'tutorial',
-  storageKey: 'bird-sandbox-v1',
+  // v2: игры рисуют картинками, а не смайликами — старый код с fillText квесты бы не засчитали
+  storageKey: 'bird-sandbox-v2',
   tabs: TUTORIAL_TABS,
   initial: TUTORIAL_CODES,
   hasGuide: true,
@@ -293,17 +296,17 @@ export const TUTORIAL: LessonVariant = {
 
 export const FINISHED: LessonVariant = {
   id: 'finished',
-  // v2: в v1 сохранялся движок с землёй и с drawPipe, которая затемняла смайлики, — готовая версия
+  // v3: v1 — с землёй и тёмными смайликами, v2 — со смайликами; готовая версия
   // своего кода ученика не хранит, поэтому её просто начинаем заново
-  storageKey: 'bird-sandbox-finished-v2',
+  storageKey: 'bird-sandbox-finished-v3',
   tabs: FINISHED_TABS,
   initial: FINISHED_CODES,
   hasGuide: false,
   features: [
     'Пробел, стрелка вверх или клик по экрану — взмах.',
     'Пролетел трубу — 1 очко. Врезался в трубу или ударился о низ экрана — конец игры.',
-    '🪙 Монетка в дырке — плюс 5 очков.',
+    'Монетка в дырке — плюс 5 очков.',
     'Каждые 10 секунд трубы едут быстрее, но не быстрее maxSpeed.',
-    'Гравитацию, силу взмаха, ширину дырки, цвет труб и смайлики можно менять в «Движке» и «Птице».',
+    'Гравитацию, силу взмаха, ширину дырки, цвет труб и картинки можно менять в «Движке» и «Птице».',
   ],
 }

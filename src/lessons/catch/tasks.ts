@@ -1,50 +1,50 @@
 import {
   after,
   append,
-  createEmojiQuest,
+  createPicQuest,
   decl,
-  drawEmojiQuest,
+  drawPicQuest,
   has,
   into,
   numberQuest,
-  pickEmojiQuest,
+  pickPicQuest,
   runQuest,
   shell,
 } from '../kit.ts'
 import type { BuildTask, EditTask } from '../types.ts'
-import { HERO_EMOJI } from './tabs.ts'
+import { HERO_PIC } from './tabs.ts'
 
 // Квесты шагов «Корзинки». Код шага собирается кнопками «Добавить» по кусочкам и в итоге совпадает с STEP_* из tabs.ts.
 // Помощники (куда вставить кусок, как проверить) — общие для всех игр, в lessons/kit.ts.
 
-// ===== Шаг 1. Герой: создать смайлик → выбрать → нарисовать → собрать → движение → скорость =====
+// ===== Шаг 1. Герой: создать картинку → выбрать → нарисовать → собрать → движение → скорость =====
 
-export const HERO_CREATE_TASK = createEmojiQuest({
+export const HERO_CREATE_TASK = createPicQuest({
   title: 'Создай героя',
-  text: 'Герой — это смайлик. Открой «Герой»: там всплывёт строчка с ним — жми «Добавить».',
+  text: 'Герой — это картинка. Открой «Герой»: там всплывёт строчка с ней — жми «Добавить».',
   tab: 1,
-  name: 'playerEmoji',
-  emoji: HERO_EMOJI,
-  piece: 'Смайлик героя',
-  comment: 'герой — любой смайлик',
-  doneText: 'Герой создан! Теперь нажми «Сменить» рядом со смайликом и выбери, кем он будет.',
+  name: 'playerPic',
+  pic: HERO_PIC,
+  piece: 'Картинка героя',
+  comment: 'герой — любая картинка',
+  doneText: 'Герой создан! Теперь нажми «Сменить» рядом с картинкой и выбери, кем он будет.',
 })
 
-export const HERO_PICK_TASK = pickEmojiQuest({
+export const HERO_PICK_TASK = pickPicQuest({
   title: 'Выбери героя',
-  text: `Нажми «Сменить» рядом со смайликом ${HERO_EMOJI} и выбери своего героя — например, 🐱 или 🛸.`,
+  text: `Сейчас герой — ${HERO_PIC}. Нажми «Сменить» рядом с картинкой и выбери своего — например, кота или робота.`,
   tab: 1,
-  name: 'playerEmoji',
-  emoji: HERO_EMOJI,
-  hint: `Это строка \`var playerEmoji = "${HERO_EMOJI}";\` во вкладке «Герой». Кнопка «Сменить» — прямо рядом с ней. Можно и напечатать смайлик между кавычками самому.`,
+  name: 'playerPic',
+  pic: HERO_PIC,
+  hint: `Это строка \`var playerPic = "${HERO_PIC}";\` во вкладке «Герой». Кнопка «Сменить» — прямо рядом с ней. Можно и напечатать имя картинки между кавычками самому: "кот", "лиса", "робот".`,
 })
 
-export const HERO_DRAW_TASK = drawEmojiQuest({
+export const HERO_DRAW_TASK = drawPicQuest({
   title: 'Нарисуй героя',
   text: 'Движок 60 раз в секунду зовёт `drawPlayer()`. Собери её по кусочкам — кнопки «Добавить» всплывут в «Герое».',
   tab: 1,
   fn: 'drawPlayer',
-  emoji: 'playerEmoji',
+  pic: 'playerPic',
   x: 'playerX',
   y: 'playerY',
   doneText: 'Все кусочки героя на месте!',
@@ -140,17 +140,13 @@ export const ITEMS_DRAW_TASK: BuildTask = {
   pieces: [
     shell('drawItems'),
     {
-      title: 'Размер смайлика',
-      plan: into('drawItems', '  ctx.font = "34px serif";'),
-      isDone: (code) => has(code, /\bctx\.font\s*=/),
-    },
-    {
       title: 'Нарисовать каждое яблоко',
       plan: into(
         'drawItems',
-        '\n  for (var i = 0; i < items.length; i++) {\n    ctx.fillText(itemEmoji, items[i].x, items[i].y);\n  }',
+        '  for (var i = 0; i < items.length; i++) {\n    drawPic(itemPic, items[i].x, items[i].y);\n  }',
       ),
-      isDone: (code) => has(code, /\bctx\.fillText\s*\(/),
+      // любой вызов drawPic: в коде бомбы и звезды рисуется drawPic(pic, …)
+      isDone: (code) => has(code, /\bdrawPic\s*\(/),
     },
   ],
   doneText:
@@ -200,13 +196,13 @@ export const SPEEDUP_TASK: BuildTask = {
   doneText: 'Функция собрана! Через 15 секунд после запуска яблоки полетят быстрее.',
 }
 
-export const ITEM_TASK = pickEmojiQuest({
+export const ITEM_TASK = pickPicQuest({
   title: 'Не только яблоки',
-  text: 'Зайди в «Движок» и нажми «Сменить» рядом с 🍎 — пусть падает что-нибудь другое, например 🍩 или 🐟.',
+  text: 'Зайди в «Движок» и нажми «Сменить» рядом с яблоком — пусть падает что-нибудь другое, например пончик или рыба.',
   tab: 0,
-  name: 'itemEmoji',
-  emoji: '🍎',
-  hint: 'Это строка `var itemEmoji   = "🍎";` в самом начале «Движка». Кнопка «Сменить» — прямо рядом с ней.',
+  name: 'itemPic',
+  pic: 'яблоко',
+  hint: 'Это строка `var itemPic     = "яблоко";` в самом начале «Движка». Кнопка «Сменить» — прямо рядом с ней.',
 })
 
 // ===== Шаг 3. Поимка: собрать checkCatch → десять очков =====

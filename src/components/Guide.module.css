@@ -431,7 +431,7 @@
   align-items: center;
 }
 
-.emoji {
+.badge {
   display: grid;
   place-items: center;
   flex-shrink: 0;
@@ -440,7 +440,7 @@
   border-radius: 16px;
   background: var(--keycap);
   color: var(--ink-2);
-  font-size: 30px;
+  font-size: 36px;
   box-shadow: 0 3px 0 var(--keycap-edge);
 }
 

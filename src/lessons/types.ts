@@ -61,8 +61,8 @@ export interface EditTask {
   target: RegExp
   hint: Rich[]
   isDone: (code: string) => boolean
-  /** Меняется смайлик или цвет: кнопка в гайде сразу открывает окно выбора. */
-  picker?: 'emoji' | 'color'
+  /** Меняется рисунок или цвет: кнопка в гайде сразу открывает окно выбора. */
+  picker?: 'pic' | 'color'
 }
 
 /** Кусок функции, который добавляется кнопкой. */
@@ -102,7 +102,8 @@ export type StepTask = EditTask | BuildTask | RunTask
 
 export interface GuideExtra {
   n: number
-  emoji: string
+  /** Картинка задания из набора TimeBox (на значке в гайде). */
+  pic: string
   title: string
   text: Rich
   /** Одна строка в «Движок». */
@@ -154,10 +155,10 @@ export interface Lesson {
     level: string
     levelBars: number
     blurb: string
-    /** Смайлики на экране карточки, если ученик ещё не выбрал своих. */
+    /** Картинки на экране карточки, если ученик ещё не выбрал своих. */
     hero: string
     item?: string
-    /** Переменные со смайликами ученика: если он их поменял, карточка показывает его героя. */
+    /** Переменные с картинками ученика: если он их поменял, карточка показывает его героя. */
     heroVar: string
     itemVar?: string
     /** Что показывает экран карточки: падающие предметы, полёт между трубами или бой в космосе. */

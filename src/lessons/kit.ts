@@ -43,14 +43,14 @@ export const shell = (name: string): BuildPiece => ({
   isDone: (code) => has(code, decl(name)),
 })
 
-/** Строка `var name = "…"` — что между кавычками: смайлик или цвет (`var pipeColor = "#5ec639"`). */
-export const emojiOf = (name: string, code: string): string | null => {
+/** Строка `var name = "…"` — что между кавычками: рисунок (`var shipPic = "ракета"`) или цвет (`"#5ec639"`). */
+export const quoted = (name: string, code: string): string | null => {
   const m = new RegExp(`^\\s*var\\s+${name}\\s*=\\s*(["'])(.*?)\\1`, 'm').exec(stripComments(code))
   return m ? m[2].trim() : null
 }
 
 /** Что выделить в строке `var name = "…"`: то, что между кавычками. */
-export const emojiTarget = (name: string) => new RegExp(`var\\s+${name}\\s*=\\s*["'](?<emoji>[^"']*)["']`, 'd')
+export const quotedTarget = (name: string) => new RegExp(`var\\s+${name}\\s*=\\s*["'](?<value>[^"']*)["']`, 'd')
 
 /** Число в строке `var name = …;`: засчитано, когда оно больше 0. */
 export const numberAbove0 = (name: string) => (code: string) => {
@@ -74,15 +74,15 @@ export function editTarget(code: string, target: RegExp): { line: number; from: 
 
 // ===== Готовые квесты: одинаковые во всех играх, отличаются только именами и текстами =====
 
-/** «Создай героя»: строка `var name = "смайлик";` в конец вкладки. */
-export function createEmojiQuest(o: {
+/** «Создай героя»: строка `var name = "рисунок";` в конец вкладки. */
+export function createPicQuest(o: {
   title: string
   text: Rich
   tab: number
-  /** Имя переменной и смайлик, с которого начинают. */
+  /** Имя переменной и рисунок, с которого начинают. */
   name: string
-  emoji: string
-  /** Подпись куска («Смайлик героя») и комментарий над строкой («герой — любой смайлик»). */
+  pic: string
+  /** Подпись куска («Картинка героя») и комментарий над строкой («герой — любая картинка»). */
   piece: string
   comment: string
   doneText: string
@@ -96,7 +96,7 @@ export function createEmojiQuest(o: {
     pieces: [
       {
         title: o.piece,
-        plan: append(`// ${o.comment}\nvar ${o.name} = "${o.emoji}";`),
+        plan: append(`// ${o.comment}\nvar ${o.name} = "${o.pic}";`),
         isDone: (code) => has(code, declared),
       },
     ],
@@ -104,19 +104,19 @@ export function createEmojiQuest(o: {
   }
 }
 
-/** «Нарисуй героя»: пустая функция → размер смайлика → `ctx.fillText(смайлик, x, y)`. */
-export function drawEmojiQuest(o: {
+/** «Нарисуй героя»: пустая функция → `drawPic(рисунок, x, y)` — готовая функция движка. */
+export function drawPicQuest(o: {
   title: string
   text: Rich
   tab: number
   fn: string
-  /** Переменная со смайликом и координаты: `ctx.fillText(emoji, x, y)`. */
-  emoji: string
+  /** Переменная с рисунком и координаты: `drawPic(pic, x, y)`. */
+  pic: string
   x: string
   y: string
   doneText: string
 }): BuildTask {
-  const drawn = new RegExp(`\\bctx\\.fillText\\s*\\(\\s*${o.emoji}\\s*,\\s*${o.x}\\s*,\\s*${o.y}\\s*\\)`)
+  const drawn = new RegExp(`\\bdrawPic\\s*\\(\\s*${o.pic}\\s*,\\s*${o.x}\\s*,\\s*${o.y}\\s*\\)`)
   return {
     kind: 'build',
     title: o.title,
@@ -125,13 +125,8 @@ export function drawEmojiQuest(o: {
     pieces: [
       shell(o.fn),
       {
-        title: 'Размер смайлика',
-        plan: into(o.fn, '  ctx.font = "34px serif";'),
-        isDone: (code) => has(code, /\bctx\.font\s*=/),
-      },
-      {
-        title: `Нарисовать смайлик в точке ${o.x}, ${o.y}`,
-        plan: into(o.fn, `  ctx.fillText(${o.emoji}, ${o.x}, ${o.y});`),
+        title: `Нарисовать картинку в точке ${o.x}, ${o.y}`,
+        plan: into(o.fn, `  drawPic(${o.pic}, ${o.x}, ${o.y});`),
         isDone: (code) => has(code, drawn),
       },
     ],
@@ -160,14 +155,14 @@ export function runQuest(o: {
   }
 }
 
-/** «Выбери героя»: кнопка открывает окно смайликов; засчитан любой смайлик, кроме исходного. */
-export function pickEmojiQuest(o: {
+/** «Выбери героя»: кнопка открывает окно рисунков; засчитан любой рисунок, кроме исходного. */
+export function pickPicQuest(o: {
   title: string
   text: Rich
   tab: number
   name: string
-  /** Смайлик, с которого начинают: он не засчитывается. */
-  emoji: string
+  /** Рисунок, с которого начинают: он не засчитывается. */
+  pic: string
   hint: Rich
 }): EditTask {
   return {
@@ -175,12 +170,12 @@ export function pickEmojiQuest(o: {
     title: o.title,
     text: o.text,
     tab: o.tab,
-    target: emojiTarget(o.name),
-    picker: 'emoji',
+    target: quotedTarget(o.name),
+    picker: 'pic',
     hint: [o.hint],
     isDone(code) {
-      const emoji = emojiOf(o.name, code)
-      return !!emoji && emoji !== o.emoji
+      const pic = quoted(o.name, code)
+      return !!pic && pic !== o.pic
     },
   }
 }
@@ -199,11 +194,11 @@ export function pickColorQuest(o: {
     title: o.title,
     text: o.text,
     tab: o.tab,
-    target: emojiTarget(o.name),
+    target: quotedTarget(o.name),
     picker: 'color',
     hint: [o.hint],
     isDone(code) {
-      const color = emojiOf(o.name, code)
+      const color = quoted(o.name, code)
       return !!color && color.toLowerCase() !== o.color.toLowerCase()
     },
   }

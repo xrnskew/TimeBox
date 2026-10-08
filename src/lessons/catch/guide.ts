@@ -42,10 +42,10 @@ export const GUIDE_STEPS: GuideStep[] = [
     step: 1,
     tab: 1,
     title: 'Герой',
-    lead: 'Создай героя-смайлик, нарисуй его и научи ездить стрелками.',
+    lead: 'Создай героя-картинку, нарисуй его и научи ездить стрелками.',
     how: [
       'Движок 60 раз в секунду вызывает `drawPlayer()` и `movePlayer()`.',
-      '`ctx.fillText` рисует смайлик в точке `playerX`, `playerY`. Да, герой — это просто буква на холсте.',
+      'Готовая функция движка `drawPic` рисует картинку в точке `playerX`, `playerY`: низ картинки — на высоте `playerY`.',
       'Зажата `ArrowLeft` — уменьшаем `playerX`, `ArrowRight` — увеличиваем на `playerSpeed`.',
     ],
     code: STEP_HERO,
@@ -88,23 +88,23 @@ export const GUIDE_STEPS: GuideStep[] = [
 export const GUIDE_EXTRAS: GuideExtra[] = [
   {
     n: 4,
-    emoji: '💣',
+    pic: 'бомба',
     title: 'Бомба',
     text: 'Поймал бомбу — минус жизнь. Упустить не страшно.',
-    setting: { tab: 0, name: 'bombEmoji', line: BOMB_LINE },
+    setting: { tab: 0, name: 'bombPic', line: BOMB_LINE },
     codes: [
-      { tab: 2, code: BOMB_APPLES, marks: [/\bfunction\s+makeItem\b/, /\bbombEmoji\b/] },
+      { tab: 2, code: BOMB_APPLES, marks: [/\bfunction\s+makeItem\b/, /\bbombPic\b/] },
       { tab: 3, code: BOMB_CATCH, marks: [/["']bomb["']/] },
     ],
   },
   {
     n: 5,
-    emoji: '🌟',
+    pic: 'звезда',
     title: 'Звезда',
     text: 'Поймал звезду — плюс жизнь. Откроется после бомбы.',
-    setting: { tab: 0, name: 'goldEmoji', line: GOLD_LINE },
+    setting: { tab: 0, name: 'goldPic', line: GOLD_LINE },
     codes: [
-      { tab: 2, code: GOLD_APPLES, marks: [/\bgoldEmoji\b/, /["']gold["']/] },
+      { tab: 2, code: GOLD_APPLES, marks: [/\bgoldPic\b/, /["']gold["']/] },
       { tab: 3, code: GOLD_CATCH, marks: [/["']gold["']/] },
     ],
   },

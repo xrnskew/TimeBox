@@ -9,6 +9,7 @@ export interface Sim {
   /** Один кадр главного цикла. */
   tick(times?: number): void
   key(key: string, down: boolean): void
+  /** Всё, что нарисовано за последний кадр: текст из fillText и имена картинок из drawImage(picture(…)). */
   drawn: string[]
   /** Цвет каждого fillRect за последний кадр. */
   fills: string[]
@@ -44,6 +45,11 @@ export function boot(codes: string[]): Sim {
       textFills.push(ctx.fillStyle)
       textAlphas.push(ctx.globalAlpha)
     },
+    drawImage(img: { pic: string }) {
+      drawn.push(img.pic)
+      textFills.push(ctx.fillStyle)
+      textAlphas.push(ctx.globalAlpha)
+    },
     save() {
       saved.push({ fillStyle: ctx.fillStyle, globalAlpha: ctx.globalAlpha })
     },
@@ -58,11 +64,14 @@ export function boot(codes: string[]): Sim {
     return 1
   }
   const body = `${codes.join('\n')}\nreturn function (expr) { return eval(expr); };`
-  const peek = new Function('document', 'canvas', 'ctx', 'requestAnimationFrame', body)(
+  // картинка из набора — как в обвязке; здесь только её имя
+  const picture = (name: string) => ({ pic: String(name) })
+  const peek = new Function('document', 'canvas', 'ctx', 'requestAnimationFrame', 'picture', body)(
     document,
     canvas,
     ctx,
     requestAnimationFrame,
+    picture,
   )
   return {
     peek,

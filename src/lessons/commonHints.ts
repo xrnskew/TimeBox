@@ -8,6 +8,18 @@ const COMMON_GLOBALS: Hint[] = [
   { name: 'canvas', kind: 'variable', text: 'Сам холст игры, 380 × 470 пикселей.' },
   { name: 'loop', kind: 'function', detail: '()', text: 'Главный цикл движка. Перерисовывает поле 60 раз в секунду.' },
   {
+    name: 'drawPic',
+    kind: 'function',
+    detail: '(name, x, y)',
+    text: 'Движок: рисует картинку 34 × 34 по имени, например drawPic("кот", x, y). Низ картинки — на высоте y.',
+  },
+  {
+    name: 'picture',
+    kind: 'function',
+    detail: '(name)',
+    text: 'Картинка из набора TimeBox по имени: "ракета", "кот", "яблоко"… Неизвестное имя — знак вопроса.',
+  },
+  {
     name: 'requestAnimationFrame',
     kind: 'function',
     detail: '(f)',

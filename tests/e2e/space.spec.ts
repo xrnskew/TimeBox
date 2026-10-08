@@ -54,11 +54,11 @@ test('Космос: вся игра по квестам — луч, переза
   // шаг 1: корабль
   await openQuest(page, 1, 'Открыть «Корабль»')
   await addPieces(page, 1)
-  await page.locator('.cm-emojiPick').first().click()
-  await pick(page, '🛸')
-  await addPieces(page, 3)
+  await page.locator('.cm-pick').first().click()
+  await pick(page, 'тарелка')
+  await addPieces(page, 2)
   await run(page)
-  expect(await game(page, 'shipEmoji')).toBe('🛸')
+  expect(await game(page, 'shipPic')).toBe('тарелка')
   await openQuest(page, 1, 'Открыть «Корабль»', 'Научи корабль летать')
   await addPieces(page, 4)
   await openQuest(page, 1, 'Открыть «Движок»', 'Скорость корабля')
@@ -95,15 +95,15 @@ test('Космос: вся игра по квестам — луч, переза
 
   // шаг 3: пришельцы — волна, отрисовка, скорость, зигзаг, свой пришелец
   await openQuest(page, 3, 'Открыть «Пришельцы»')
-  await addPieces(page, 4 + 3)
+  await addPieces(page, 4 + 2)
   await openQuest(page, 3, 'Открыть «Движок»', 'Скорость пришельцев')
   await page.keyboard.type('1')
   await openQuest(page, 3, 'Открыть «Пришельцы»', 'Зигзаг')
   await addPieces(page, 1)
-  await openQuest(page, 3, 'Выбрать смайлик в «Движок»')
-  await pick(page, '👽')
+  await openQuest(page, 3, 'Выбрать картинку в «Движок»')
+  await pick(page, 'осьминог')
   await run(page)
-  expect(await game(page, '[wave, enemies.length, enemyEmoji, bulletColor]')).toEqual([1, 5, '👽', '#ec407a'])
+  expect(await game(page, '[wave, enemies.length, enemyPic, bulletColor]')).toEqual([1, 5, 'осьминог', '#ec407a'])
   // у каждого своя скорость вбок: через полсекунды пришелец уже сдвинулся
   const x0 = await game<number>(page, 'enemies[0].x')
   await page.waitForTimeout(500)
@@ -154,7 +154,7 @@ test('Космос: вся игра по квестам — луч, переза
   await waves.getByRole('button', { name: 'Вставить код в «Пришельцы»' }).click()
   await expect(progress(page)).toContainText('6/6')
   await run(page)
-  expect(await game(page, '[boomEmoji, maxSpeed, enemyEmoji]')).toEqual(['💥', 2, '👽'])
+  expect(await game(page, '[boomPic, maxSpeed, enemyPic]')).toEqual(['взрыв', 2, 'осьминог'])
   // сбил — взрыв (второй пришелец остаётся: иначе движок сам запустит новую волну); следующая — больше и быстрее
   expect(
     await game(
@@ -173,7 +173,7 @@ test('Космос: готовая версия под паролем', async ({
   await waitGame(page)
   await expect(page).toHaveTitle('TimeBox — готовая игра Космос')
   await expect(page.getByRole('heading', { name: 'Что тут есть' })).toBeVisible()
-  expect(await game(page, '[shipSpeed, bulletSpeed, reloadTime, enemySpeed, boomEmoji]')).toEqual([6, 9, 12, 1, '💥'])
+  expect(await game(page, '[shipSpeed, bulletSpeed, reloadTime, enemySpeed, boomPic]')).toEqual([6, 9, 12, 1, 'взрыв'])
   const held = await shotsOverFrames(page, 40)
   expect(held.shots).toBeGreaterThanOrEqual(1)
   expect(held.shots).toBeLessThanOrEqual(Math.ceil(held.frames / 13) + 1)

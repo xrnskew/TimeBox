@@ -1,20 +1,13 @@
 import { useEffect, useLayoutEffect, useRef, useState } from 'react'
 import { useApp, useController } from '@/app/context.ts'
 import type { Picker } from '@/app/controller.ts'
+import { pictureUrl } from '@/app/pictureUrl.ts'
+import { PICTURE_GROUPS } from '@/core/pictures.ts'
 import { CloseIcon } from './icons.tsx'
-import styles from './EmojiPicker.module.css'
+import styles from './PickWindow.module.css'
 
-// Окно выбора смайлика или цвета у кнопки «Сменить» в коде. Системное меню эмодзи новичок не найдёт,
-// а код цвета вроде #5ec639 не придумает — здесь клик, и значение само встаёт между кавычками.
-
-const GROUPS: { title: string; list: string }[] = [
-  { title: 'Звери и герои', list: '🐱 🐶 🦊 🐸 🐼 🐵 🐧 🐰 🐻 🐯 🦁 🐷 🦄 🐲 🦖 🐙 🤖 👽 👻 😎 🥷 🧙 🦸 🤠' },
-  { title: 'Летают', list: '🐤 🐦 🦉 🦅 🦆 🐝 🦋 🦇 🐉 🎈 🪁' },
-  { title: 'Космос', list: '🚀 🛸 👾 🛰️ ☄️ 🪐 🌠 🌙 💥' },
-  { title: 'Транспорт', list: '🚗 🚲 🛹 ⛵ 🚁 🛶' },
-  { title: 'Еда', list: '🍎 🍐 🍊 🍋 🍌 🍉 🍇 🍓 🍒 🥕 🍩 🍪 🍕 🍔 🧁 🍬 🍭 🐟' },
-  { title: 'Вещи', list: '🧺 🪣 🎩 ⚽ 🏀 🎁 💎 🪙 💰 ⭐ 🌟 💣 ❤️ 🔥 ⚡ ❄️' },
-]
+// Окно выбора рисунка или цвета у кнопки «Сменить» в коде. Имя рисунка или код цвета вроде #5ec639 новичок
+// не придумает — здесь он выбирает глазами, и значение само встаёт между кавычками.
 
 /** Палитра для переменных …Color: значение — код цвета, подпись — для экранного диктора и подсказки. */
 const COLORS: { title: string; list: [string, string][] }[] = [
@@ -45,7 +38,7 @@ const WIDTH = 344
 const GAP = 8
 const EDGE = 12
 
-export function EmojiPicker() {
+export function PickWindow() {
   const picker = useApp((s) => s.picker)
   // key — новое окно на каждое открытие: своя позиция и свой фокус
   return picker ? <PickerBody key={`${picker.tab}:${picker.from}`} picker={picker} /> : null
@@ -79,8 +72,11 @@ function PickerBody({ picker }: { picker: Picker }) {
         c.closePicker()
       }
     }
-    // прокрутили код или страницу — кнопка уехала, окно закрываем
+    // прокрутили код или страницу — кнопка уехала, окно закрываем. Кроме первых мгновений: на узком экране
+    // кнопка «Сменить» бывает видна наполовину, и нажатие сначала докручивает её — это не уход от окна
+    const openedAt = performance.now()
     const onScroll = (e: Event) => {
+      if (performance.now() - openedAt < 400) return
       if (!box.current?.contains(e.target as Node)) c.closePicker(false)
     }
     document.addEventListener('pointerdown', onDown, true)
@@ -97,7 +93,7 @@ function PickerBody({ picker }: { picker: Picker }) {
 
   const current = picker.was.trim().toLowerCase()
   const color = picker.kind === 'color'
-  const heading = color ? 'Выбери цвет' : 'Выбери смайлик'
+  const heading = color ? 'Выбери цвет' : 'Выбери картинку'
 
   return (
     <div
@@ -133,27 +129,29 @@ function PickerBody({ picker }: { picker: Picker }) {
                     aria-label={name}
                     title={name}
                     aria-pressed={value === current}
-                    onClick={() => c.pickEmoji(value)}
+                    onClick={() => c.pick(value)}
                   />
                 ))}
               </div>
             </section>
           ))}
         {!color &&
-          GROUPS.map((g) => (
+          PICTURE_GROUPS.map((g) => (
             <section key={g.title} aria-label={g.title}>
               <h3>{g.title}</h3>
               <div className={styles.grid}>
-                {g.list.split(' ').map((e) => (
+                {g.names.map((name) => (
                   <button
-                    key={e}
+                    key={name}
                     type="button"
-                    className={styles.emoji}
-                    data-value={e}
-                    aria-pressed={e === current}
-                    onClick={() => c.pickEmoji(e)}
+                    className={styles.pic}
+                    data-value={name}
+                    aria-label={name}
+                    title={name}
+                    aria-pressed={name === current}
+                    onClick={() => c.pick(name)}
                   >
-                    {e}
+                    <img src={pictureUrl(name)} alt="" width={34} height={34} />
                   </button>
                 ))}
               </div>

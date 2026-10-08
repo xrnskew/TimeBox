@@ -37,8 +37,9 @@ describe('синтаксис', () => {
   })
 
   it('незакрытая { функции в конце вкладки', () => {
+    // строка 8 — `function movePlayer() {`, у которой нет закрывающей }
     const issue = findSyntaxError(STEP_HERO.replace(/\}$/, ''))
-    expect(issue?.line).toBe(9)
+    expect(issue?.line).toBe(8)
     expect(issue?.message).toMatch(/открыта, но не закрыта/)
   })
 
@@ -171,21 +172,21 @@ describe('прогресс', () => {
 
 describe('строка настройки в «Движке»', () => {
   it('встаёт после последнего …Emoji', () => {
-    const plan = planSettingInsert(TUTORIAL_ENGINE, 'bombEmoji', BOMB_LINE)
+    const plan = planSettingInsert(TUTORIAL_ENGINE, 'bombPic', BOMB_LINE)
     expect(plan).toEqual({ kind: 'insert', after: 5, text: BOMB_LINE })
     const next = applySettingInsert(TUTORIAL_ENGINE, plan)
     expect(next.split('\n')[5]).toBe(BOMB_LINE)
-    expect(planSettingInsert(next, 'bombEmoji', BOMB_LINE)).toEqual({ kind: 'exists', line: 6 })
+    expect(planSettingInsert(next, 'bombPic', BOMB_LINE)).toEqual({ kind: 'exists', line: 6 })
   })
 
   it('без эмодзи — после заголовка настроек, без заголовка — в начало', () => {
-    expect(planSettingInsert('// ===== НАСТРОЙКИ =====\nvar a = 1;', 'bombEmoji', BOMB_LINE)).toMatchObject({
+    expect(planSettingInsert('// ===== НАСТРОЙКИ =====\nvar a = 1;', 'bombPic', BOMB_LINE)).toMatchObject({
       after: 1,
     })
-    expect(planSettingInsert('var a = 1;', 'bombEmoji', BOMB_LINE)).toMatchObject({ after: 0 })
+    expect(planSettingInsert('var a = 1;', 'bombPic', BOMB_LINE)).toMatchObject({ after: 0 })
   })
 
   it('закомментированная переменная не считается', () => {
-    expect(planSettingInsert(`// ${BOMB_LINE}\n`, 'bombEmoji', BOMB_LINE).kind).toBe('insert')
+    expect(planSettingInsert(`// ${BOMB_LINE}\n`, 'bombPic', BOMB_LINE).kind).toBe('insert')
   })
 })

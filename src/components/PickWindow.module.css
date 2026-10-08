@@ -1,4 +1,4 @@
-/* Окно выбора смайлика: тёмная карточка у кнопки «Сменить», смайлики — крупные клавиши. */
+/* Окно выбора рисунка или цвета: тёмная карточка у кнопки «Сменить», рисунки — крупные клавиши. */
 .picker {
   position: fixed;
   z-index: 30;
@@ -46,42 +46,44 @@
 
 .grid {
   display: grid;
-  grid-template-columns: repeat(auto-fill, minmax(38px, 1fr));
+  grid-template-columns: repeat(auto-fill, minmax(44px, 1fr));
   gap: 4px;
 }
 
-.emoji {
+.pic {
   display: grid;
   place-items: center;
-  height: 40px;
+  height: 44px;
   padding: 0;
   border: 1px solid transparent;
   border-radius: 10px;
   background: var(--keycap);
-  font-size: 22px;
-  line-height: 1;
   cursor: pointer;
   transition:
     background-color 0.1s,
     transform 0.08s;
 }
 
-.emoji:hover {
+.pic img {
+  image-rendering: pixelated;
+}
+
+.pic:hover {
   background: var(--keycap-hover);
   transform: scale(1.12);
 }
 
-.emoji:active {
+.pic:active {
   transform: scale(0.94);
 }
 
-.emoji:focus-visible {
+.pic:focus-visible {
   outline: 2px solid var(--sun);
   outline-offset: 1px;
 }
 
-/* смайлик, который стоит сейчас */
-.emoji[aria-pressed='true'] {
+/* рисунок, который стоит сейчас */
+.pic[aria-pressed='true'] {
   border-color: var(--sun);
   background: var(--sun-soft);
 }
@@ -137,7 +139,7 @@
     animation: none;
   }
 
-  .emoji:hover,
+  .pic:hover,
   .color:hover {
     transform: none;
   }

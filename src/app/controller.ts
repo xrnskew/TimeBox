@@ -5,7 +5,7 @@ import { checkFinishedPassword } from '@/core/lock.ts'
 import { hasContent, stepDone } from '@/core/progress.ts'
 import { findSyntaxError, firstSyntaxError, type SyntaxIssue } from '@/core/syntax.ts'
 import { createTabEditors, type TabEditors } from '@/editor/createTabEditors.ts'
-import type { EmojiSpot } from '@/editor/emoji.ts'
+import type { PickSpot } from '@/editor/pickers.ts'
 import type { SlotSource } from '@/editor/slots.ts'
 import { editTarget } from '@/lessons/kit.ts'
 import type { BuildTask, Lesson, LessonVariant, RunTask } from '@/lessons/types.ts'
@@ -42,8 +42,8 @@ export interface Toast {
 
 export type Dialog = null | { kind: 'reset'; tab: number } | { kind: 'resetAll' } | { kind: 'unlock' }
 
-/** Открытое окно выбора смайлика: что заменить и где его показать. */
-export interface Picker extends EmojiSpot {
+/** Открытое окно выбора рисунка или цвета: что заменить и где его показать. */
+export interface Picker extends PickSpot {
   tab: number
   /** Что было в кавычках, когда окно открыли. */
   was: string
@@ -366,7 +366,7 @@ export function createController(lesson: Lesson, variant: LessonVariant) {
   const levelsOf = (codes: string[], ran = store.get().ran): LevelState[] => levelStates(lesson.steps, codes, ran)
   const questAt = (step: number, quest: number) => lesson.steps[step]?.quests[quest]
 
-  /** Квест «поправь сам» выполнен (печатью или из окна смайликов) — говорим, что дальше. */
+  /** Квест «поправь сам» выполнен (печатью или из окна выбора) — говорим, что дальше. */
   function announceEdit(before: LevelState[], after: LevelState[]) {
     const cur = currentQuest(lesson.steps, before)
     if (!cur) return
@@ -501,8 +501,8 @@ export function createController(lesson: Lesson, variant: LessonVariant) {
     )
   }
 
-  // ===== Окно выбора смайлика =====
-  function openPicker(tab: number, spot: EmojiSpot) {
+  // ===== Окно выбора рисунка или цвета =====
+  function openPicker(tab: number, spot: PickSpot) {
     if (!editors) return
     store.set({ picker: { ...spot, tab, was: editors.getCode(tab).slice(spot.from, spot.to) } })
   }
@@ -513,7 +513,8 @@ export function createController(lesson: Lesson, variant: LessonVariant) {
     if (refocus) editors?.focus()
   }
 
-  function pickEmoji(emoji: string) {
+  /** Выбрали в окне рисунок или цвет: он встаёт между кавычками правкой ученика (отменяется Ctrl+Z). */
+  function pick(value: string) {
     const p = store.get().picker
     if (!p || !editors) return
     store.set({ picker: null })
@@ -521,7 +522,7 @@ export function createController(lesson: Lesson, variant: LessonVariant) {
       toast('Код уже поменялся — нажми «Сменить» ещё раз.')
       return
     }
-    editors.replaceRange(p.from, p.to, emoji)
+    editors.replaceRange(p.from, p.to, value)
     editors.focus()
     // что квест выполнен, скажет снимок кода — так же, как после печати
     snapshot()
@@ -571,7 +572,7 @@ export function createController(lesson: Lesson, variant: LessonVariant) {
       return
     }
     for (const c of changed) ed.replace(c.tab, c.code)
-    toast(`${extra.emoji} ${extra.title} — во вкладках ${where}. Теперь нажми «Собрать».`, () => {
+    toast(`${extra.title} — во вкладках ${where}. Теперь нажми «Собрать».`, () => {
       for (const c of changed) ed.undo(c.tab)
     })
   }
@@ -655,7 +656,7 @@ export function createController(lesson: Lesson, variant: LessonVariant) {
         onChange,
         onRun: run,
         slots: slotSources(),
-        onEmoji: openPicker,
+        onPick: openPicker,
       })
       editors.setVisible(view !== 'guide')
       const err = store.get().error
@@ -696,7 +697,7 @@ export function createController(lesson: Lesson, variant: LessonVariant) {
 
     openTask,
     insertPiece,
-    pickEmoji,
+    pick,
     closePicker,
     dismissSpot() {
       store.set({ spotOff: true })

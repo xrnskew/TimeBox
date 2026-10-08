@@ -1,7 +1,7 @@
 import type { Lesson } from '../types.ts'
 import { GUIDE_EXTRAS, GUIDE_EXTRAS_NOTE, GUIDE_INTRO, GUIDE_STEPS } from './guide.ts'
 import { SPACE_HINTS } from './hints.ts'
-import { ENEMY_EMOJI, FINISHED, SHIP_EMOJI, TUTORIAL } from './tabs.ts'
+import { ENEMY_PIC, FINISHED, SHIP_PIC, TUTORIAL } from './tabs.ts'
 
 export const SPACE_LESSON: Lesson = {
   id: 'space',
@@ -11,10 +11,10 @@ export const SPACE_LESSON: Lesson = {
     levelBars: 4,
     blurb:
       'Корабль внизу, пробел — стрелять, сверху волнами летят пришельцы. Новое: два массива сразу, цикл в цикле и перезарядка.',
-    hero: SHIP_EMOJI,
-    item: ENEMY_EMOJI,
-    heroVar: 'shipEmoji',
-    itemVar: 'enemyEmoji',
+    hero: SHIP_PIC,
+    item: ENEMY_PIC,
+    heroVar: 'shipPic',
+    itemVar: 'enemyPic',
     scene: 'space',
   },
   consoleColor: 'red',

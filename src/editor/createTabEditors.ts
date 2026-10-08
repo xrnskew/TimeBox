@@ -26,8 +26,8 @@ import { classHighlighter } from '@lezer/highlight'
 import type { SyntaxIssue } from '@/core/syntax.ts'
 import type { HintSet } from '@/lessons/types.ts'
 import { hintCompletions, hintHover, syntaxLinter } from './assist.ts'
-import { type EmojiSpot, emojiPickers } from './emoji.ts'
-import './emoji.css'
+import { pickButtons, type PickSpot } from './pickers.ts'
+import './pickers.css'
 import { codeSlots, refreshSlots, type SlotSource } from './slots.ts'
 import { animateTyping, startTyping, stopTyping, typingField } from './typing.ts'
 import { editorTheme } from './theme.ts'
@@ -83,8 +83,8 @@ export interface TabEditorsOptions {
   onRun: () => void
   /** Куски, которые всплывают в коде вкладки с кнопкой «Добавить» (по одному источнику на вкладку). */
   slots?: (SlotSource | null)[]
-  /** Нажали «Сменить» у смайлика в открытой вкладке. */
-  onEmoji?: (tab: number, spot: EmojiSpot) => void
+  /** Нажали «Сменить» у рисунка или цвета в открытой вкладке. */
+  onPick?: (tab: number, spot: PickSpot) => void
 }
 
 export interface TabEditors {
@@ -164,7 +164,7 @@ export function createTabEditors(o: TabEditorsOptions): TabEditors {
       ...historyKeymap,
     ]),
     editorTheme,
-    emojiPickers((_, spot) => o.onEmoji?.(current, spot)),
+    pickButtons((_, spot) => o.onPick?.(current, spot)),
     EditorView.contentAttributes.of({ 'aria-label': 'Код вкладки', spellcheck: 'false', autocapitalize: 'off' }),
     EditorView.updateListener.of((u) => {
       if (!u.docChanged) return
@@ -297,7 +297,7 @@ export function createTabEditors(o: TabEditorsOptions): TabEditors {
         changes: { from, to, insert: text },
         selection: { anchor: from + text.length },
         annotations: isolateHistory.of('full'),
-        userEvent: 'input.emoji',
+        userEvent: 'input.pick',
       })
     },
     posOf(line, col) {

@@ -21,15 +21,15 @@ const GLOBALS: Hint[] = [
     kind: 'variable',
     text: 'Сколько пришельцев в волне. Они прилетают по одному, так что можно и 10.',
   },
-  { name: 'enemyEmoji', kind: 'variable', text: 'Смайлик пришельца. Кнопка «Сменить» — рядом.' },
+  { name: 'enemyPic', kind: 'variable', text: 'Картинка пришельца. Кнопка «Сменить» — рядом.' },
   {
     name: 'bulletColor',
     kind: 'variable',
     text: 'Цвет пуль, например "#ffd54a" или "cyan". Кнопка «Сменить» — рядом.',
   },
-  { name: 'boomEmoji', kind: 'variable', text: 'Смайлик взрыва (дополнительное задание).' },
+  { name: 'boomPic', kind: 'variable', text: 'Картинка взрыва (дополнительное задание).' },
   { name: 'maxSpeed', kind: 'variable', text: 'Быстрее этой скорости волны не полетят (дополнительное задание).' },
-  { name: 'shipEmoji', kind: 'variable', text: 'Смайлик корабля. Объявлен во вкладке «Корабль».' },
+  { name: 'shipPic', kind: 'variable', text: 'Картинка корабля. Объявлена во вкладке «Корабль».' },
   { name: 'shipX', kind: 'variable', text: 'Где корабль по горизонтали: от 0 до 340.' },
   { name: 'shipY', kind: 'variable', text: 'Где корабль по вертикали. Не меняется: корабль всегда внизу.' },
   {

@@ -10,12 +10,12 @@ import {
   BOOM_HITS,
   BOOM_LINE,
   BULLET_COLOR,
-  ENEMY_EMOJI,
+  ENEMY_PIC,
   FAST_ENEMIES,
   FINISHED,
   FINISHED_CODES,
   MAX_SPEED_LINE,
-  SHIP_EMOJI,
+  SHIP_PIC,
   STEP_BULLETS,
   STEP_ENEMIES,
   STEP_HITS,
@@ -61,7 +61,7 @@ const engineWith = (ship = 6, bullet = 9, reload = 15, enemy = 1) =>
 const fullGame = (engine = engineWith()) => [engine, STEP_SHIP, STEP_BULLETS, STEP_ENEMIES, STEP_HITS]
 /** Игра со взрывами — после задания 5. */
 const boomGame = (engine = engineWith()) => [
-  withSetting(engine, 'boomEmoji', BOOM_LINE),
+  withSetting(engine, 'boomPic', BOOM_LINE),
   STEP_SHIP,
   STEP_BULLETS,
   BOOM_ENEMIES,
@@ -103,7 +103,7 @@ describe('Космос: движок', () => {
     sim.tick()
     expect(sim.fills[0]).toBe('#0b0d1a')
     expect(sim.fills.filter((f) => f === '#8b93b8')).toHaveLength(40)
-    expect(sim.drawn).toEqual(['🌙', 'Счёт: 0', 'Жизни: 3', 'Волна: 0'])
+    expect(sim.drawn).toEqual(['луна', 'Счёт: 0', 'Жизни: 3', 'Волна: 0'])
   })
 
   it('луна полупрозрачная, а смайлики и надписи после неё — нет', () => {
@@ -111,7 +111,7 @@ describe('Космос: движок', () => {
       const sim = boot(codes)
       sim.peek('booms = [{ x: 200, y: 300, t: 20 }]')
       sim.tick()
-      const moon = sim.drawn.indexOf('🌙')
+      const moon = sim.drawn.indexOf('луна')
       expect(sim.textAlphas[moon]).toBe(0.5)
       const rest = sim.textAlphas.filter((_, i) => i !== moon)
       expect(rest.length).toBeGreaterThan(5)
@@ -124,7 +124,7 @@ describe('Космос: корабль', () => {
   it('летает стрелками со скоростью shipSpeed и не вылетает за край', () => {
     const sim = boot(fullGame())
     sim.tick()
-    expect(sim.drawn).toContain(SHIP_EMOJI)
+    expect(sim.drawn).toContain(SHIP_PIC)
     sim.key('ArrowRight', true)
     sim.tick(10)
     expect(n(sim, 'shipX')).toBe(230)
@@ -209,7 +209,7 @@ describe('Космос: волны пришельцев', () => {
     }
     // места и скорости вбок у всех разные
     expect(new Set(wave.map((a) => a.x)).size).toBe(5)
-    expect(sim.drawn.filter((t) => t === '👾')).toHaveLength(5)
+    expect(sim.drawn.filter((t) => t === 'пришелец')).toHaveLength(5)
     sim.peek('enemies = []')
     sim.tick()
     expect(n(sim, 'wave')).toBe(2)
@@ -347,13 +347,13 @@ describe('Космос: взрывы, «Волна за волной» и гот
     sim.tick()
     expect(n(sim, 'score')).toBe(1)
     expect(sim.peek('booms')).toEqual([{ x: 100, y: 200, t: 19 }])
-    expect(sim.drawn).toContain('💥')
+    expect(sim.drawn).toContain('взрыв')
     sim.tick(18)
-    expect(sim.drawn).toContain('💥')
+    expect(sim.drawn).toContain('взрыв')
     sim.tick()
     expect(n(sim, 'booms.length')).toBe(0)
     sim.tick()
-    expect(sim.drawn).not.toContain('💥')
+    expect(sim.drawn).not.toContain('взрыв')
   })
 
   it('каждая новая волна быстрее на 0.25 и на одного пришельца больше, до maxSpeed', () => {
@@ -379,12 +379,12 @@ describe('Космос: взрывы, «Волна за волной» и гот
 
   it('готовая версия: всё настроено, есть взрывы и ускорение; автопилот сбивает волну за волной', () => {
     const sim = boot(FINISHED_CODES)
-    expect(sim.peek('[shipSpeed, bulletSpeed, reloadTime, enemySpeed, boomEmoji, maxSpeed]')).toEqual([
+    expect(sim.peek('[shipSpeed, bulletSpeed, reloadTime, enemySpeed, boomPic, maxSpeed]')).toEqual([
       6,
       9,
       12,
       1,
-      '💥',
+      'взрыв',
       2,
     ])
     sim.key(' ', true)
@@ -472,18 +472,18 @@ describe('Космос: сборка по кусочкам даёт код ша�
 })
 
 describe('Космос: квесты «поправь сам»', () => {
-  it('«Выбери корабль» и «Свой пришелец»: засчитано, только когда смайлик другой; кнопка выделяет смайлик', () => {
+  it('«Выбери корабль» и «Свой пришелец»: засчитано, только когда картинка другая; кнопка выделяет её имя', () => {
     const ship = build(TUTORIAL_CODES[1], SHIP_CREATE_TASK)
-    for (const [task, code, emoji] of [
-      [SHIP_PICK_TASK, ship, SHIP_EMOJI],
-      [ENEMY_PICK_TASK, TUTORIAL_ENGINE, ENEMY_EMOJI],
+    for (const [task, code, pic] of [
+      [SHIP_PICK_TASK, ship, SHIP_PIC],
+      [ENEMY_PICK_TASK, TUTORIAL_ENGINE, ENEMY_PIC],
     ] as const) {
-      expect(task.picker).toBe('emoji')
+      expect(task.picker).toBe('pic')
       expect(task.isDone(code)).toBe(false)
-      expect(task.isDone(code.replace(`"${emoji}"`, '"🛸"'))).toBe(true)
-      expect(task.isDone(code.replace(`"${emoji}"`, '""'))).toBe(false)
+      expect(task.isDone(code.replace(`"${pic}"`, '"тарелка"'))).toBe(true)
+      expect(task.isDone(code.replace(`"${pic}"`, '""'))).toBe(false)
       const at = editTarget(code, task.target)!
-      expect(code.split('\n')[at.line - 1].slice(at.from, at.to)).toBe(emoji)
+      expect(code.split('\n')[at.line - 1].slice(at.from, at.to)).toBe(pic)
     }
   })
 
@@ -546,7 +546,13 @@ describe('Космос в меню', () => {
     expect(LESSONS.map((l) => l.id)).toEqual(['catch', 'bird', 'space'])
     const lesson = lessonById('space')!
     expect(lesson.title).toBe('Космос')
-    expect(lesson.card).toMatchObject({ level: 'Сложно', levelBars: 4, scene: 'space', hero: '🚀', item: '👾' })
+    expect(lesson.card).toMatchObject({
+      level: 'Сложно',
+      levelBars: 4,
+      scene: 'space',
+      hero: 'ракета',
+      item: 'пришелец',
+    })
     expect(lesson.consoleColor).toBe('red')
   })
 
@@ -585,17 +591,17 @@ describe('Космос в меню', () => {
 describe('Космос: квесты идут по порядку', () => {
   const quest = (codes: string[], ran = codes) => currentQuest(GUIDE_STEPS, levelStates(GUIDE_STEPS, codes, ran))
   /** «Движок» после квестов: скорости, перезарядка, цвет пуль и пришелец. */
-  const engine = (ship = 0, bullet = 0, reload = 0, enemy = 0, color = BULLET_COLOR, alien = ENEMY_EMOJI) =>
+  const engine = (ship = 0, bullet = 0, reload = 0, enemy = 0, color = BULLET_COLOR, alien = ENEMY_PIC) =>
     engineWith(ship, bullet, reload, enemy)
       .replace(`"${BULLET_COLOR}"`, `"${color}"`)
-      .replace(`"${ENEMY_EMOJI}"`, `"${alien}"`)
+      .replace(`"${ENEMY_PIC}"`, `"${alien}"`)
 
   it('от создания корабля до последнего квеста', () => {
     const codes = [...TUTORIAL_CODES]
     expect(quest(codes)).toEqual({ step: 0, quest: 0 })
     codes[1] = build(codes[1], SHIP_CREATE_TASK)
     expect(quest(codes)).toEqual({ step: 0, quest: 1 })
-    codes[1] = build(codes[1].replace(SHIP_EMOJI, '🛸'), SHIP_DRAW_TASK)
+    codes[1] = build(codes[1].replace(SHIP_PIC, 'тарелка'), SHIP_DRAW_TASK)
     // «Собери игру» ждёт запуска
     expect(quest(codes, TUTORIAL_CODES)).toEqual({ step: 0, quest: 3 })
     codes[1] = build(codes[1], SHIP_MOVE_TASK)
@@ -629,7 +635,7 @@ describe('Космос: квесты идут по порядку', () => {
     expect(quest(codes)).toEqual({ step: 2, quest: 3 })
     codes[3] = build(codes[3], ZIGZAG_TASK)
     expect(quest(codes)).toEqual({ step: 2, quest: 4 })
-    codes[0] = engine(6, 9, 15, 1, '#ec407a', '👽')
+    codes[0] = engine(6, 9, 15, 1, '#ec407a', 'осьминог')
     expect(quest(codes)).toEqual({ step: 3, quest: 0 })
 
     codes[4] = build(codes[4], HITS_TASK)
@@ -649,8 +655,8 @@ describe('Космос: квесты идут по порядку', () => {
   it('взрывы и волны закрыты до сборки игры; их код сохраняет все квесты', () => {
     expect(extraStates(GUIDE_EXTRAS, false, TUTORIAL_CODES).map((x) => x.unlocked)).toEqual([false, false])
     expect(extraStates(GUIDE_EXTRAS, true, TUTORIAL_CODES).map((x) => x.unlocked)).toEqual([true, false])
-    const base = engine(6, 9, 15, 1, '#ec407a', '👽')
-    const done = [base, STEP_SHIP.replace(SHIP_EMOJI, '🛸'), STEP_BULLETS, STEP_ENEMIES, STEP_HITS]
+    const base = engine(6, 9, 15, 1, '#ec407a', 'осьминог')
+    const done = [base, STEP_SHIP.replace(SHIP_PIC, 'тарелка'), STEP_BULLETS, STEP_ENEMIES, STEP_HITS]
     expect(levelStates(GUIDE_STEPS, done).every((l) => l.done)).toBe(true)
     expect(extraStates(GUIDE_EXTRAS, true, done).map((x) => x.done)).toEqual([false, false])
 
@@ -667,8 +673,8 @@ describe('Космос: квесты идут по порядку', () => {
 
   it('готовая версия засчитывает все шаги и оба задания', () => {
     const finished = [...FINISHED_CODES]
-    finished[1] = finished[1].replace(SHIP_EMOJI, '🛸')
-    finished[0] = finished[0].replace(`"${BULLET_COLOR}"`, '"#ec407a"').replace(`"${ENEMY_EMOJI}"`, '"👽"')
+    finished[1] = finished[1].replace(SHIP_PIC, 'тарелка')
+    finished[0] = finished[0].replace(`"${BULLET_COLOR}"`, '"#ec407a"').replace(`"${ENEMY_PIC}"`, '"👽"')
     expect(levelStates(GUIDE_STEPS, finished).every((l) => l.done)).toBe(true)
     expect(extraStates(GUIDE_EXTRAS, true, FINISHED_CODES).map((x) => x.done)).toEqual([true, true])
   })

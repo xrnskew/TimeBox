@@ -15,7 +15,7 @@ export function planSettingInsert(engine: string, name: string, text: string): S
   const lines = stripComments(engine).split('\n')
   let after = -1
   lines.forEach((l, i) => {
-    if (/^\s*var\s+\w*Emoji\b/.test(l)) after = i + 1
+    if (/^\s*var\s+\w*Pic\b/.test(l)) after = i + 1
   })
   if (after < 0) {
     const raw = engine.split('\n')

@@ -1,48 +1,48 @@
 import {
   after,
-  createEmojiQuest,
-  drawEmojiQuest,
+  createPicQuest,
+  drawPicQuest,
   has,
   into,
   numberQuest,
   pickColorQuest,
-  pickEmojiQuest,
+  pickPicQuest,
   runQuest,
   shell,
 } from '../kit.ts'
 import type { BuildTask } from '../types.ts'
-import { BIRD_EMOJI, PIPE_COLOR } from './tabs.ts'
+import { BIRD_PIC, PIPE_COLOR } from './tabs.ts'
 
 // Квесты Птички. Код шага собирается кнопками «Добавить» по кусочкам и в итоге совпадает с STEP_* из tabs.ts.
 
 // ===== Шаг 1. Птица: создать → выбрать → нарисовать → собрать → падение → гравитация =====
 
-export const BIRD_CREATE_TASK = createEmojiQuest({
+export const BIRD_CREATE_TASK = createPicQuest({
   title: 'Создай птицу',
-  text: 'Птица — это смайлик. Открой «Птица»: там всплывёт строчка с ним — жми «Добавить».',
+  text: 'Птица — это картинка. Открой «Птица»: там всплывёт строчка с ней — жми «Добавить».',
   tab: 1,
-  name: 'birdEmoji',
-  emoji: BIRD_EMOJI,
-  piece: 'Смайлик птицы',
-  comment: 'птица — любой смайлик',
-  doneText: 'Птица создана! Теперь нажми «Сменить» рядом со смайликом и выбери, кто полетит.',
+  name: 'birdPic',
+  pic: BIRD_PIC,
+  piece: 'Картинка птицы',
+  comment: 'птица — любая картинка',
+  doneText: 'Птица создана! Теперь нажми «Сменить» рядом с картинкой и выбери, кто полетит.',
 })
 
-export const BIRD_PICK_TASK = pickEmojiQuest({
+export const BIRD_PICK_TASK = pickPicQuest({
   title: 'Выбери птицу',
-  text: `Нажми «Сменить» рядом со смайликом ${BIRD_EMOJI} и выбери, кто полетит, — например, 🦉 или 🐝.`,
+  text: `Сейчас летит ${BIRD_PIC}. Нажми «Сменить» рядом с картинкой и выбери, кто полетит, — например, сова или пчела.`,
   tab: 1,
-  name: 'birdEmoji',
-  emoji: BIRD_EMOJI,
-  hint: `Это строка \`var birdEmoji = "${BIRD_EMOJI}";\` во вкладке «Птица». Кнопка «Сменить» — прямо рядом с ней. Можно и напечатать смайлик между кавычками самому.`,
+  name: 'birdPic',
+  pic: BIRD_PIC,
+  hint: `Это строка \`var birdPic = "${BIRD_PIC}";\` во вкладке «Птица». Кнопка «Сменить» — прямо рядом с ней. Можно и напечатать имя картинки между кавычками самому: "сова", "пчела", "дракон".`,
 })
 
-export const BIRD_DRAW_TASK = drawEmojiQuest({
+export const BIRD_DRAW_TASK = drawPicQuest({
   title: 'Нарисуй птицу',
   text: 'Движок 60 раз в секунду зовёт `drawBird()`. Собери её по кусочкам — кнопки «Добавить» всплывут в «Птице».',
   tab: 1,
   fn: 'drawBird',
-  emoji: 'birdEmoji',
+  pic: 'birdPic',
   x: 'birdX',
   y: 'birdY',
   doneText: 'Все кусочки птицы на месте!',

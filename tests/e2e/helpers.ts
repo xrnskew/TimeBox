@@ -2,7 +2,7 @@ import { expect, type Page, test } from '@playwright/test'
 
 /** Адрес песочницы в текущем проекте проверок: файл через file:// или сайт в подпапке. */
 export const app = () => test.info().project.use.baseURL!
-export const KEY = 'catch-sandbox-v1'
+export const KEY = 'catch-sandbox-v2'
 
 /** Открыть игру Корзинка с чистым хранилищем и дождаться редактора и игры. */
 export async function open(page: Page, query = '?game=catch') {
@@ -72,18 +72,18 @@ export async function addPieces(page: Page, count: number) {
   for (let i = 0; i < count; i++) await add.click()
 }
 
-/** Выбрать смайлик в открытом окне выбора. */
-export async function pick(page: Page, emoji: string) {
-  await page.getByRole('dialog', { name: 'Выбери смайлик' }).getByRole('button', { name: emoji, exact: true }).click()
+/** Выбрать картинку в открытом окне выбора. */
+export async function pick(page: Page, pic: string) {
+  await page.getByRole('dialog', { name: 'Выбери картинку' }).getByRole('button', { name: pic, exact: true }).click()
 }
 
-/** Шаг 1, квесты 1–4: создать героя, выбрать смайлик, нарисовать, собрать. */
-export async function drawHero(page: Page, emoji = '🐱') {
+/** Шаг 1, квесты 1–4: создать героя, выбрать картинку, нарисовать, собрать. */
+export async function drawHero(page: Page, pic = 'кот') {
   await openQuest(page, 1, 'Открыть «Герой»')
   await addPieces(page, 1)
-  await page.locator('.cm-emojiPick').first().click()
-  await pick(page, emoji)
-  await addPieces(page, 3)
+  await page.locator('.cm-pick').first().click()
+  await pick(page, pic)
+  await addPieces(page, 2)
   await run(page)
 }
 
@@ -96,15 +96,15 @@ export async function moveHero(page: Page, speed = '6') {
 }
 
 /** Весь шаг 1. */
-export async function buildHero(page: Page, emoji = '🐱') {
-  await drawHero(page, emoji)
+export async function buildHero(page: Page, pic = 'кот') {
+  await drawHero(page, pic)
   await moveHero(page)
 }
 
 /** Шаг 2, квесты 1–3: яблоки падают, рисуются, скорость в «Движке». */
 export async function buildApples(page: Page) {
   await openQuest(page, 2, 'Открыть «Яблоки»')
-  await addPieces(page, 4 + 3)
+  await addPieces(page, 4 + 2)
   await openQuest(page, 2, 'Открыть «Движок»', 'Дай яблокам скорость')
   await page.keyboard.type('3')
 }
@@ -116,10 +116,10 @@ export async function completeSpeedUp(page: Page) {
   await expect(page.locator('.cm-editor').getByRole('button', { name: /^Добавить:/ })).toHaveCount(0)
 }
 
-/** Шаг 2, квест 4: кнопка в гайде открывает окно смайликов у 🍎 в «Движке». */
-export async function completeItem(page: Page, emoji = '🍩') {
-  await openQuest(page, 2, 'Выбрать смайлик в «Движок»')
-  await pick(page, emoji)
+/** Шаг 2, квест 4: кнопка в гайде открывает окно картинок у яблока в «Движке». */
+export async function completeItem(page: Page, pic = 'пончик') {
+  await openQuest(page, 2, 'Выбрать картинку в «Движок»')
+  await pick(page, pic)
 }
 
 /** Шаг 3: собрать checkCatch и дать 10 очков — кнопка выделяет «1», печатаем «10». */

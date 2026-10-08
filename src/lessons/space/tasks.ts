@@ -1,19 +1,19 @@
 import {
   after,
-  createEmojiQuest,
+  createPicQuest,
   decl,
-  drawEmojiQuest,
+  drawPicQuest,
   has,
   into,
   numberAbove0,
   numberQuest,
   pickColorQuest,
-  pickEmojiQuest,
+  pickPicQuest,
   runQuest,
   shell,
 } from '../kit.ts'
 import type { BuildTask } from '../types.ts'
-import { BULLET_COLOR, ENEMY_EMOJI, SHIP_EMOJI } from './tabs.ts'
+import { BULLET_COLOR, ENEMY_PIC, SHIP_PIC } from './tabs.ts'
 
 // Квесты Космоса. Код шага собирается кнопками «Добавить» по кусочкам и в итоге совпадает с STEP_* из tabs.ts.
 // Шаги 1 и 3 похожи на то, что ученик уже делал в Корзинке и Птичке; новое — в шагах 2 (второй массив и
@@ -21,32 +21,32 @@ import { BULLET_COLOR, ENEMY_EMOJI, SHIP_EMOJI } from './tabs.ts'
 
 // ===== Шаг 1. Корабль: создать → выбрать → нарисовать → собрать → полёт → скорость =====
 
-export const SHIP_CREATE_TASK = createEmojiQuest({
+export const SHIP_CREATE_TASK = createPicQuest({
   title: 'Создай корабль',
-  text: 'Корабль — это смайлик. Открой «Корабль»: там всплывёт строчка с ним — жми «Добавить».',
+  text: 'Корабль — это картинка. Открой «Корабль»: там всплывёт строчка с ней — жми «Добавить».',
   tab: 1,
-  name: 'shipEmoji',
-  emoji: SHIP_EMOJI,
-  piece: 'Смайлик корабля',
-  comment: 'корабль — любой смайлик',
-  doneText: 'Корабль создан! Теперь нажми «Сменить» рядом со смайликом и выбери, кто полетит.',
+  name: 'shipPic',
+  pic: SHIP_PIC,
+  piece: 'Картинка корабля',
+  comment: 'корабль — любая картинка',
+  doneText: 'Корабль создан! Теперь нажми «Сменить» рядом с картинкой и выбери, кто полетит.',
 })
 
-export const SHIP_PICK_TASK = pickEmojiQuest({
+export const SHIP_PICK_TASK = pickPicQuest({
   title: 'Выбери корабль',
-  text: `Нажми «Сменить» рядом со смайликом ${SHIP_EMOJI} и выбери свой корабль — например, 🛸 или 🐉.`,
+  text: `Сейчас летит ${SHIP_PIC}. Нажми «Сменить» рядом с картинкой и выбери свой корабль — например, тарелку или дракона.`,
   tab: 1,
-  name: 'shipEmoji',
-  emoji: SHIP_EMOJI,
-  hint: `Это строка \`var shipEmoji = "${SHIP_EMOJI}";\` во вкладке «Корабль». Кнопка «Сменить» — прямо рядом с ней. Можно и напечатать смайлик между кавычками самому.`,
+  name: 'shipPic',
+  pic: SHIP_PIC,
+  hint: `Это строка \`var shipPic = "${SHIP_PIC}";\` во вкладке «Корабль». Кнопка «Сменить» — прямо рядом с ней. Можно и напечатать имя картинки между кавычками самому: "тарелка", "дракон".`,
 })
 
-export const SHIP_DRAW_TASK = drawEmojiQuest({
+export const SHIP_DRAW_TASK = drawPicQuest({
   title: 'Нарисуй корабль',
   text: 'Движок 60 раз в секунду зовёт `drawShip()`. Собери её по кусочкам — кнопки «Добавить» всплывут в «Корабле».',
   tab: 1,
   fn: 'drawShip',
-  emoji: 'shipEmoji',
+  pic: 'shipPic',
   x: 'shipX',
   y: 'shipY',
   doneText: 'Все кусочки корабля на месте!',
@@ -277,22 +277,17 @@ export const WAVE_TASK: BuildTask = {
 export const ENEMIES_DRAW_TASK: BuildTask = {
   kind: 'build',
   title: 'Нарисуй пришельцев',
-  text: 'Собери `drawEnemies()`: каждый пришелец — смайлик `enemyEmoji` из «Движка».',
+  text: 'Собери `drawEnemies()`: каждый пришелец — картинка `enemyPic` из «Движка».',
   tab: 3,
   pieces: [
     shell('drawEnemies'),
     {
-      title: 'Размер смайлика',
-      plan: into('drawEnemies', '  ctx.font = "34px serif";'),
-      isDone: (code) => has(code, /\bctx\.font\s*=/),
-    },
-    {
-      title: 'Каждый пришелец — смайлик',
+      title: 'Каждый пришелец — картинка',
       plan: into(
         'drawEnemies',
-        '  for (var i = 0; i < enemies.length; i++) {\n    ctx.fillText(enemyEmoji, enemies[i].x, enemies[i].y);\n  }',
+        '  for (var i = 0; i < enemies.length; i++) {\n    drawPic(enemyPic, enemies[i].x, enemies[i].y);\n  }',
       ),
-      isDone: (code) => has(code, /\bctx\.fillText\s*\(\s*enemyEmoji\b/),
+      isDone: (code) => has(code, /\bdrawPic\s*\(\s*enemyPic\b/),
     },
   ],
   doneText: 'Пришельцы нарисованы! Но они висят: в «Движке» скорость enemySpeed — 0. Следующий квест — в «Гайде».',
@@ -328,13 +323,13 @@ export const ZIGZAG_TASK: BuildTask = {
   doneText: 'Зигзаг готов! Нажми «Собрать» — теперь пришельцы мечутся, и целиться надо с упреждением.',
 }
 
-export const ENEMY_PICK_TASK = pickEmojiQuest({
+export const ENEMY_PICK_TASK = pickPicQuest({
   title: 'Свой пришелец',
-  text: `Пришелец ${ENEMY_EMOJI} записан в «Движке»: \`enemyEmoji\`. Нажми «Сменить» рядом с ним и выбери, кто нападает, — например, 👽 или 🐙.`,
+  text: 'Картинка пришельца записана в «Движке»: `enemyPic`. Нажми «Сменить» рядом с ней и выбери, кто нападает, — например, осьминог или астероид.',
   tab: 0,
-  name: 'enemyEmoji',
-  emoji: ENEMY_EMOJI,
-  hint: `Это строка \`var enemyEmoji  = "${ENEMY_EMOJI}";\` в «Движке». Кнопка «Сменить» — прямо рядом с ней.`,
+  name: 'enemyPic',
+  pic: ENEMY_PIC,
+  hint: `Это строка \`var enemyPic    = "${ENEMY_PIC}";\` в «Движке». Кнопка «Сменить» — прямо рядом с ней.`,
 })
 
 // ===== Шаг 4. Попадание: вложенный цикл → очко → прорыв =====

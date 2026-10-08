@@ -16,6 +16,7 @@ import {
   TargetIcon,
   WarnIcon,
 } from './icons.tsx'
+import { Pic } from './Pic.tsx'
 import { Rich } from './Rich.tsx'
 import styles from './Guide.module.css'
 
@@ -307,15 +308,15 @@ function EditTaskBody({
           className={done ? 'key key--l' : 'key key--sun key--l'}
           onClick={() => c.openTask(stepIndex, taskIndex)}
         >
-          {task.picker === 'emoji' ? (
+          {task.picker === 'pic' ? (
             <FaceIcon size={16} />
           ) : task.picker === 'color' ? (
             <PaletteIcon size={16} />
           ) : (
             <TargetIcon size={15} />
           )}
-          {task.picker === 'emoji'
-            ? `Выбрать смайлик в «${tabTitle}»`
+          {task.picker === 'pic'
+            ? `Выбрать картинку в «${tabTitle}»`
             : task.picker === 'color'
               ? `Выбрать цвет в «${tabTitle}»`
               : `Открыть «${tabTitle}»`}
@@ -408,8 +409,8 @@ const Extra = memo(function Extra({ index, extra, state }: { index: number; extr
   return (
     <div className={styles.extra} id={`guide-task-${extra.n}`} data-locked={locked} data-done={state.done}>
       <div className={styles.extraHead}>
-        <span className={styles.emoji} aria-hidden="true">
-          {locked ? <LockIcon size={22} /> : extra.emoji}
+        <span className={styles.badge} aria-hidden="true">
+          {locked ? <LockIcon size={22} /> : <Pic name={extra.pic} />}
         </span>
         <div>
           <h3>

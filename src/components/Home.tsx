@@ -2,10 +2,11 @@ import { type CSSProperties, type ReactNode, useMemo } from 'react'
 import { lessonProgress } from '@/core/levels.ts'
 import { gameHref } from '@/app/routes.ts'
 import { LESSONS } from '@/lessons/index.ts'
-import { emojiOf } from '@/lessons/kit.ts'
+import { quoted } from '@/lessons/kit.ts'
 import type { Lesson } from '@/lessons/types.ts'
 import { loadCodes } from '@/sandbox/storage.ts'
 import { CheckIcon, LockIcon, LogoCube, PlayIcon } from './icons.tsx'
+import { Pic } from './Pic.tsx'
 import styles from './Home.module.css'
 
 // Главное меню: выбор игры. Каждая игра — карточка с маленькой приставкой, на экране которой
@@ -52,9 +53,9 @@ interface Progress {
 }
 
 /** Смайлик ученика из `var name = "…"`: в склеенном скрипте побеждает объявление из поздней вкладки. */
-const chosenEmoji = (codes: string[], name: string) =>
+const chosenPic = (codes: string[], name: string) =>
   codes
-    .map((code) => emojiOf(name, code))
+    .map((code) => quoted(name, code))
     .filter(Boolean)
     .at(-1) ?? null
 
@@ -68,8 +69,8 @@ function progressOf(lesson: Lesson): Progress {
       ...levels.map((l) => ({ kind: 'step' as const, done: l.done })),
       ...extras.map((x) => ({ kind: 'extra' as const, done: x.done })),
     ],
-    hero: chosenEmoji(codes, lesson.card.heroVar) ?? lesson.card.hero,
-    item: (lesson.card.itemVar && chosenEmoji(codes, lesson.card.itemVar)) ?? lesson.card.item ?? null,
+    hero: chosenPic(codes, lesson.card.heroVar) ?? lesson.card.hero,
+    item: (lesson.card.itemVar && chosenPic(codes, lesson.card.itemVar)) ?? lesson.card.item ?? null,
   }
 }
 
@@ -84,9 +85,9 @@ function GameCard({ lesson }: { lesson: Lesson }) {
       {lesson.card.scene === 'bird' ? (
         <BirdAttract color={lesson.consoleColor} bird={p.hero} />
       ) : lesson.card.scene === 'space' ? (
-        <SpaceAttract color={lesson.consoleColor} ship={p.hero} alien={p.item ?? '👾'} />
+        <SpaceAttract color={lesson.consoleColor} ship={p.hero} alien={p.item ?? 'пришелец'} />
       ) : (
-        <Attract color={lesson.consoleColor} hero={p.hero} item={p.item ?? '🍎'} />
+        <Attract color={lesson.consoleColor} hero={p.hero} item={p.item ?? 'яблоко'} />
       )}
       <div className={styles.info}>
         <h2 id={id}>{lesson.title}</h2>
@@ -153,10 +154,12 @@ function Attract({ color, hero, item }: { color: string; hero: string; item: str
     <Mini color={color} scene="catch" pad={2}>
       {[22, 72, 45].map((x, i) => (
         <span key={i} className={styles.item} style={{ '--x': `${x}%`, '--i': i } as CSSProperties}>
-          {item}
+          <Pic name={item} />
         </span>
       ))}
-      <span className={styles.hero}>{hero}</span>
+      <span className={styles.hero}>
+        <Pic name={hero} />
+      </span>
     </Mini>
   )
 }
@@ -171,7 +174,9 @@ function BirdAttract({ color, bird }: { color: string; bird: string }) {
           <span className={styles.pipeBottom} />
         </span>
       ))}
-      <span className={styles.bird}>{bird}</span>
+      <span className={styles.bird}>
+        <Pic name={bird} />
+      </span>
     </Mini>
   )
 }
@@ -183,15 +188,23 @@ function BirdAttract({ color, bird }: { color: string; bird: string }) {
 function SpaceAttract({ color, ship, alien }: { color: string; ship: string; alien: string }) {
   return (
     <Mini color={color} scene="space" pad={3}>
-      <span className={styles.moon}>🌙</span>
+      <span className={styles.moon}>
+        <Pic name="луна" />
+      </span>
       {[22, 50, 78].map((x, i) => (
         <span key={i} style={{ '--x': `${x}%`, '--i': i } as CSSProperties}>
           <span className={styles.shot} />
-          <span className={styles.alien}>{alien}</span>
-          <span className={styles.boom}>💥</span>
+          <span className={styles.alien}>
+            <Pic name={alien} />
+          </span>
+          <span className={styles.boom}>
+            <Pic name="взрыв" />
+          </span>
         </span>
       ))}
-      <span className={styles.ship}>{ship}</span>
+      <span className={styles.ship}>
+        <Pic name={ship} />
+      </span>
     </Mini>
   )
 }

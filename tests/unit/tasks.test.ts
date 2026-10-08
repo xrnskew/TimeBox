@@ -2,7 +2,7 @@ import { describe, expect, it } from 'vitest'
 import { currentQuest, extraStates, levelStates } from '@/core/levels.ts'
 import { checkFinishedPassword } from '@/core/lock.ts'
 import { functionLines } from '@/core/progress.ts'
-import { isColorString, isEmojiString } from '@/editor/emoji.ts'
+import { pickKind } from '@/editor/pickers.ts'
 import { GUIDE_EXTRAS, GUIDE_STEPS } from '@/lessons/catch/guide.ts'
 import {
   BOMB_APPLES,
@@ -11,7 +11,7 @@ import {
   GOLD_APPLES,
   GOLD_CATCH,
   GOLD_LINE,
-  HERO_EMOJI,
+  HERO_PIC,
   STEP_APPLES,
   STEP_CATCH,
   STEP_HERO,
@@ -38,11 +38,11 @@ import { apply, build } from './build.ts'
 import { boot } from './sim.ts'
 
 /** Движок со своими настройками; яблоки по умолчанию падают со скоростью 3. */
-const engineWith = (speed = 0, item = '🍎', fall = 3) =>
+const engineWith = (speed = 0, item = 'яблоко', fall = 3) =>
   TUTORIAL_ENGINE.replace('var playerSpeed = 0;', `var playerSpeed = ${speed};`)
     .replace('var fallSpeed   = 0;', `var fallSpeed   = ${fall};`)
-    .replace('var itemEmoji   = "🍎";', `var itemEmoji   = "${item}";`)
-const heroWith = (emoji: string) => STEP_HERO.replace(`"${HERO_EMOJI}"`, `"${emoji}"`)
+    .replace('var itemPic     = "яблоко";', `var itemPic     = "${item}";`)
+const heroWith = (pic: string) => STEP_HERO.replace(`"${HERO_PIC}"`, `"${pic}"`)
 
 describe('шаг 1: героя собирают по кусочкам', () => {
   const start = TUTORIAL_CODES[1]
@@ -63,10 +63,10 @@ describe('шаг 1: героя собирают по кусочкам', () => {
   it('«Выбери героя»: засчитано, только когда смайлик другой; кнопка выделяет смайлик', () => {
     const hero = build(start, HERO_CREATE_TASK)
     expect(HERO_PICK_TASK.isDone(hero)).toBe(false)
-    expect(HERO_PICK_TASK.isDone(hero.replace(HERO_EMOJI, '🐱'))).toBe(true)
-    expect(HERO_PICK_TASK.isDone(hero.replace(HERO_EMOJI, ''))).toBe(false)
+    expect(HERO_PICK_TASK.isDone(hero.replace(HERO_PIC, 'кот'))).toBe(true)
+    expect(HERO_PICK_TASK.isDone(hero.replace(HERO_PIC, ''))).toBe(false)
     const at = editTarget(hero, HERO_PICK_TASK.target)!
-    expect(hero.split('\n')[at.line - 1].slice(at.from, at.to)).toBe(HERO_EMOJI)
+    expect(hero.split('\n')[at.line - 1].slice(at.from, at.to)).toBe(HERO_PIC)
   })
 
   it('«Собери игру» засчитан по коду последнего запуска, а не по редактору', () => {
@@ -83,13 +83,13 @@ describe('шаг 1: героя собирают по кусочкам', () => {
     const at = editTarget(TUTORIAL_ENGINE, SPEED_TASK.target)!
     expect(TUTORIAL_ENGINE.split('\n')[at.line - 1].slice(at.from, at.to)).toBe('0')
 
-    const still = boot([TUTORIAL_ENGINE, heroWith('🐱'), TUTORIAL_CODES[2], TUTORIAL_CODES[3]])
+    const still = boot([TUTORIAL_ENGINE, heroWith('кот'), TUTORIAL_CODES[2], TUTORIAL_CODES[3]])
     still.key('ArrowRight', true)
     still.tick(5)
     expect(still.peek('playerX')).toBe(170)
-    expect(still.drawn).toContain('🐱')
+    expect(still.drawn).toContain('кот')
 
-    const moving = boot([engineWith(3), heroWith('🐱'), TUTORIAL_CODES[2], TUTORIAL_CODES[3]])
+    const moving = boot([engineWith(3), heroWith('кот'), TUTORIAL_CODES[2], TUTORIAL_CODES[3]])
     moving.key('ArrowRight', true)
     moving.tick(5)
     expect(moving.peek('playerX')).toBe(170 + 3 * 5)
@@ -101,7 +101,7 @@ describe('шаг 1: героя собирают по кусочкам', () => {
     expect(quest(codes)).toEqual({ step: 0, quest: 0 })
     codes[1] = build(start, HERO_CREATE_TASK)
     expect(quest(codes)).toEqual({ step: 0, quest: 1 })
-    codes[1] = codes[1].replace(HERO_EMOJI, '🐱')
+    codes[1] = codes[1].replace(HERO_PIC, 'кот')
     expect(quest(codes)).toEqual({ step: 0, quest: 2 })
     codes[1] = build(codes[1], HERO_DRAW_TASK)
     // нарисовали, но ещё не собирали
@@ -124,20 +124,20 @@ describe('шаг 2: яблоки по кусочкам', () => {
 
   it('«Дай яблокам скорость»: в движке 0 — яблоки висят, после 3 — падают', () => {
     expect(FALL_SPEED_TASK.isDone(TUTORIAL_ENGINE)).toBe(false)
-    expect(FALL_SPEED_TASK.isDone(engineWith(6, '🍎', 3))).toBe(true)
+    expect(FALL_SPEED_TASK.isDone(engineWith(6, 'яблоко', 3))).toBe(true)
     const at = editTarget(TUTORIAL_ENGINE, FALL_SPEED_TASK.target)!
     expect(TUTORIAL_ENGINE.split('\n')[at.line - 1].slice(at.from, at.to)).toBe('0')
 
-    const hanging = boot([engineWith(6, '🍎', 0), heroWith('🐱'), STEP_APPLES, TUTORIAL_CODES[3]])
+    const hanging = boot([engineWith(6, 'яблоко', 0), heroWith('кот'), STEP_APPLES, TUTORIAL_CODES[3]])
     hanging.tick(70)
     expect(hanging.peek('items[0].y')).toBe(0)
-    const falling = boot([engineWith(6, '🍎', 3), heroWith('🐱'), STEP_APPLES, TUTORIAL_CODES[3]])
+    const falling = boot([engineWith(6, 'яблоко', 3), heroWith('кот'), STEP_APPLES, TUTORIAL_CODES[3]])
     falling.tick(70)
     expect(falling.peek<number>('items[0].y')).toBeGreaterThan(20)
   })
 
   it('квест скорости яблок — сразу после «Нарисуй яблоки»', () => {
-    const codes = [engineWith(6, '🍎', 0), heroWith('🐱'), STEP_APPLES, TUTORIAL_CODES[3]]
+    const codes = [engineWith(6, 'яблоко', 0), heroWith('кот'), STEP_APPLES, TUTORIAL_CODES[3]]
     expect(currentQuest(GUIDE_STEPS, levelStates(GUIDE_STEPS, codes))).toEqual({ step: 1, quest: 2 })
     codes[0] = engineWith(6)
     expect(currentQuest(GUIDE_STEPS, levelStates(GUIDE_STEPS, codes))).toEqual({ step: 1, quest: 3 })
@@ -153,7 +153,7 @@ describe('шаг 2: яблоки по кусочкам', () => {
   it('«Всё быстрее»: собранная функция ускоряет каждые 15 секунд, но не быстрее 8', () => {
     const code = build(STEP_APPLES, SPEEDUP_TASK)
     expect(code).toContain('  frame = frame + 1;\n  speedUp();')
-    const sim = boot([engineWith(3), heroWith('🐱'), code, STEP_CATCH])
+    const sim = boot([engineWith(3), heroWith('кот'), code, STEP_CATCH])
     sim.peek('lives = 1000000')
     sim.tick(899)
     expect(sim.peek('fallSpeed')).toBe(4)
@@ -161,12 +161,12 @@ describe('шаг 2: яблоки по кусочкам', () => {
     expect(sim.peek('fallSpeed')).toBe(8)
   })
 
-  it('«Не только яблоки»: засчитано, только когда 🍎 заменили', () => {
+  it('«Не только яблоки»: засчитано, только когда яблоко заменили', () => {
     expect(ITEM_TASK.isDone(TUTORIAL_ENGINE)).toBe(false)
-    expect(ITEM_TASK.isDone(engineWith(3, '🍩'))).toBe(true)
+    expect(ITEM_TASK.isDone(engineWith(3, 'пончик'))).toBe(true)
     expect(ITEM_TASK.isDone(engineWith(3, ' '))).toBe(false)
     const at = editTarget(TUTORIAL_ENGINE, ITEM_TASK.target)!
-    expect(TUTORIAL_ENGINE.split('\n')[at.line - 1].slice(at.from, at.to)).toBe('🍎')
+    expect(TUTORIAL_ENGINE.split('\n')[at.line - 1].slice(at.from, at.to)).toBe('яблоко')
   })
 })
 
@@ -186,7 +186,7 @@ describe('шаг 3: поимка по кусочкам', () => {
 })
 
 describe('шаги открываются по очереди', () => {
-  const step1 = [engineWith(3), heroWith('🐱'), TUTORIAL_CODES[2], TUTORIAL_CODES[3]]
+  const step1 = [engineWith(3), heroWith('кот'), TUTORIAL_CODES[2], TUTORIAL_CODES[3]]
 
   it('в начале открыт только шаг 1', () => {
     expect(levelStates(GUIDE_STEPS, TUTORIAL_CODES).map((l) => l.unlocked)).toEqual([true, false, false])
@@ -206,7 +206,7 @@ describe('шаги открываются по очереди', () => {
       questsDone: [true, true, true, true, false],
       done: false,
     })
-    codes[0] = engineWith(3, '🐟')
+    codes[0] = engineWith(3, 'рыба')
     expect(levelStates(GUIDE_STEPS, codes)[1].done).toBe(true)
     expect(levelStates(GUIDE_STEPS, codes)[2].unlocked).toBe(true)
   })
@@ -222,35 +222,27 @@ describe('шаги открываются по очереди', () => {
   })
 
   it('код бомбы и звезды сохраняет все квесты яблок и поимки', () => {
-    const levels = levelStates(GUIDE_STEPS, [engineWith(3, '🍩'), heroWith('🐱'), GOLD_APPLES, GOLD_CATCH])
+    const levels = levelStates(GUIDE_STEPS, [engineWith(3, 'пончик'), heroWith('кот'), GOLD_APPLES, GOLD_CATCH])
     expect(levels.every((l) => l.done)).toBe(true)
   })
 })
 
-describe('кнопка «Сменить» у цвета', () => {
-  it('есть только у переменной …Color, а не у любого кода цвета', () => {
-    expect(isColorString('var pipeColor = ')).toBe(true)
-    expect(isColorString('  pipeColor = ')).toBe(true)
-    expect(isColorString('  ctx.fillStyle = ')).toBe(false)
-    expect(isColorString('var playerEmoji = ')).toBe(false)
+describe('кнопка «Сменить»', () => {
+  it('у переменной …Pic — выбор картинки, даже если в кавычках пусто или опечатка', () => {
+    expect(pickKind('var playerPic = ')).toBe('pic')
+    expect(pickKind('var itemPic     = ')).toBe('pic')
+    expect(pickKind('  shipPic = ')).toBe('pic')
   })
-})
 
-describe('кнопка «Сменить» у смайлика', () => {
-  it('есть у строки со смайликом и у переменной …Emoji, даже пустой', () => {
-    expect(isEmojiString('🐱', 'var playerEmoji = ')).toBe(true)
-    expect(isEmojiString('', 'var itemEmoji   = ')).toBe(true)
-    expect(isEmojiString('кот', 'var playerEmoji = ')).toBe(true)
-    expect(isEmojiString('❤️', 'x = ')).toBe(true)
-    expect(isEmojiString('👨‍🚀', '')).toBe(true)
+  it('у переменной …Color — выбор цвета, а не у любого кода цвета', () => {
+    expect(pickKind('var pipeColor = ')).toBe('color')
+    expect(pickKind('  pipeColor = ')).toBe('color')
+    expect(pickKind('  ctx.fillStyle = ')).toBeNull()
   })
 
   it('нет у обычных строк', () => {
-    expect(isEmojiString('#141414', '  ctx.fillStyle = ')).toBe(false)
-    expect(isEmojiString('Счёт: ', '  ctx.fillText(')).toBe(false)
-    expect(isEmojiString('ArrowLeft', '  if (keys[')).toBe(false)
-    expect(isEmojiString('34px serif', '  ctx.font = ')).toBe(false)
-    expect(isEmojiString('1', '')).toBe(false)
+    for (const before of ['  ctx.fillText(', '  if (keys[', '  ctx.font = ', '  drawPic(', ''])
+      expect(pickKind(before), before).toBeNull()
   })
 })
 

@@ -1,8 +1,9 @@
+import { DRAW_PIC } from '../engine.ts'
 import type { LessonVariant, TabDef } from '../types.ts'
 
 // Космос. Новое по сравнению с Корзинкой и Птичкой: два массива сразу (пули и пришельцы), вложенный цикл
 // «каждый пришелец × каждая пуля» и перезарядка — счётчик, который каждый кадр уменьшается до нуля.
-// Скорости и перезарядка в учебном движке — 0: их ученик ставит сам в квестах. Строк boomEmoji и maxSpeed
+// Скорости и перезарядка в учебном движке — 0: их ученик ставит сам в квестах. Строк boomPic и maxSpeed
 // нет: их ученик добавляет в дополнительных заданиях.
 //
 // Все массивы — только в «Движке», даже booms из задания «Взрывы». Движок зовёт loop() в своей последней
@@ -11,8 +12,8 @@ import type { LessonVariant, TabDef } from '../types.ts'
 
 /** Цвет пуль, с которого начинают. Квест «Цвет пуль» — выбрать свой. */
 export const BULLET_COLOR = '#ffd54a'
-/** Смайлик пришельца в «Движке». Квест «Свой пришелец» — поменять его. */
-export const ENEMY_EMOJI = '👾'
+/** Картинка пришельца в «Движке». Квест «Свой пришелец» — поменять её. */
+export const ENEMY_PIC = 'пришелец'
 
 export const TUTORIAL_ENGINE = `// ===== НАСТРОЙКИ =====
 var shipSpeed   = 0;
@@ -20,7 +21,7 @@ var bulletSpeed = 0;
 var reloadTime  = 0;
 var enemySpeed  = 0;
 var waveSize    = 5;
-var enemyEmoji  = "${ENEMY_EMOJI}";
+var enemyPic    = "${ENEMY_PIC}";
 var bulletColor = "${BULLET_COLOR}";
 
 // ===== СОСТОЯНИЕ ИГРЫ =====
@@ -52,6 +53,8 @@ function moveEnemies() {}
 function drawEnemies() {}
 function checkHits()   {}
 
+${DRAW_PIC}
+
 // ===== КОСМОС =====
 // Готовый фон: звёзды и луна. Звёзды медленно летят вниз — кажется, что корабль летит вперёд.
 var stars = [];
@@ -67,11 +70,10 @@ function drawSpace() {
     ctx.fillRect(stars[n].x, stars[n].y, 2, 2);
   }
 
-  // save и restore: полупрозрачная только луна, смайлики после неё — яркие
+  // большая луна из набора картинок; save и restore: полупрозрачная только она, картинки после неё — яркие
   ctx.save();
   ctx.globalAlpha = 0.5;
-  ctx.font = "90px serif";
-  ctx.fillText("🌙", 260, 150);
+  ctx.drawImage(picture("луна"), 252, 64, 102, 102);
   ctx.restore();
 }
 
@@ -129,21 +131,20 @@ function loop() {
 }
 loop();`
 
-export const BOOM_LINE = 'var boomEmoji   = "💥";'
+export const BOOM_LINE = 'var boomPic     = "взрыв";'
 export const MAX_SPEED_LINE = 'var maxSpeed    = 2;'
 
 // ===== Код шагов гайда — базовая версия: без взрывов, скорость пришельцев постоянная =====
 // Каждый шаг собирается кнопками по кусочкам (tasks.ts) и в итоге совпадает с этим кодом.
 
 /** Смайлик корабля, с которого начинают. Квест «Выбери корабль» — поменять его на свой. */
-export const SHIP_EMOJI = '🚀'
+export const SHIP_PIC = 'ракета'
 
-export const STEP_SHIP = `// корабль — любой смайлик
-var shipEmoji = "${SHIP_EMOJI}";
+export const STEP_SHIP = `// корабль — любая картинка
+var shipPic = "${SHIP_PIC}";
 
 function drawShip() {
-  ctx.font = "34px serif";
-  ctx.fillText(shipEmoji, shipX, shipY);
+  drawPic(shipPic, shipX, shipY);
 }
 
 function moveShip() {
@@ -210,9 +211,8 @@ const ENEMIES = (fast = '', boom = '') => `function moveEnemies() {
 }
 
 function drawEnemies() {
-  ctx.font = "34px serif";
   for (var i = 0; i < enemies.length; i++) {
-    ctx.fillText(enemyEmoji, enemies[i].x, enemies[i].y);
+    drawPic(enemyPic, enemies[i].x, enemies[i].y);
   }${boom}
 }`
 
@@ -257,7 +257,7 @@ const BOOM_DRAW = `
 
   // взрывы горят 20 кадров и гаснут
   for (var i = booms.length - 1; i >= 0; i--) {
-    ctx.fillText(boomEmoji, booms[i].x, booms[i].y);
+    drawPic(boomPic, booms[i].x, booms[i].y);
     booms[i].t = booms[i].t - 1;
     if (booms[i].t <= 0) booms.splice(i, 1);
   }`
@@ -285,10 +285,7 @@ const FINISHED_ENGINE = TUTORIAL_ENGINE.replace('var shipSpeed   = 0;', 'var shi
   .replace('var bulletSpeed = 0;', 'var bulletSpeed = 9;')
   .replace('var reloadTime  = 0;', 'var reloadTime  = 12;')
   .replace('var enemySpeed  = 0;', 'var enemySpeed  = 1;')
-  .replace(
-    `var enemyEmoji  = "${ENEMY_EMOJI}";`,
-    `var enemyEmoji  = "${ENEMY_EMOJI}";\n${BOOM_LINE}\n${MAX_SPEED_LINE}`,
-  )
+  .replace(`var enemyPic    = "${ENEMY_PIC}";`, `var enemyPic    = "${ENEMY_PIC}";\n${BOOM_LINE}\n${MAX_SPEED_LINE}`)
 
 // ===== Вкладки =====
 
@@ -301,7 +298,7 @@ export const TUTORIAL_TABS: TabDef[] = [
     title: 'Движок',
     note: 'Готовый движок: настройки, состояние игры, космос и главный цикл. Настройки сверху можно менять.',
   },
-  { id: 'ship', title: 'Корабль', step: 1, note: 'Шаг 1: корабль — смайлик внизу, летает стрелками ← →.' },
+  { id: 'ship', title: 'Корабль', step: 1, note: 'Шаг 1: корабль — картинка внизу, летает стрелками ← →.' },
   {
     id: 'bullets',
     title: 'Пули',
@@ -319,7 +316,7 @@ export const TUTORIAL_TABS: TabDef[] = [
 
 export const TUTORIAL_CODES: string[] = [
   TUTORIAL_ENGINE,
-  placeholder(1, 'Здесь будет твой корабль: смайлик, drawShip и moveShip.'),
+  placeholder(1, 'Здесь будет твой корабль: картинка, drawShip и moveShip.'),
   placeholder(2, 'Здесь будут функции shoot, moveBullets и drawBullets.'),
   placeholder(3, 'Здесь будут функции moveEnemies и drawEnemies.'),
   placeholder(4, 'Здесь будет функция checkHits.'),
@@ -329,9 +326,9 @@ export const FINISHED_TABS: TabDef[] = [
   {
     id: 'engine',
     title: 'Движок',
-    note: 'Настройки, состояние игры, космос и главный цикл. Числа, цвет и смайлики можно менять.',
+    note: 'Настройки, состояние игры, космос и главный цикл. Числа, цвет и картинки можно менять.',
   },
-  { id: 'ship', title: 'Корабль', note: 'Корабль: смайлик, отрисовка и полёт стрелками.' },
+  { id: 'ship', title: 'Корабль', note: 'Корабль: картинка, отрисовка и полёт стрелками.' },
   { id: 'bullets', title: 'Пули', note: 'Пробел — выстрел, между выстрелами перезарядка reloadTime кадров.' },
   {
     id: 'enemies',
@@ -349,7 +346,8 @@ export const FINISHED_CODES: string[] = [FINISHED_ENGINE, STEP_SHIP, STEP_BULLET
 
 export const TUTORIAL: LessonVariant = {
   id: 'tutorial',
-  storageKey: 'space-sandbox-v1',
+  // v2: игры рисуют картинками, а не смайликами — старый код с fillText квесты бы не засчитали
+  storageKey: 'space-sandbox-v2',
   tabs: TUTORIAL_TABS,
   initial: TUTORIAL_CODES,
   hasGuide: true,
@@ -357,14 +355,14 @@ export const TUTORIAL: LessonVariant = {
 
 export const FINISHED: LessonVariant = {
   id: 'finished',
-  storageKey: 'space-sandbox-finished-v1',
+  storageKey: 'space-sandbox-finished-v2',
   tabs: FINISHED_TABS,
   initial: FINISHED_CODES,
   hasGuide: false,
   features: [
     'Стрелки ← → — лететь, пробел — стрелять. Пробел можно держать: корабль стреляет сам, с перезарядкой.',
-    'Сбил пришельца — 1 очко и 💥 взрыв. Пришелец долетел до корабля — минус жизнь, жизней три.',
+    'Сбил пришельца — 1 очко и взрыв. Пришелец долетел до корабля — минус жизнь, жизней три.',
     'Пришельцы летят волнами, вниз и зигзагом. Каждая новая волна больше и быстрее прошлой, но не быстрее maxSpeed.',
-    'Скорости, перезарядку, размер волны, цвет пуль и смайлики можно менять в «Движке» и «Корабле».',
+    'Скорости, перезарядку, размер волны, цвет пуль и картинки можно менять в «Движке» и «Корабле».',
   ],
 }

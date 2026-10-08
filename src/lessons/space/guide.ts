@@ -54,7 +54,7 @@ export const GUIDE_STEPS: GuideStep[] = [
     step: 1,
     tab: 1,
     title: 'Корабль',
-    lead: 'Создай корабль-смайлик, нарисуй его и научи летать стрелками.',
+    lead: 'Создай корабль-картинку, нарисуй его и научи летать стрелками.',
     how: [
       'Движок 60 раз в секунду вызывает `drawShip()` и `moveShip()`.',
       'Это как герой в Корзинке: стрелка зажата — к `shipX` прибавляется или отнимается `shipSpeed`.',
@@ -126,18 +126,18 @@ export const GUIDE_STEPS: GuideStep[] = [
 export const GUIDE_EXTRAS: GuideExtra[] = [
   {
     n: 5,
-    emoji: '💥',
+    pic: 'взрыв',
     title: 'Взрывы',
     text: 'Сбил пришельца — на его месте 20 кадров горит взрыв. Взрывы — третий массив, `booms`.',
-    setting: { tab: 0, name: 'boomEmoji', line: BOOM_LINE },
+    setting: { tab: 0, name: 'boomPic', line: BOOM_LINE },
     codes: [
-      { tab: 3, code: BOOM_ENEMIES, marks: [/\bboomEmoji\b/] },
+      { tab: 3, code: BOOM_ENEMIES, marks: [/\bboomPic\b/] },
       { tab: 4, code: BOOM_HITS, marks: [/\bbooms\.push\s*\(/] },
     ],
   },
   {
     n: 6,
-    emoji: '🌊',
+    pic: 'пришелец',
     title: 'Волна за волной',
     text: 'Каждая новая волна на одного пришельца больше и быстрее прошлой, но не быстрее `maxSpeed`. Откроется после взрывов.',
     setting: { tab: 0, name: 'maxSpeed', line: MAX_SPEED_LINE },

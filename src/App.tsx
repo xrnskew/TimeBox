@@ -1,9 +1,9 @@
 import { ControllerContext } from '@/app/context.ts'
 import type { Controller } from '@/app/controller.ts'
 import { Dialogs } from '@/components/Dialogs.tsx'
-import { EmojiPicker } from '@/components/EmojiPicker.tsx'
 import { GamePanel } from '@/components/GamePanel.tsx'
 import { Header } from '@/components/Header.tsx'
+import { PickWindow } from '@/components/PickWindow.tsx'
 import { Workspace } from '@/components/Workspace.tsx'
 import styles from './App.module.css'
 
@@ -17,7 +17,7 @@ export default function App({ controller }: { controller: Controller }) {
           <GamePanel />
         </main>
         <Dialogs />
-        <EmojiPicker />
+        <PickWindow />
       </div>
     </ControllerContext.Provider>
   )

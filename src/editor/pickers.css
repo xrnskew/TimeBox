@@ -1,0 +1,45 @@
+/* «Сменить» у рисунка или цвета в коде: маленькая жёлтая клавиша прямо в строке, цвет квестов. */
+.cm-pick {
+  display: inline-flex;
+  align-items: center;
+  gap: 5px;
+  margin: 0 0 0 10px;
+  padding: 1px 8px 1px 4px;
+  border: 1px solid rgba(255, 200, 58, 0.45);
+  border-radius: 7px;
+  background: rgba(255, 200, 58, 0.1);
+  color: var(--sun);
+  font: 600 12px / 1.45 var(--font-ui);
+  vertical-align: 1px;
+  cursor: pointer;
+  transition:
+    background-color 0.12s,
+    color 0.12s;
+}
+
+.cm-pick:hover {
+  background: var(--sun);
+  color: #151a23;
+}
+
+.cm-pick:focus-visible {
+  outline: 2px solid var(--sun);
+  outline-offset: 2px;
+}
+
+/* миниатюра рисунка, который стоит сейчас: клетки чёткие, без размытия */
+.cm-pickPic {
+  width: 17px;
+  height: 17px;
+  background: center / contain no-repeat;
+  image-rendering: pixelated;
+}
+
+/* квадратик текущего цвета у переменной …Color */
+.cm-pickSwatch {
+  width: 12px;
+  height: 12px;
+  margin-left: 2px;
+  border: 1px solid rgba(255, 255, 255, 0.55);
+  border-radius: 3px;
+}

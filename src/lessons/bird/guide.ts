@@ -41,7 +41,7 @@ export const GUIDE_STEPS: GuideStep[] = [
     step: 1,
     tab: 1,
     title: 'Птица',
-    lead: 'Создай птицу-смайлик, нарисуй её и включи гравитацию.',
+    lead: 'Создай птицу-картинку, нарисуй её и включи гравитацию.',
     how: [
       'Движок 60 раз в секунду вызывает `drawBird()` и `moveBird()`.',
       'В «Корзинке» герой сдвигался на одно и то же число. Здесь у птицы есть скорость `speedY`: каждый кадр к ней прибавляется `gravity`, а сама скорость прибавляется к `birdY`.',
@@ -103,18 +103,18 @@ export const GUIDE_STEPS: GuideStep[] = [
 export const GUIDE_EXTRAS: GuideExtra[] = [
   {
     n: 5,
-    emoji: '🪙',
+    pic: 'монетка',
     title: 'Монетки',
     text: 'В половине дырок висит монетка. Схватил — плюс 5 очков.',
-    setting: { tab: 0, name: 'coinEmoji', line: COIN_LINE },
+    setting: { tab: 0, name: 'coinPic', line: COIN_LINE },
     codes: [
-      { tab: 3, code: COIN_PIPES, marks: [/\bcoinEmoji\b/, /\bcoin\s*:/] },
+      { tab: 3, code: COIN_PIPES, marks: [/\bcoinPic\b/, /\bcoin\s*:/] },
       { tab: 4, code: COIN_HIT, marks: [/\bp\.coin\b/] },
     ],
   },
   {
     n: 6,
-    emoji: '⚡',
+    pic: 'молния',
     title: 'Всё быстрее',
     text: 'Каждые 10 секунд трубы едут быстрее, но не быстрее `maxSpeed`. Откроется после монеток.',
     setting: { tab: 0, name: 'maxSpeed', line: MAX_SPEED_LINE },
