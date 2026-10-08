@@ -1,5 +1,15 @@
 import { describe, expect, it } from 'vitest'
-import { isPicture, PICTURE_GROUPS, PICTURE_NAMES, pictureSvg, pictureUrl, UNKNOWN_PICTURE } from '@/core/pictures.ts'
+import {
+  INK,
+  isPicture,
+  PICTURE_GROUPS,
+  PICTURE_NAMES,
+  PICTURE_SIZE,
+  pictureGrid,
+  pictureSvg,
+  pictureUrl,
+  UNKNOWN_PICTURE,
+} from '@/core/pictures.ts'
 
 describe('Рисунки', () => {
   it('31 рисунок в пяти группах, имена не повторяются; «?» — не в окне выбора', () => {
@@ -11,10 +21,30 @@ describe('Рисунки', () => {
     expect(PICTURE_NAMES).not.toContain(UNKNOWN_PICTURE)
   })
 
-  it('каждый рисунок — правильный SVG 64×64: теги закрыты, атрибуты не повторяются, градиенты на месте', () => {
+  it('каждый рисунок — пиксель-арт 24×24: цвета «#rrggbb», по краю сетки — только контур, контур есть', () => {
+    expect(PICTURE_SIZE).toBe(24)
+    for (const name of [...PICTURE_NAMES, UNKNOWN_PICTURE]) {
+      const g = pictureGrid(name)
+      expect(g, name).toHaveLength(24)
+      for (const row of g) {
+        expect(row, name).toHaveLength(24)
+        for (const c of row) if (c !== null) expect(c, name).toMatch(/^#[0-9a-f]{6}$/)
+      }
+      const filled = g.flat().filter(Boolean)
+      expect(filled.length, name).toBeGreaterThan(150)
+      expect(filled, name).toContain(INK)
+      // с краю не торчит цветная клетка: рисунок не обрезан
+      const edge = [...g[0], ...g[23], ...g.map((r) => r[0]), ...g.map((r) => r[23])]
+      for (const c of edge) expect(c === null || c === INK || name === 'бомба', `${name}: ${c} с краю`).toBe(true)
+    }
+  })
+
+  it('каждый рисунок — правильный SVG: теги закрыты, атрибуты не повторяются, градиенты на месте', () => {
     for (const name of [...PICTURE_NAMES, UNKNOWN_PICTURE]) {
       const svg = pictureSvg(name)
-      expect(svg, name).toMatch(/^<svg xmlns="http:\/\/www\.w3\.org\/2000\/svg" viewBox="0 0 64 64">/)
+      expect(svg, name).toMatch(
+        /^<svg xmlns="http:\/\/www\.w3\.org\/2000\/svg" viewBox="0 0 24 24" shape-rendering="crispEdges">/,
+      )
       expect(svg, name).not.toMatch(/undefined|NaN|\$\{/)
       const open: string[] = []
       for (const [, close, tag, attrs, self] of svg.matchAll(/<(\/?)([a-zA-Z]+)([^>]*?)(\/?)>/g)) {
@@ -37,6 +67,7 @@ describe('Рисунки', () => {
   })
 
   it('неизвестное имя — знак вопроса', () => {
+    expect(pictureGrid('ракто')).toEqual(pictureGrid(UNKNOWN_PICTURE))
     expect(pictureSvg('ракто')).toBe(pictureSvg(UNKNOWN_PICTURE))
     expect(pictureSvg('ракета')).not.toBe(pictureSvg(UNKNOWN_PICTURE))
   })
